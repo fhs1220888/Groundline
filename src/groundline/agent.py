@@ -399,6 +399,7 @@ class LLMAgent:
         ver: dict = {}
         first_ver: dict | None = None
         first_flagged: list[dict] = []
+        first_findings: list[dict] = []
 
         for _step in range(self.max_steps):
             reply = self.backend.complete(system, messages, tools)
@@ -434,14 +435,18 @@ class LLMAgent:
                     ver = verify_findings(findings, s)
                     if first_ver is None:
                         first_ver = dict(ver)
+                        first_findings = [{k: v for k, v in f.to_dict().items() if k != "verification"}
+                                          for f in findings]
                         first_flagged = [{"title": f.title, "statement": f.statement, "evidence": f.evidence,
                                           "ungrounded_numbers": f.verification["ungrounded_numbers"],
+                                          "semantic_problems": f.verification["semantic_problems"],
                                           "problems": f.verification["problems"]}
                                          for f in findings if f.verification["status"] != "verified"]
                     bad = [(i, f) for i, f in enumerate(findings) if f.verification["status"] != "verified"]
                     if bad and fixes_left > 0:
                         fixes_left -= 1
                         lines = [f"finding {i} ({f.title}): ungrounded numbers {f.verification['ungrounded_numbers']}; "
+                                 f"numbers used with the wrong meaning {f.verification['semantic_problems']}; "
                                  f"problems {f.verification['problems']}" for i, f in bad]
                         content = ("Verifier rejected some claims:\n" + "\n".join(lines) +
                                    "\nFix them (cite the right evidence, call tools for missing numbers, or remove "
@@ -468,7 +473,7 @@ class LLMAgent:
         return AnalysisResult(findings, summary, ver,
                               {"type": "llm", "backend": self.backend.name, "model": self.backend.model,
                                "lang": self.lang, "first_submission": first_ver, "submitted": first_ver is not None,
-                               "first_draft_flagged": first_flagged,
+                               "first_draft_flagged": first_flagged, "first_draft_findings": first_findings,
                                "fix_rounds_used": self.fix_rounds - fixes_left,
                                "usage": dict(getattr(self.backend, "usage", {}) or {})},
                               transcript, elapsed_s=time.perf_counter() - t0)

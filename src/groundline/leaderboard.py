@@ -128,7 +128,7 @@ def build_table(out: str | Path, order: list[str] | None = None) -> str:
         rank = {n: i for i, n in enumerate(order)}
         rows.sort(key=lambda r: rank.get(r[0], len(rank)))
     head = [
-        "| 模型 | 交出报告 | 检出率（严格 / 宽松） | 精确率 | 正常试车误报 | 初稿中无出处的数字 | 校验后仍无出处 | 用到修正轮 | token/次 | 秒/次 |",
+        "| 模型 | 交出报告 | 检出率（严格 / 宽松） | 精确率 | 正常试车误报 | 初稿中无出处的数字 | 校验后仍有问题 | 用到修正轮 | token/次 | 秒/次 |",
         "|---|---|---|---|---|---|---|---|---|---|",
     ]
     lines = []
@@ -139,6 +139,8 @@ def build_table(out: str | Path, order: list[str] | None = None) -> str:
         if f:
             ft = int(f["numbers_grounded"].split("/")[1])
             first = f"{f['ungrounded_numbers_caught']} / {ft}（{_pct(s['first_draft_ungrounded_rate'])}）"
+            if f.get("semantic_mismatches"):
+                first += f"，另有 {f['semantic_mismatches']} 个含义不符"
         else:
             first = "–" if not is_llm else "未交报告"
         u = s.get("usage") or {}
@@ -153,7 +155,8 @@ def build_table(out: str | Path, order: list[str] | None = None) -> str:
             f"| {name} | {s['reports_submitted']}/{total} | {_pct(s['recall_all_runs'])} / "
             f"{_pct(s['recall_loose_all_runs'])} | {_pct(s['precision'])} | "
             f"{s['false_positives_on_nominal_runs']}（{s['nominal_runs']} 次） | {first} | "
-            f"{s['ungrounded_numbers']} 个数字、{s['unsupported_claims']} 条结论 | {fixes} | {tok} | "
+            f"{s['ungrounded_numbers'] + s.get('semantic_mismatches', 0)} 个数字、{s['unsupported_claims']} 条结论 | "
+            f"{fixes} | {tok} | "
             f"{s['mean_elapsed_s']:.1f} |"
         )
     notes = [

@@ -12,7 +12,7 @@ import numpy as np
 
 from . import __version__, plots
 from .agent import AnalysisResult
-from .findings import _NUM_RE
+from .findings import number_matches
 from .session import Session
 
 UI = {
@@ -41,6 +41,7 @@ UI = {
         "status_partial": "部分未溯源",
         "status_unsupported": "无证据",
         "ungrounded": "以下数字未在引用证据中找到",
+        "semantic": "数字有出处，但与句中含义不符",
         "problems": "问题",
         "cites": "引用证据",
         "none": "未发现需要报告的问题。",
@@ -74,6 +75,7 @@ UI = {
         "status_partial": "Partly ungrounded",
         "status_unsupported": "No evidence",
         "ungrounded": "Numbers not found in the cited evidence",
+        "semantic": "Numbers found, but not with the meaning the sentence gives them",
         "problems": "Problems",
         "cites": "Evidence",
         "none": "Nothing to report.",
@@ -157,15 +159,18 @@ def _esc(x) -> str:
 def _highlight(text: str, numbers: list[dict]) -> str:
     """Wrap each number in the statement with its grounding status."""
     out, pos, k = [], 0, 0
-    for m in _NUM_RE.finditer(text):
+    for m in number_matches(text):
         out.append(_esc(text[pos : m.start()]))
         n = numbers[k] if k < len(numbers) else None
         k += 1
         tok = _esc(m.group(0))
-        if n and n["grounded"]:
+        if n and n["grounded"] and n.get("consistent", True):
             mv = n["matched"]
             sc = "" if mv["scale"] == 1 else f" × {mv['scale']:g}"
-            out.append(f'<span class="g" title="= {mv["value"]}{sc}">{tok}</span>')
+            src = f" ({mv['field']})" if mv.get("field") else ""
+            out.append(f'<span class="g" title="= {_esc(str(mv["value"]))}{sc}{_esc(src)}">{tok}</span>')
+        elif n and n["grounded"]:
+            out.append(f'<span class="ng" title="{_esc(n.get("semantic_problem") or "")}">{tok}</span>')
         elif n:
             out.append(f'<span class="ng" title="not found in cited evidence">{tok}</span>')
         else:
@@ -262,15 +267,17 @@ def build_report(s: Session, result: AnalysisResult, lang: str = "zh") -> str:
             tags.append(f"<span class='tag'>{tw}</span>")
         tags.append(f"<span class='st-{st}'>{'✓' if st == 'verified' else '!'} {L['status_' + st]}</span>")
         nums = v.get("numbers", [])
-        n_title = len(list(_NUM_RE.finditer(f.title)))
+        n_title = len(number_matches(f.title))
         title_html = _highlight(f.title, nums[:n_title])
         stmt_html = _highlight(f.statement, nums[n_title:])
         chips = "".join(f"<a href='#{_esc(e)}'>{_esc(e)}</a>" for e in f.evidence)
         warn = ""
-        if v.get("ungrounded_numbers") or v.get("problems"):
+        if v.get("ungrounded_numbers") or v.get("semantic_problems") or v.get("problems"):
             items = []
             if v.get("ungrounded_numbers"):
                 items.append(f"{L['ungrounded']}: {_esc(', '.join(v['ungrounded_numbers']))}")
+            if v.get("semantic_problems"):
+                items.append(f"{L['semantic']}: {_esc('; '.join(v['semantic_problems']))}")
             if v.get("problems"):
                 items.append(f"{L['problems']}: {_esc('; '.join(v['problems']))}")
             warn = "<div class='warnbox'>" + "<br>".join(items) + "</div>"

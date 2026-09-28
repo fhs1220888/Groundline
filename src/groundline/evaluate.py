@@ -90,9 +90,17 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
             "findings": [{"title": f.title, "statement": f.statement, "category": f.category, "channel": f.channel,
                           "evidence": f.evidence, "status": f.verification.get("status"),
                           "ungrounded_numbers": f.verification.get("ungrounded_numbers"),
+                          "semantic_problems": f.verification.get("semantic_problems"),
                           "problems": f.verification.get("problems")} for f in res.findings],
             "first_draft_flagged": res.agent.get("first_draft_flagged"),
         })
+        if res.agent.get("type") == "llm":
+            # keep what is needed to re-verify this run later with an improved verifier (groundline reverify)
+            rows[-1]["findings_full"] = [{k: v for k, v in f.to_dict().items() if k != "verification"}
+                                         for f in res.findings]
+            rows[-1]["first_draft_full"] = res.agent.get("first_draft_findings")
+            rows[-1]["ledger"] = [{"id": e.id, "tool": e.tool, "params": e.params, "result": e.result}
+                                  for e in s.ledger]
         if progress:
             progress(i + 1, n)
     return {"n_runs": n, "seed": seed, "tol_s": tol_s, "summary": summarize(rows), "runs": rows}
@@ -103,7 +111,7 @@ def summarize(rows: list[dict]) -> dict:
     rows = [r for r in rows if "error" not in r]
     by_type: dict[str, dict] = defaultdict(lambda: {"n": 0, "detected": 0, "category_ok": 0, "loc_err": []})
     n_claims = n_fp = 0
-    verified = findings = num_total = num_ok = 0
+    verified = findings = num_total = num_ok = num_con = 0
     for r in rows:
         for t in r["match"]["truth"]:
             d = by_type[t["type"]]
@@ -119,6 +127,7 @@ def summarize(rows: list[dict]) -> dict:
         findings += v["n_findings"]
         num_total += v["numbers_total"]
         num_ok += v["numbers_grounded"]
+        num_con += v.get("numbers_consistent", v["numbers_grounded"])
     per_type = {}
     for k in ANOMALY_TYPES:
         d = by_type.get(k)
@@ -155,6 +164,8 @@ def summarize(rows: list[dict]) -> dict:
     if firsts:
         ft = sum(f["numbers_total"] for f in firsts)
         first_rate = (ft - sum(f["numbers_grounded"] for f in firsts)) / ft if ft else 0.0
+        first["semantic_mismatches"] = sum(f["numbers_grounded"] - f.get("numbers_consistent", f["numbers_grounded"])
+                                           for f in firsts)
     return {
         "runs_total": len(rows) + len(errors),
         "reports_submitted": submitted,
@@ -162,6 +173,7 @@ def summarize(rows: list[dict]) -> dict:
         "recall_loose_all_runs": n_loose / n_truth_all if n_truth_all else None,
         "unsupported_claims": findings - verified,
         "ungrounded_numbers": num_total - num_ok,
+        "semantic_mismatches": num_ok - num_con,
         "first_draft_ungrounded_rate": first_rate,
         "fix_rounds_used": fixes,
         "recall": n_det / n_truth if n_truth else None,
@@ -218,3 +230,40 @@ def save(result: dict, path: str | Path) -> Path:
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(result, indent=2, ensure_ascii=False))
     return p
+
+
+class _LedgerView:
+    """Just enough of a Session for the verifier: evidence lookup and channel names."""
+
+    def __init__(self, ledger: list[dict], channels: list[str]):
+        from types import SimpleNamespace
+
+        self._ev = {e["id"]: SimpleNamespace(**e) for e in ledger}
+        self.channels = channels
+
+    def evidence(self, eid):
+        return self._ev.get(eid)
+
+
+def reverify(result: dict) -> dict:
+    """Re-run the current verifier on stored LLM runs (findings + ledger) and refresh the summary."""
+    from .findings import verify_findings
+    from .synth import generate_run
+
+    for r in result["runs"]:
+        if "ledger" not in r:
+            continue
+        chans = [c for c in generate_run(r["seed"]).data.columns if c != "time"]
+        view = _LedgerView(r["ledger"], chans)
+        fs = [Finding.from_dict(d) for d in r.get("findings_full") or []]
+        r["verification"] = verify_findings(fs, view)
+        r["findings"] = [{"title": f.title, "statement": f.statement, "category": f.category, "channel": f.channel,
+                          "evidence": f.evidence, "status": f.verification["status"],
+                          "ungrounded_numbers": f.verification["ungrounded_numbers"],
+                          "semantic_problems": f.verification["semantic_problems"],
+                          "problems": f.verification["problems"]} for f in fs]
+        if r.get("first_draft_full"):
+            ff = [Finding.from_dict(d) for d in r["first_draft_full"]]
+            r["first_submission"] = verify_findings(ff, view)
+    result["summary"] = summarize(result["runs"])
+    return result

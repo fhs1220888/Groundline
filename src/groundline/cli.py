@@ -121,6 +121,27 @@ def cmd_leaderboard(a) -> int:
     return 0
 
 
+def cmd_verifier_bench(a) -> int:
+    from .evaluate import save
+    from .verifier_bench import format_bench, run_verifier_bench
+
+    res = run_verifier_bench(n=a.n, seed=a.seed)
+    print(format_bench(res))
+    if a.out:
+        print(f"details: {save(res, a.out)}")
+    return 0
+
+
+def cmd_reverify(a) -> int:
+    from .evaluate import format_summary, reverify, save
+
+    for p in a.results:
+        res = reverify(json.loads(Path(p).read_text()))
+        save(res, p)
+        print(f"== {p}\n{format_summary(res['summary'])}\n")
+    return 0
+
+
 def cmd_tools(a) -> int:
     from .tools import REGISTRY
 
@@ -178,6 +199,16 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--out", help="write full results JSON here")
     _add_agent_args(e)
     e.set_defaults(fn=cmd_eval)
+
+    vb = sub.add_parser("verifier-bench", help="plant known errors in correct findings and count what the verifier catches")
+    vb.add_argument("--n", type=int, default=50)
+    vb.add_argument("--seed", type=int, default=1000)
+    vb.add_argument("--out", help="write details JSON here")
+    vb.set_defaults(fn=cmd_verifier_bench)
+
+    rv = sub.add_parser("reverify", help="re-run the current verifier on saved LLM benchmark results")
+    rv.add_argument("results", nargs="+", help="eval / leaderboard JSON files (updated in place)")
+    rv.set_defaults(fn=cmd_reverify)
 
     lb = sub.add_parser("leaderboard", help="benchmark several agents/models on the same runs and compare them")
     lb.add_argument("config", nargs="?", default="examples/leaderboard.json", help="models JSON")

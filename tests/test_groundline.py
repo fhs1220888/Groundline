@@ -456,3 +456,76 @@ def test_oscillation_window_longer_than_span_is_clamped():
 def test_hyphenated_identifiers_are_not_numbers():
     vals = [v for _, v, _ in extract_numbers("Tested SYN-1013 and run_42: peak 5.2 bar, -3 dB")]
     assert vals == [5.2, -3.0]
+
+
+# ---------------------------------------------------------------------------- semantic checks
+def _pc_session_with_pulse():
+    t = np.arange(0, 10, 0.01)
+    f = np.where((t >= 3) & (t < 7), 500.0, 0.0) + 5.0
+    s = _toy_session({"time": t, "F_thrust": f}, meta_channels={"F_thrust": {"unit": "N", "kind": "force"}})
+    return s, s.run("pulse_metrics")
+
+
+def _check(s, stmt, ev):
+    from groundline.findings import verify_finding
+
+    return verify_finding(Finding("t", stmt, "observation", "info", "F_thrust", None, None, [ev.id]), s)
+
+
+def test_semantic_accepts_correct_reading():
+    s, ev = _pc_session_with_pulse()
+    r = ev.result
+    v = _check(s, f"峰值 {r['peak']:.1f} N，工作时间 {r['action_time_s']:.2f} s，总冲 {r['integral']:.0f} N·s，"
+                  f"{r['t_start']:.2f}–{r['t_end']:.2f} s，按峰值的 {r['start_pct']:g}% 截取。", ev)
+    assert v["status"] == "verified", v
+
+
+def test_semantic_flags_real_value_in_wrong_role_or_unit():
+    s, ev = _pc_session_with_pulse()
+    r = ev.result
+    # the action time written as the peak: a real number, wrong meaning
+    v = _check(s, f"peak of {r['action_time_s']:.2f}", ev)
+    assert v["status"] == "partial" and v["semantic_problems"]
+    # a time written in Hz
+    v = _check(s, f"at {r['t_peak']:.2f} Hz", ev)
+    assert v["mismatched_numbers"]
+    # the peak force written with a time unit
+    v = _check(s, f"{r['peak']:.1f} s", ev)
+    assert v["mismatched_numbers"]
+
+
+def test_role_word_must_lead_into_the_number():
+    from groundline.semantics import role_before
+
+    t = "T_cool_out 持续超出红线 700 K"
+    assert role_before(t, t.index("700")) is None
+    t = "峰值为 742.3 K"
+    assert role_before(t, t.index("742"))[0] == "peak"
+
+
+def test_verifier_bench_catches_more_than_grounding_without_false_alarms():
+    from groundline.verifier_bench import run_verifier_bench
+
+    r = run_verifier_bench(n=3, seed=1000, langs=("zh",))
+    assert r["clean"]["flagged_full"] == 0
+    for k in ("fabricated", "swapped", "wrong_unit"):
+        st = r["mutations"][k]
+        assert st["caught_full"] >= st["caught_grounding"]
+    assert r["mutations"]["wrong_unit"]["caught_full"] > 0 and r["mutations"]["swapped"]["caught_full"] > 0
+
+
+def test_llm_runs_can_be_reverified_later():
+    from groundline.evaluate import reverify
+
+    def agent():
+        return LLMAgent(ScriptedBackend([
+            {"content": "", "tool_calls": [{"id": "a", "name": "submit_report", "arguments": {
+                "summary": "x", "findings": [{"title": "seq", "statement": "ignition 999.5 s", "category": "observation",
+                                              "severity": "info", "evidence": ["E2"]}]}}]},
+        ]), lang="en", fix_rounds=0)
+
+    res = run_benchmark(agent, n=1, seed=1000)
+    assert "ledger" in res["runs"][0]
+    before = res["runs"][0]["verification"]
+    after = reverify(json.loads(json.dumps(res)))["runs"][0]["verification"]
+    assert before["numbers_grounded"] == after["numbers_grounded"] == 0
