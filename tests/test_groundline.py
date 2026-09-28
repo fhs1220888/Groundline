@@ -244,3 +244,58 @@ def test_dotenv_parsing_and_precedence(tmp_path, monkeypatch):
     import os
     assert os.environ["GROUNDLINE_LLM_MODEL"] == "from-file"
     assert os.environ["GROUNDLINE_LANG"] == "zh"
+
+
+def test_openai_responses_backend(monkeypatch):
+    """Responses API: instructions + incremental input with previous_response_id, function tools, reasoning."""
+    import json as J
+
+    import httpx
+
+    from groundline.agent import OpenAIResponses, make_agent
+
+    monkeypatch.delenv("GROUNDLINE_OPENAI_API", raising=False)
+    monkeypatch.delenv("GROUNDLINE_LLM_BASE_URL", raising=False)
+    seen = []
+    state = {"n": 0, "submits": 0, "last_ev": None}
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        assert url.endswith("/responses")
+        assert json["instructions"] and json["tools"][0]["type"] == "function"
+        assert json["reasoning"] == {"effort": "low"}
+        seen.append(json)
+        state["n"] += 1
+        if state["n"] == 1:
+            assert "previous_response_id" not in json
+            assert json["input"][0]["role"] == "user"
+            out = [{"type": "reasoning", "summary": []},
+                   {"type": "function_call", "call_id": "c1", "name": "check_redlines", "arguments": "{}"}]
+        else:
+            assert json["previous_response_id"] == f"resp_{state['n'] - 1}"
+            # only new items are sent: tool outputs, never the assistant turn again
+            assert all(i.get("type") == "function_call_output" for i in json["input"]), json["input"]
+            for i in json["input"]:
+                if "evidence_id" in i["output"]:
+                    state["last_ev"] = J.loads(i["output"])
+            ev = state["last_ev"]
+            num = "123.45" if state["submits"] == 0 else str(ev["result"]["persistence_s"])
+            state["submits"] += 1
+            args = {"summary": "s", "findings": [{"title": "t", "statement": f"persistence {num} s",
+                                                  "category": "observation", "severity": "info",
+                                                  "evidence": [ev["evidence_id"]]}]}
+            out = [{"type": "function_call", "call_id": f"s{state['n']}", "name": "submit_report",
+                    "arguments": J.dumps(args)}]
+        body = {"id": f"resp_{state['n']}", "output": out, "usage": {"input_tokens": 100, "output_tokens": 20}}
+        return httpx.Response(200, json=body, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    monkeypatch.setenv("GROUNDLINE_LLM_REASONING_EFFORT", "low")
+    agent = make_agent("openai", "en", "gpt-5.6-sol", None, "k")
+    assert isinstance(agent.backend, OpenAIResponses)
+    _, s = session_for(["overtemp"], seed=2)
+    res = agent.run(s)
+    assert res.verification["verified"] == 1
+    assert res.agent["first_submission"]["numbers_grounded"] == 0
+    assert res.agent["usage"] == {"input_tokens": 300, "output_tokens": 60, "requests": 3}
+    # third request carries the verifier rejection as a function_call_output
+    assert "Verifier rejected" in seen[2]["input"][0]["output"]

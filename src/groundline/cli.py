@@ -48,6 +48,14 @@ def _analyze(run_path, reference, limits, a) -> int:
         print(f"  {i}. [{f.severity}] {mark} {f.title}  ({', '.join(f.evidence)})")
     print(f"claims verified {v['verified']}/{v['n_findings']}, numbers grounded "
           f"{v['numbers_grounded']}/{v['numbers_total']}")
+    fs = res.agent.get("first_submission")
+    if fs:
+        print(f"first draft before verifier feedback: numbers grounded {fs['numbers_grounded']}/{fs['numbers_total']}"
+              f" (fix rounds used: {res.agent.get('fix_rounds_used', 0)})")
+    u = res.agent.get("usage")
+    if u and u.get("requests"):
+        print(f"LLM: {res.agent.get('model')} · {u['requests']} requests · {u['input_tokens']:,} input / "
+              f"{u['output_tokens']:,} output tokens · {res.elapsed_s:.0f} s")
     print(f"report: {paths['html']}\nledger: {paths['json']}")
     return 0
 

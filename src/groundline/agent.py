@@ -417,6 +417,87 @@ def _check(r) -> None:
         raise RuntimeError(f"LLM API error {r.status_code}: {r.text[:800]}")
 
 
+def _post(url: str, body: dict, headers: dict, timeout: float, retries: int = 3):
+    """POST with a small retry on rate limits / transient server errors."""
+    import httpx
+
+    for attempt in range(retries + 1):
+        r = httpx.post(url, json=body, headers=headers, timeout=timeout)
+        if r.status_code in (429, 500, 502, 503, 504) and attempt < retries:
+            time.sleep(min(2 ** attempt * 2, 20))
+            continue
+        _check(r)
+        return r
+
+
+class OpenAIResponses:
+    """OpenAI Responses API (/v1/responses) — needed for tool calling with reasoning models such as gpt-5.6-sol.
+
+    Conversation state is kept server-side with ``previous_response_id``; each call only sends what is new
+    since the last one (tool outputs, user nudges).
+    """
+
+    name = "openai-responses"
+
+    def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None,
+                 reasoning_effort: str | None = None, timeout: float = 300.0):
+        self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "gpt-5.6-sol")
+        self.base_url = (base_url or os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
+        self.api_key = api_key or os.environ.get("GROUNDLINE_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+        self.reasoning_effort = reasoning_effort or os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT") or None
+        self.timeout = timeout
+        self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
+        self._prev_id: str | None = None
+        self._sent = 0  # number of agent messages already delivered to the server
+
+    @staticmethod
+    def _to_items(messages: list[dict]) -> list[dict]:
+        items: list[dict] = []
+        for m in messages:
+            if m["role"] == "user":
+                items.append({"role": "user", "content": m["content"]})
+            elif m["role"] == "tool":
+                items.append({"type": "function_call_output", "call_id": m["tool_call_id"], "output": m["content"]})
+            # assistant turns already live on the server via previous_response_id
+        return items
+
+    def complete(self, system: str, messages: list[dict], tools: list[dict]) -> dict:
+        if self._prev_id is None or len(messages) < self._sent:
+            self._prev_id, self._sent = None, 0
+        body: dict[str, Any] = {
+            "model": self.model,
+            "instructions": system,
+            "input": self._to_items(messages[self._sent:]),
+            "tools": [{"type": "function", "name": t["name"], "description": t["description"],
+                       "parameters": t["parameters"], "strict": False} for t in tools],
+        }
+        if self._prev_id:
+            body["previous_response_id"] = self._prev_id
+        if self.reasoning_effort:
+            body["reasoning"] = {"effort": self.reasoning_effort}
+        headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+        r = _post(f"{self.base_url}/responses", body, headers, self.timeout)
+        data = r.json()
+        u = data.get("usage") or {}
+        self.usage["input_tokens"] += u.get("input_tokens", 0)
+        self.usage["output_tokens"] += u.get("output_tokens", 0)
+        self.usage["requests"] += 1
+        self._prev_id = data.get("id")
+        # the assistant message the agent appends next is represented server-side; skip it next time
+        self._sent = len(messages) + 1
+        text, calls = [], []
+        for item in data.get("output", []):
+            if item.get("type") == "message":
+                text += [c.get("text", "") for c in item.get("content", []) if c.get("type") == "output_text"]
+            elif item.get("type") == "function_call":
+                try:
+                    args = json.loads(item.get("arguments") or "{}")
+                except json.JSONDecodeError:
+                    args = {}
+                calls.append({"id": item["call_id"], "name": item["name"], "arguments": args})
+        return {"content": "".join(text), "tool_calls": calls}
+
+
 class OpenAICompatible:
     """Any OpenAI-compatible /chat/completions endpoint: OpenAI, DeepSeek, Qwen (DashScope), vLLM, Ollama..."""
 
@@ -460,8 +541,7 @@ class OpenAICompatible:
         if self.reasoning_effort:  # e.g. none | low | medium | high for reasoning models
             body["reasoning_effort"] = self.reasoning_effort
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
-        r = httpx.post(f"{self.base_url}/chat/completions", json=body, headers=headers, timeout=self.timeout)
-        _check(r)
+        r = _post(f"{self.base_url}/chat/completions", body, headers, self.timeout)
         data = r.json()
         u = data.get("usage") or {}
         self.usage["input_tokens"] += u.get("prompt_tokens", 0)
@@ -555,11 +635,17 @@ def make_agent(kind: str = "rule", lang: str = "zh", model: str | None = None, b
     if kind == "rule":
         return RuleAgent(lang)
     if kind in ("openai", "openai-compatible", "qwen", "deepseek", "ollama", "vllm"):
+        # official OpenAI -> Responses API (tools + reasoning); other endpoints -> Chat Completions.
+        # Override with GROUNDLINE_OPENAI_API=responses|chat.
+        url = base_url or os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1")
+        api = os.environ.get("GROUNDLINE_OPENAI_API") or ("responses" if "api.openai.com" in url else "chat")
+        if kind == "openai" and api == "responses":
+            return LLMAgent(OpenAIResponses(model, base_url, api_key), lang)
         return LLMAgent(OpenAICompatible(model, base_url, api_key), lang)
     if kind == "anthropic":
         return LLMAgent(AnthropicBackend(model, api_key), lang)
     raise ValueError(f"unknown agent {kind!r}")
 
 
-__all__ = ["AnalysisResult", "RuleAgent", "LLMAgent", "OpenAICompatible", "AnthropicBackend", "ScriptedBackend",
+__all__ = ["AnalysisResult", "RuleAgent", "LLMAgent", "OpenAICompatible", "OpenAIResponses", "AnthropicBackend", "ScriptedBackend",
            "make_agent", "to_jsonable"]

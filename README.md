@@ -69,7 +69,7 @@ groundline analyze run.csv --agent anthropic --model claude-sonnet-5
 groundline eval --agent openai --model gpt-4o-mini --n 10 --lang en --out eval_openai.json
 ```
 
-默认不传 temperature（推理类模型不接受自定义值）；需要时用 `GROUNDLINE_LLM_TEMPERATURE=0` 设置。
+连接官方 OpenAI 时自动使用 Responses API（推理模型如 `gpt-5.6-sol` 只有在这个接口上才能同时推理和调用工具），推理强度用 `GROUNDLINE_LLM_REASONING_EFFORT` 设置；连接其他 OpenAI 兼容服务时使用 Chat Completions，可用 `GROUNDLINE_OPENAI_API=responses|chat` 强制指定。默认不传 temperature，需要时用 `GROUNDLINE_LLM_TEMPERATURE` 设置。
 
 试验数据通常很敏感，所以接口按内网私有化部署设计：模型只看到工具的输出摘要，看不到原始数据。
 
