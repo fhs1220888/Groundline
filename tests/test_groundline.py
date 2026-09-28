@@ -378,3 +378,54 @@ def test_ignition_ramp_is_not_an_oscillation():
     s = Session.open(HANARO)
     r = s.run("detect_oscillation", channel="F_thrust").result
     assert not r["events"]
+
+
+# ---------------------------------------------------------------------------- leaderboard / weak models
+def test_invalid_submit_is_sent_back_not_accepted():
+    """A model that sends broken JSON must be told so, not have an empty report accepted."""
+    _, s = session_for([], seed=4)
+    good = {"summary": "nominal", "findings": [{"title": "sequence", "statement": "nominal run",
+                                                "category": "observation", "severity": "info",
+                                                "evidence": ["E2"]}]}
+    backend = ScriptedBackend([
+        {"content": "", "tool_calls": [{"id": "a", "name": "submit_report",
+                                        "arguments": {"__invalid_json__": "{\"summary\": \"nomi"}}]},
+        {"content": "", "tool_calls": [{"id": "b", "name": "submit_report",
+                                        "arguments": {"summary": "x", "findings": "not json"}}]},
+        {"content": "", "tool_calls": [{"id": "c", "name": "submit_report",
+                                        "arguments": {**good, "findings": json.dumps(good["findings"])}}]},
+    ])
+    res = LLMAgent(backend, lang="en").run(s)
+    assert backend.calls == 3
+    assert res.agent["submitted"] and len(res.findings) == 1
+    errors = [t for t in res.transcript if t["role"] == "tool" and "error" in t["content"]]
+    assert len(errors) == 2
+
+
+def test_agent_that_never_submits_counts_as_missed(tmp_path):
+    from groundline.evaluate import summarize
+
+    def silent():
+        return LLMAgent(ScriptedBackend([]), lang="en", max_steps=2)
+
+    res = run_benchmark(silent, n=2, seed=1001, keep_going=True)
+    s = summarize(res["runs"])
+    assert s["reports_submitted"] == 0
+    assert s["recall_all_runs"] == 0
+
+
+def test_leaderboard_runs_and_imports(tmp_path):
+    from groundline.evaluate import save
+    from groundline.leaderboard import run_leaderboard
+
+    prev = run_benchmark(lambda: RuleAgent("en"), n=2, seed=1000)
+    save(prev, tmp_path / "old.json")
+    cfg = {"n": 2, "seed": 1000, "lang": "en", "models": [
+        {"name": "rule", "agent": "rule"},
+        {"name": "imported", "agent": "rule", "from": str(tmp_path / "old.json")},
+    ]}
+    md = run_leaderboard(cfg, tmp_path / "lb")
+    table = md.read_text()
+    assert "| rule | 2/2 | 100% |" in table and "| imported | 2/2 | 100% |" in table
+    # second call reuses results
+    assert run_leaderboard(cfg, tmp_path / "lb").read_text() == table

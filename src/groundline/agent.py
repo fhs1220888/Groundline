@@ -411,8 +411,24 @@ class LLMAgent:
             submitted = False
             for c in calls:
                 name, args = c["name"], c.get("arguments") or {}
+                parsed = None
+                if "__invalid_json__" in args:
+                    parsed = "arguments were not valid JSON: " + args["__invalid_json__"][:200]
+                elif name == "submit_report":
+                    try:
+                        raw_f = args.get("findings", [])
+                        if isinstance(raw_f, str):  # some models send the list as a JSON string
+                            raw_f = json.loads(raw_f)
+                        new_findings = [Finding.from_dict(d) for d in raw_f]
+                    except Exception as e:
+                        parsed = f"could not read findings ({type(e).__name__}: {e})"[:300]
+                if parsed:
+                    content = json.dumps({"error": parsed + ". Call the tool again with valid arguments."})
+                    messages.append({"role": "tool", "tool_call_id": c["id"], "name": name, "content": content})
+                    transcript.append({"role": "tool", "name": name, "content": content})
+                    continue
                 if name == "submit_report":
-                    findings = [Finding.from_dict(d) for d in args.get("findings", [])]
+                    findings = new_findings
                     summary = args.get("summary", "")
                     ver = verify_findings(findings, s)
                     if first_ver is None:
@@ -446,13 +462,25 @@ class LLMAgent:
             ver = verify_findings(findings, s)
         return AnalysisResult(findings, summary, ver,
                               {"type": "llm", "backend": self.backend.name, "model": self.backend.model,
-                               "lang": self.lang, "first_submission": first_ver,
+                               "lang": self.lang, "first_submission": first_ver, "submitted": first_ver is not None,
                                "fix_rounds_used": self.fix_rounds - fixes_left,
                                "usage": dict(getattr(self.backend, "usage", {}) or {})},
                               transcript, elapsed_s=time.perf_counter() - t0)
 
 
 # ---------------------------------------------------------------------------- backends
+def _parse_args(raw) -> dict:
+    """Tool-call arguments as a dict. Unparseable JSON is kept so the agent can tell the model,
+    instead of silently running the tool (or accepting a report) with no arguments."""
+    if isinstance(raw, dict):
+        return raw
+    try:
+        v = json.loads(raw or "{}")
+    except json.JSONDecodeError:
+        return {"__invalid_json__": str(raw)[:500]}
+    return v if isinstance(v, dict) else {"__invalid_json__": str(raw)[:500]}
+
+
 def _check(r) -> None:
     if r.status_code >= 400:
         raise RuntimeError(f"LLM API error {r.status_code}: {r.text[:800]}")
@@ -531,10 +559,7 @@ class OpenAIResponses:
             if item.get("type") == "message":
                 text += [c.get("text", "") for c in item.get("content", []) if c.get("type") == "output_text"]
             elif item.get("type") == "function_call":
-                try:
-                    args = json.loads(item.get("arguments") or "{}")
-                except json.JSONDecodeError:
-                    args = {}
+                args = _parse_args(item.get("arguments"))
                 calls.append({"id": item["call_id"], "name": item["name"], "arguments": args})
         return {"content": "".join(text), "tool_calls": calls}
 
@@ -591,11 +616,8 @@ class OpenAICompatible:
         msg = data["choices"][0]["message"]
         calls = []
         for c in msg.get("tool_calls") or []:
-            try:
-                args = json.loads(c["function"].get("arguments") or "{}")
-            except json.JSONDecodeError:
-                args = {}
-            calls.append({"id": c["id"], "name": c["function"]["name"], "arguments": args})
+            args = _parse_args(c["function"].get("arguments"))
+            calls.append({"id": c.get("id") or f"call_{len(calls)}", "name": c["function"]["name"], "arguments": args})
         return {"content": msg.get("content") or "", "tool_calls": calls}
 
 

@@ -12,3 +12,4 @@ runs/
 examples/**/report.html
 examples/**/report.json
 eval_*.json
+leaderboard/

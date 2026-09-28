@@ -1,0 +1,14 @@
+{
+  "n": 14,
+  "seed": 1000,
+  "lang": "zh",
+  "models": [
+    {"name": "规则 agent", "agent": "rule"},
+    {"name": "gpt-5.6-sol", "agent": "openai", "model": "gpt-5.6-sol", "api": "responses",
+     "api_key_env": "OPENAI_API_KEY", "from": "eval_sol_v2.json"},
+    {"name": "qwen2.5-14b (本地)", "agent": "openai", "model": "qwen2.5:14b-16k",
+     "base_url": "http://localhost:11434/v1", "api_key": "ollama"},
+    {"name": "qwen2.5-7b (本地)", "agent": "openai", "model": "qwen2.5:7b-16k",
+     "base_url": "http://localhost:11434/v1", "api_key": "ollama"}
+  ]
+}

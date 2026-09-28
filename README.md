@@ -132,6 +132,17 @@ LLM agent（`gpt-5.6-sol`，Responses API）在同一组种子的前 14 次试�
 
 第一次评测时精确率只有 36%：37 条"误报"里有 35 条其实是"阀门响应合格""未检出振荡"这类检查通过的结论，被模型填成了异常类别。提示词里补上"非 observation 类别表示发现了异常，检查通过的结论用 observation"之后，精确率升到 95%。评测标准没有改动。
 
+### 多模型排行榜
+
+`groundline leaderboard` 让多个 agent / 模型跑同一组合成试车，并汇总成一张表（`leaderboard/LEADERBOARD.md`）。模型列表写在 JSON 里，示例见 `examples/leaderboard.json`：规则 agent、gpt-5.6-sol，以及通过 [Ollama](https://ollama.com) 在本地运行的 Qwen2.5 7B / 14B。已有的 `groundline eval` 结果可以用 `"from"` 直接导入，不必重跑。结果按模型分别保存，中断后再次运行会接着跑没跑完的模型。
+
+```bash
+groundline leaderboard examples/leaderboard.json            # 全部模型
+groundline leaderboard examples/leaderboard.json --only "qwen2.5-7b (本地)"
+```
+
+表里最关键的一列是**初稿中无出处的数字**：校验器第一次拦下、在所引用证据里找不到的数字，也就是没有校验器时会直接进入报告的编造数字。检出率按全部试车计算，模型崩溃或没交报告的试车里的异常都算漏检。
+
 **这组数字要打折扣看。** 规则 agent 是和这个合成器一起调出来的，满分只能说明管线自洽，不能说明它能处理真实数据。这个基准真正的用途是：
 
 1. 比较不同 LLM agent 的表现，以及它们编造数字的频率；

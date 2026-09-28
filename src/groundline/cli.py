@@ -1,4 +1,4 @@
-"""Command line interface: ``groundline demo | synth | analyze | reproduce | eval | tools``."""
+"""Command line interface: ``groundline demo | synth | analyze | reproduce | eval | leaderboard | tools``."""
 
 from __future__ import annotations
 
@@ -102,6 +102,25 @@ def cmd_eval(a) -> int:
     return 0
 
 
+def cmd_leaderboard(a) -> int:
+    from .leaderboard import build_table, run_leaderboard
+
+    if a.table_only:
+        print(build_table(a.out))
+        return 0
+    cfg_path = Path(a.config)
+    cfg = json.loads(cfg_path.read_text())
+    if a.n is not None:
+        cfg["n"] = a.n
+    if a.seed is not None:
+        cfg["seed"] = a.seed
+    only = [x for x in a.only.split(",") if x] if a.only else None
+    md = run_leaderboard(cfg, a.out, force=a.force, only=only, base_dir=Path.cwd())
+    print(md.read_text())
+    print(f"table: {md}")
+    return 0
+
+
 def cmd_tools(a) -> int:
     from .tools import REGISTRY
 
@@ -159,6 +178,16 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--out", help="write full results JSON here")
     _add_agent_args(e)
     e.set_defaults(fn=cmd_eval)
+
+    lb = sub.add_parser("leaderboard", help="benchmark several agents/models on the same runs and compare them")
+    lb.add_argument("config", nargs="?", default="examples/leaderboard.json", help="models JSON")
+    lb.add_argument("--out", default="leaderboard", help="directory for per-model results and LEADERBOARD.md")
+    lb.add_argument("--n", type=int, help="override n from the config")
+    lb.add_argument("--seed", type=int, help="override seed from the config")
+    lb.add_argument("--only", help="comma separated model names to (re)run")
+    lb.add_argument("--force", action="store_true", help="re-run models that already have results")
+    lb.add_argument("--table-only", action="store_true", help="only rebuild the table from --out")
+    lb.set_defaults(fn=cmd_leaderboard)
 
     c = sub.add_parser("config", help="show the configuration the CLI will use (.env, agent, model; keys masked)")
     c.set_defaults(fn=cmd_config)

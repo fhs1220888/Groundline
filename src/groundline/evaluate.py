@@ -50,7 +50,10 @@ def match(findings: list[Finding], truth: list[Anomaly], tol_s: float = 0.25) ->
         {"category": f.category, "channel": f.channel, "t_start": f.t_start, "title": f.title} for f in fps]}
 
 
-def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, progress=None) -> dict:
+def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, progress=None,
+                  keep_going: bool = False) -> dict:
+    """Run ``n`` synthetic tests. A failure on the very first run is raised (usually a bad key or URL)
+    unless ``keep_going`` is set, in which case every failure is recorded and the benchmark continues."""
     rows = []
     for i in range(n):
         run = generate_run(seed + i)
@@ -63,7 +66,7 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
                          "error": f"{type(e).__name__}: {e}"[:500]})
             if progress:
                 progress(i + 1, n)
-            if i == 0:
+            if i == 0 and not keep_going:
                 raise
             continue
         m = match(res.findings, run.truth, tol_s)
@@ -73,6 +76,8 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
             "match": m,
             "verification": res.verification,
             "first_submission": res.agent.get("first_submission"),
+            "submitted": res.agent.get("submitted", True),
+            "fix_rounds_used": res.agent.get("fix_rounds_used", 0),
             "usage": res.agent.get("usage"),
             "elapsed_s": time.perf_counter() - t0,
             "n_evidence": len(s.ledger),
@@ -130,7 +135,22 @@ def summarize(rows: list[dict]) -> dict:
     n_det = sum(d["detected"] for d in by_type.values())
     n_nominal = sum(1 for r in rows if not r["anomalies"])
     fp_nominal = sum(len(r["match"]["false_positives"]) for r in rows if not r["anomalies"])
+    # a run that crashed or never submitted a report still had anomalies to find
+    n_truth_all = n_truth + sum(len(r["anomalies"]) for r in errors)
+    submitted = sum(1 for r in rows if r.get("submitted", r["verification"]["n_findings"] > 0))
+    fixes = sum(r.get("fix_rounds_used", 0) or 0 for r in rows)
+    first_rate = None
+    if firsts:
+        ft = sum(f["numbers_total"] for f in firsts)
+        first_rate = (ft - sum(f["numbers_grounded"] for f in firsts)) / ft if ft else 0.0
     return {
+        "runs_total": len(rows) + len(errors),
+        "reports_submitted": submitted,
+        "recall_all_runs": n_det / n_truth_all if n_truth_all else None,
+        "unsupported_claims": findings - verified,
+        "ungrounded_numbers": num_total - num_ok,
+        "first_draft_ungrounded_rate": first_rate,
+        "fix_rounds_used": fixes,
         "recall": n_det / n_truth if n_truth else None,
         "precision": (n_claims - n_fp) / n_claims if n_claims else None,
         "category_accuracy": sum(d["category_ok"] for d in by_type.values()) / n_truth if n_truth else None,
