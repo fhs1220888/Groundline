@@ -56,14 +56,17 @@ def new_fig(rows: int = 1, height: float = 2.8, width: float = 9.0, sharex: bool
     return fig, [a[0] for a in axes]
 
 
-def shade_phases(ax, phases: list[dict] | None, label: bool = False) -> None:
+def shade_phases(ax, phases: list[dict] | None, label: bool = False, xlim: tuple[float, float] | None = None) -> None:
     if not phases:
         return
     for p in phases:
         ax.axvspan(p["t_start"], p["t_end"], color=PHASE_FILL.get(p["name"], "#f1f0ec"), zorder=0, lw=0)
-        if label:
+        a, b = p["t_start"], p["t_end"]
+        if xlim:
+            a, b = max(a, xlim[0]), min(b, xlim[1])
+        if label and b > a:
             ax.text(
-                (p["t_start"] + p["t_end"]) / 2,
+                (a + b) / 2,
                 1.0,
                 p["name"],
                 transform=ax.get_xaxis_transform(),

@@ -82,6 +82,22 @@ def _unit(s: Session, ch: str) -> str:
     return s.channel_info(ch).get("unit", "")
 
 
+_trapz = getattr(np, "trapezoid", None) or np.trapz  # numpy < 2 only has trapz
+
+
+def _native_rate(s: Session, ch: str) -> float:
+    """Rate the channel was actually recorded at (it may have been interpolated onto a faster grid)."""
+    r = s.channel_info(ch).get("native_rate_hz")
+    return min(float(r), s.fs) if r else s.fs
+
+
+def _firing_window(s: Session) -> tuple[float, float] | None:
+    ph = {p["name"]: p for p in s.phases()}
+    if "startup" not in ph or "shutdown" not in ph:
+        return None
+    return ph["startup"]["t_start"], ph["shutdown"]["t_end"]
+
+
 def _primary_pressure(s: Session) -> str:
     if "Pc" in s.channels:
         return "Pc"
@@ -105,6 +121,7 @@ def describe_data(s: Session):
         chans[c] = {
             "unit": info.get("unit", ""),
             "kind": info.get("kind", ""),
+            **{k: info[k] for k in ("desc", "native_rate_hz", "note") if k in info},
             "min": np.nanmin(x),
             "max": np.nanmax(x),
             "mean": np.nanmean(x),
@@ -114,6 +131,7 @@ def describe_data(s: Session):
     return (
         {
             "test_id": s.meta.get("test_id"),
+            **{k: s.meta[k] for k in ("description", "engine_type") if k in s.meta},
             "n_samples": len(t),
             "duration_s": t[-1] - t[0],
             "sample_rate_hz": s.fs,
@@ -184,14 +202,24 @@ def segment_phases(s: Session, channel: str | None = None):
     if channel is None:
         s._cache["phases"] = res
     fig, (ax,) = plots.new_fig(1, height=3.0)
-    plots.shade_phases(ax, res["phases"], label=True)
+    xlim = None
+    if res.get("fired"):
+        # a short firing in a long recording would be a sliver: zoom the figure (not the result) onto it
+        fire = res["tail_off_end_s"] - res["ignition_s"]
+        if fire > 0 and (s.time[-1] - s.time[0]) > 5 * fire:
+            pad = max(1.0, 0.5 * fire)
+            xlim = (max(float(s.time[0]), res["ignition_s"] - pad), min(float(s.time[-1]), res["tail_off_end_s"] + pad))
+    plots.shade_phases(ax, res["phases"], label=True, xlim=xlim)
     ch = res["channel"]
     ax.plot(s.time, s.data[ch], color=plots.SERIES[0], lw=1.0, label=ch)
     for e in res.get("command_events", []):
         ax.axvline(e["t_s"], color=plots.INK_2, lw=0.7, ls=":")
+    if xlim:
+        ax.set_xlim(*xlim)
     ax.set_ylabel(f"{ch} [{_unit(s, ch)}]")
     ax.set_xlabel("time [s]")
-    ax.set_title(f"Phase segmentation on {ch} (dotted: valve commands)", pad=14)
+    note = " (dotted: valve commands)" if res.get("command_events") else ""
+    ax.set_title(f"Phase segmentation on {ch}{note}", pad=14)
     return res, plots.to_base64(fig)
 
 
@@ -318,7 +346,17 @@ def detect_oscillation(
     thr = float(threshold_pct if threshold_pct is not None else cfg.get("threshold_pct", 0.5))
     t_start, t_end = _default_window(s, t_start, t_end)
     fs = s.fs
-    fmax = min(fmax, 0.45 * fs)
+    native = _native_rate(s, channel)
+    fmax = min(fmax, 0.45 * native)
+    if fmax <= fmin:
+        return {
+            "channel": channel, "t_start": t_start, "t_end": t_end, "fmin_hz": fmin, "fmax_hz": fmax,
+            "native_rate_hz": native, "applicable": False, "detected": False, "events": [],
+            "note": f"channel recorded at {native:g} Hz: its Nyquist limit is below fmin, so it cannot show "
+                    f"oscillations in the requested band",
+        }, None
+    # at least 16 frequency bins in the band, otherwise the prominence test is meaningless
+    window_s = max(window_s, 16.0 / (fmax - fmin))
     x_all = s.require_channel(channel)
     nan_all = np.isnan(x_all)
     x_all = _filled(x_all)
@@ -354,7 +392,7 @@ def detect_oscillation(
         rows.append(
             {
                 "t_center": float(t[i0 + n // 2]),
-                "freq_hz": float((k + delta) * df),
+                "freq_hz": float(np.clip((k + delta) * df, fmin, fmax)),
                 "amp": amp,
                 "amp_pct": amp_pct,
                 "prominence": prom,
@@ -407,6 +445,7 @@ def detect_oscillation(
         "t_end": t_end,
         "fmin_hz": fmin,
         "fmax_hz": fmax,
+        "native_rate_hz": native,
         "threshold_pct": thr,
         "prominence_min": prominence,
         "window_s": n / fs,
@@ -450,41 +489,65 @@ def detect_oscillation(
 # ---------------------------------------------------------------------------- sensor health
 @tool(
     "check_sensor_health",
-    "Look for instrumentation problems on measurement channels: NaN gaps, flatlines (value exactly stuck for "
-    ">= 50 ms) and isolated spikes (>12 local robust sigmas, <= 5 samples wide).",
+    "Look for instrumentation problems on measurement channels: NaN gaps (more than 3 gaps on one channel are "
+    "reported together as recurring gaps), flatlines (value exactly stuck for >= 50 ms and >= 3 native samples, "
+    "overlapping the firing — a steady reading while the engine is off is not a fault) and isolated spikes "
+    "(>12 local robust sigmas, <= 5 samples wide).",
     {"channels": {"type": "array", "items": {"type": "string"}, "description": "channels to check (default all measurements)"}},
 )
 def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sigma: float = 12.0):
     t = s.time
     fs = s.fs
-    chans = channels or [c for c in s.channels if s.channel_info(c).get("kind") != "command"]
+    # commands are not measurements; housekeeping channels (logger temperature, battery, ...) are
+    # expected to sit still and are only checked when asked for explicitly
+    chans = channels or [c for c in s.channels if s.channel_info(c).get("kind") not in ("command", "housekeeping")]
     issues, summary = [], {}
-    min_flat = max(int(0.05 * fs), 3)
+    firing = _firing_window(s)
     for ch in chans:
         x = s.require_channel(ch)
         nan = np.isnan(x)
         ch_issues = []
-        for i0, i1 in _runs(nan):
-            ch_issues.append({"channel": ch, "kind": "nan_gap", "t_start": float(t[i0]),
-                              "t_end": float(t[i1 - 1]), "duration_s": float(t[i1 - 1] - t[i0]), "n_samples": i1 - i0})
+        gaps = [{"t_start": float(t[i0]), "t_end": float(t[i1 - 1]), "duration_s": float(t[i1 - 1] - t[i0]),
+                 "n_samples": i1 - i0} for i0, i1 in _runs(nan)]
+        if len(gaps) > 3:
+            starts = np.array([g["t_start"] for g in gaps])
+            in_fire = [g for g in gaps if firing and g["t_start"] <= firing[1] and firing[0] <= g["t_end"]]
+            ch_issues.append({"channel": ch, "kind": "recurring_nan_gaps", "t_start": gaps[0]["t_start"],
+                              "t_end": gaps[-1]["t_end"], "count": len(gaps),
+                              "total_s": float(sum(g["duration_s"] for g in gaps)),
+                              "longest_s": float(max(g["duration_s"] for g in gaps)),
+                              "median_interval_s": float(np.median(np.diff(starts))),
+                              "count_during_firing": len(in_fire), "gaps_during_firing": in_fire[:10]})
+        else:
+            ch_issues += [{"channel": ch, "kind": "nan_gap", **g} for g in gaps]
+        min_flat = max(int(0.05 * fs), int(np.ceil(3 * fs / _native_rate(s, ch))), 3)
         same = np.concatenate([[False], np.diff(x) == 0])
         for i0, i1 in _runs(same):
             i0 -= 1
+            if firing and min(t[i1 - 1], firing[1]) - max(t[i0], firing[0]) < min_flat / fs:
+                continue  # stuck only while the engine was off: indistinguishable from a quiet reading
             if i1 - i0 >= min_flat:
                 ch_issues.append({"channel": ch, "kind": "flatline", "t_start": float(t[i0]), "t_end": float(t[i1 - 1]),
                                   "duration_s": float(t[i1 - 1] - t[i0]), "stuck_value": float(x[i0])})
-        xf = _filled(x)
+        # spikes are judged at the rate the channel was recorded at: on a signal interpolated from a slow
+        # logger, one real sample becomes a 10-point triangle and the fast-grid test would flag every peak
+        k = max(int(round(fs / _native_rate(s, ch))), 1)
+        tk, xk, nk, fk = t[::k], x[::k], nan[::k], fs / k
+        xf = _filled(xk)
         med = signal.medfilt(xf, 11)
         res = np.abs(xf - med)
-        w = max(int(0.05 * fs), 11)
+        w = max(int(0.05 * fk), 11)
         local = pd.Series(res).rolling(w, center=True, min_periods=1).median().to_numpy() * 1.4826
-        floor = max(float(np.median(res)) * 1.4826, 1e-12)
+        # noise floor from the samples that are off the median: on a quantized, mostly quiet signal the
+        # plain median residual is 0 and one-step flicker would otherwise count as a huge spike
+        nz = res[res > 0]
+        floor = max(float(np.median(nz)) * 1.4826 if nz.size else 0.0, 1e-12)
         sigma = np.maximum(local, floor)
-        near_nan = np.convolve(nan.astype(float), np.ones(2 * int(0.01 * fs) + 1), mode="same") > 0
+        near_nan = np.convolve(nk.astype(float), np.ones(2 * int(0.01 * fk) + 1), mode="same") > 0
         flag = (res > spike_sigma * sigma) & ~near_nan
         groups = _runs(flag)
         merged: list[list[int]] = []
-        gap = int(0.005 * fs)
+        gap = int(0.005 * fk)
         for i0, i1 in groups:
             if merged and i0 - merged[-1][1] <= gap:
                 merged[-1][1] = i1
@@ -494,9 +557,16 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
         for i0, i1 in merged:
             if i1 - i0 > 5:
                 continue
-            j = i0 + int(np.argmax(res[i0:i1]))
-            spikes.append({"t": float(t[j]), "value": float(x[j]), "local_median": float(med[j]),
-                           "deviation": float(x[j] - med[j]), "sigmas": float(res[j] / sigma[j])})
+            jj = i0 + int(np.argmax(res[i0:i1]))
+            # a spike goes out and comes back: the samples on both sides must lie on the same side of it.
+            # A sample on a steep but smooth edge (ignition rise on a slow logger) sits between its neighbours.
+            if 0 < i0 and i1 < len(xf):
+                lft, rgt = xf[i0 - 1], xf[i1]
+                excursion = xf[jj] - 0.5 * (lft + rgt)
+                if (xf[jj] - lft) * (xf[jj] - rgt) <= 0 or abs(excursion) < 0.5 * res[jj]:
+                    continue
+            spikes.append({"t": float(tk[jj]), "value": float(xk[jj]), "local_median": float(med[jj]),
+                           "deviation": float(xk[jj] - med[jj]), "sigmas": float(res[jj] / sigma[jj])})
         if spikes:
             ch_issues.append({"channel": ch, "kind": "spike", "t_start": spikes[0]["t"], "t_end": spikes[-1]["t"],
                               "count": len(spikes), "spikes": spikes[:20]})
@@ -509,7 +579,9 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
         }
     res = {"checked": chans, "issues": issues, "n_issues": len(issues), "summary": summary,
            "criteria": {"spike_sigma": spike_sigma, "spike_max_width_samples": 5,
-                        "flatline_min_s": min_flat / fs, "nan_margin_s": 0.01}}
+                        "flatline_min_s": max(int(0.05 * fs), 3) / fs, "flatline_min_native_samples": 3,
+                        "flatline_only_during_firing": firing is not None,
+                        "recurring_gap_threshold": 3, "nan_margin_s": 0.01}}
     fig = None
     bad = [c for c in chans if not summary[c]["ok"]][:4]
     if bad:
@@ -520,6 +592,8 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
             for i in issues:
                 if i["channel"] != ch:
                     continue
+                if i["kind"] == "recurring_nan_gaps":
+                    continue  # the NaNs already show as breaks in the trace
                 if i["kind"] == "spike":
                     ax.plot([sp["t"] for sp in i["spikes"]], [sp["value"] for sp in i["spikes"]], "o",
                             ms=8, mfc="none", mec=plots.CRITICAL, mew=1.5)
@@ -691,6 +765,72 @@ def compare_reference(
         ax2.axvspan(iv["t_start"], iv["t_end"], color=plots.CRITICAL, alpha=0.12, lw=0)
     ax2.set_ylabel("deviation [%] (0.2 s mean)")
     ax2.set_xlabel("time [s]")
+    return res, plots.to_base64(f)
+
+
+# ---------------------------------------------------------------------------- pulse metrics
+@tool(
+    "pulse_metrics",
+    "Metrics of one pulse on a channel (e.g. thrust of a solid motor, a flow transient): peak and its time, action "
+    "time from the first crossing of start_pct of the peak to the last crossing of end_pct, the integral over the "
+    "action time (total impulse for thrust in N), and the mean over it. The baseline (median of the 1 s before the "
+    "start crossing) is subtracted when subtract_baseline is true. NaN samples are linearly interpolated.",
+    {
+        "channel": {**_CH, "description": "channel to measure (default: first force channel, else Pc)"},
+        "start_pct": {"type": "number", "description": "action-time start threshold in % of peak (default 10)"},
+        "end_pct": {"type": "number", "description": "action-time end threshold in % of peak (default 10)"},
+        "subtract_baseline": {"type": "boolean", "description": "subtract the pre-pulse baseline (default true)"},
+    },
+)
+def pulse_metrics(s: Session, channel: str | None = None, start_pct: float = 10.0, end_pct: float = 10.0,
+                  subtract_baseline: bool = True):
+    if channel is None:
+        force = s.channels_of_kind("force")
+        channel = force[0] if force else _primary_pressure(s)
+    t = s.time
+    raw = s.require_channel(channel)
+    x = _filled(raw)
+    w = max(int(0.02 * s.fs), 1)
+    xs = pd.Series(x).rolling(w, center=True, min_periods=1).mean().to_numpy()
+    i_pk = int(np.nanargmax(xs))
+    pre = np.where(xs[:i_pk] < 0.5 * xs[i_pk])[0]
+    i_pre = int(pre[-1]) if pre.size else 0
+    base_win = (t >= t[i_pre] - 1.5) & (t < t[i_pre] - 0.5)
+    baseline = float(np.median(x[base_win])) if subtract_baseline and base_win.any() else 0.0
+    y = x - baseline
+    ys = xs - baseline
+    peak = float(y[i_pk])
+    above0 = np.where(ys[: i_pk + 1] < start_pct / 100 * ys[i_pk])[0]
+    i0 = int(above0[-1]) + 1 if above0.size else 0
+    below1 = np.where(ys[i_pk:] < end_pct / 100 * ys[i_pk])[0]
+    i1 = i_pk + int(below1[0]) - 1 if below1.size else len(t) - 1
+    seg_t, seg_y = t[i0 : i1 + 1], y[i0 : i1 + 1]
+    integral = float(_trapz(seg_y, seg_t))
+    dur = float(t[i1] - t[i0])
+    res = {
+        "channel": channel,
+        "unit": _unit(s, channel),
+        "baseline": baseline,
+        "peak": peak,
+        "t_peak": float(t[i_pk]),
+        "start_pct": start_pct,
+        "end_pct": end_pct,
+        "t_start": float(t[i0]),
+        "t_end": float(t[i1]),
+        "action_time_s": dur,
+        "integral": integral,
+        "integral_unit": f"{_unit(s, channel)}·s" if _unit(s, channel) else "·s",
+        "mean_over_action_time": integral / dur if dur > 0 else None,
+        "nan_samples_interpolated": int(np.isnan(raw[i0 : i1 + 1]).sum()),
+    }
+    f, (ax,) = plots.new_fig(1, height=2.8)
+    m = s.window(t[i0] - 0.5, t[i1] + 0.5)
+    ax.plot(t[m], y[m], color=plots.SERIES[0], lw=1.0)
+    ax.fill_between(seg_t, 0, seg_y, color=plots.SERIES[0], alpha=0.15, lw=0)
+    ax.axhline(peak * start_pct / 100, color=plots.INK_2, ls=":", lw=0.8)
+    ax.set_ylabel(f"{channel} [{_unit(s, channel)}]")
+    ax.set_xlabel("time [s]")
+    ax.set_title(f"{channel}: action time {dur:.2f} s, integral {integral:.4g} {res['integral_unit']}")
     return res, plots.to_base64(f)
 
 

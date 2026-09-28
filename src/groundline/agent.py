@@ -47,13 +47,20 @@ _TXT = {
         "red_t": "{ch} 超出红线（{kind} {lim:g} {unit}）",
         "red_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 持续超出红线 {lim:g} {unit}，持续 {dur:.3f} s，峰值 {pk:.2f} {unit}"
                  "（{tp:.3f} s）。",
+        "pulse_t": "{ch} 峰值 {pk:.0f} {unit}，工作时间 {dur:.2f} s，总冲 {imp:.0f} {iu}",
+        "pulse_s": "按峰值的 {p0:g}% 截取工作时间 {t0:.2f}–{t1:.2f} s（{dur:.2f} s）；{ch} 在 {tp:.2f} s 达到峰值 "
+                   "{pk:.1f} {unit}，工作时间内平均 {mean:.1f} {unit}，积分 {imp:.1f} {iu}（已扣除基线 {base:.1f} {unit}）。",
+        "rec_t": "{ch} 反复出现数据缺失",
+        "rec_s": "{ch} 在 {t0:.2f}–{t1:.2f} s 内共有 {n} 段数据缺失，合计 {tot:.2f} s，最长 {lg:.3f} s，"
+                 "相邻两段的间隔中位数 {iv:.2f} s；其中 {nf} 段落在点火到拖尾结束之间。缺失有规律地重复出现，"
+                 "更像采集系统丢帧，而不是被测量本身的变化。",
         "nan_t": "{ch} 数据缺失",
         "nan_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 出现 NaN 数据缺失，共 {n} 个采样点（{dur:.3f} s）。",
         "flat_t": "{ch} 信号冻结",
         "flat_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 数值恒定为 {v:.4g}（{dur:.3f} s），疑似传感器或采集通道故障。",
         "spk_t": "{ch} 出现 {n} 个孤立尖峰",
         "spk_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 之间出现 {n} 个孤立尖峰（宽度不超过 {w} 个采样点），"
-                 "持续时间短于红线判据，判断为测量毛刺而非真实压力事件。",
+                 "持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
         "valve_t": "{cmd} 开启响应延迟 {lat:.1f} ms",
         "valve_s": "{cmd} 在 {tc:.3f} s 发出开启指令后，{resp} 在 {lat:.1f} ms 后才开始响应，超过允许的 {lim:.0f} ms。",
         "valve_cons": " 点火随之推迟，{ch} 在 {t0:.2f}–{t1:.2f} s 相对预测偏差 {dev:.2f}%，为该延迟的后果而非独立问题。",
@@ -76,13 +83,22 @@ _TXT = {
         "red_t": "{ch} exceeded its redline ({kind} {lim:g} {unit})",
         "red_s": "{ch} stayed beyond its {lim:g} {unit} redline from {t0:.3f} to {t1:.3f} s ({dur:.3f} s), "
                  "peaking at {pk:.2f} {unit} at {tp:.3f} s.",
+        "pulse_t": "{ch} peak {pk:.0f} {unit}, action time {dur:.2f} s, total impulse {imp:.0f} {iu}",
+        "pulse_s": "Action time taken at {p0:g}% of peak: {t0:.2f}–{t1:.2f} s ({dur:.2f} s). {ch} peaks at {pk:.1f} {unit} "
+                   "at {tp:.2f} s, averages {mean:.1f} {unit} over the action time, and integrates to {imp:.1f} {iu} "
+                   "(baseline {base:.1f} {unit} removed).",
+        "rec_t": "{ch} has recurring data gaps",
+        "rec_s": "{ch} has {n} data gaps between {t0:.2f} and {t1:.2f} s, {tot:.2f} s in total, the longest "
+                 "{lg:.3f} s, with a median spacing of {iv:.2f} s; {nf} of them fall between ignition and the end of "
+                 "tail-off. Gaps that repeat this regularly point to dropped DAQ frames rather than to the measured "
+                 "quantity.",
         "nan_t": "{ch} data gap",
         "nan_s": "{ch} returned NaN from {t0:.3f} to {t1:.3f} s ({n} samples, {dur:.3f} s).",
         "flat_t": "{ch} signal frozen",
         "flat_s": "{ch} was stuck at {v:.4g} from {t0:.3f} to {t1:.3f} s ({dur:.3f} s): likely a sensor or DAQ fault.",
         "spk_t": "{n} isolated spikes on {ch}",
         "spk_s": "{ch} has {n} isolated spikes between {t0:.3f} and {t1:.3f} s (at most {w} samples wide, shorter than the "
-                 "redline persistence): measurement glitches, not pressure events.",
+                 "redline persistence): measurement glitches, not physical events.",
         "valve_t": "{cmd} opening latency {lat:.1f} ms",
         "valve_s": "After the {cmd} open command at {tc:.3f} s, {resp} only responded after {lat:.1f} ms, "
                    "beyond the {lim:.0f} ms limit.",
@@ -121,12 +137,25 @@ class RuleAgent:
                                     lvl=r["steady_level"], unit=r["unit"]),
                 "observation", "info", r["channel"], r["mainstage_start_s"], r["mainstage_end_s"], [seg.id]))
 
+        for fc in s.channels_of_kind("force"):
+            pm = s.run("pulse_metrics", channel=fc)
+            p = pm.result
+            kw = dict(ch=fc, pk=p["peak"], unit=p["unit"], dur=p["action_time_s"], imp=p["integral"],
+                      iu=p["integral_unit"], p0=p["start_pct"], t0=p["t_start"], t1=p["t_end"], tp=p["t_peak"],
+                      mean=p["mean_over_action_time"], base=p["baseline"])
+            F.append(Finding(T["pulse_t"].format(**kw), T["pulse_s"].format(**kw), "observation", "info", fc,
+                             p["t_start"], p["t_end"], [pm.id]))
+
         covered: set[str] = set()  # channels already explained by a finding
 
         health = s.run("check_sensor_health")
         for i in health.result["issues"]:
             ch = i["channel"]
-            if i["kind"] == "nan_gap":
+            if i["kind"] == "recurring_nan_gaps":
+                t, st = T["rec_t"], T["rec_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], n=i["count"],
+                                                     tot=i["total_s"], lg=i["longest_s"], iv=i["median_interval_s"],
+                                                     nf=i["count_during_firing"])
+            elif i["kind"] == "nan_gap":
                 t, st = T["nan_t"], T["nan_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], n=i["n_samples"],
                                                      dur=i["duration_s"])
             elif i["kind"] == "flatline":
@@ -291,7 +320,8 @@ SUBMIT_TOOL = {
     },
 }
 
-SYSTEM_PROMPT = """You are a test engineer analysing data from a liquid rocket engine hot-fire test.
+SYSTEM_PROMPT = """You are a test engineer analysing data from a rocket engine or motor firing test (liquid engine
+hot-fire, solid or hybrid motor static fire, or a similar bench test).
 
 You cannot see raw samples. You work only through analysis tools; every tool call is stored as an evidence entry
 with an ID (E1, E2, ...). Your report is checked by a verifier:
@@ -308,8 +338,12 @@ Method:
    and compare with the simulation prediction for each channel that has one.
 4. When something is found, drill down (other channels, narrower windows) to explain it; when a symptom is explained
    by another (e.g. a flow deviation caused by a sensor dropout) say so instead of reporting it twice.
-5. Include one 'observation' finding describing the test sequence.
-6. Call submit_report once. Categories: {categories}. Severities: critical (safety/redline/instability),
+5. Not every test has valves, a simulation prediction or redlines, and some channels are recorded slower than the
+   grid (see native_rate_hz in the overview). Skip checks that do not apply and mention that in the summary instead
+   of writing findings about them. For thrust or other pulse-shaped channels use pulse_metrics (peak, action time,
+   total impulse).
+6. Include one 'observation' finding describing the test sequence.
+7. Call submit_report once. Categories: {categories}. Severities: critical (safety/redline/instability),
    warning (needs engineering attention), info.
    A category other than 'observation' means "this anomaly was found". A check that passed or found nothing
    ("no redline exceeded", "valve response within limit", "no oscillation detected", "matches the simulation")

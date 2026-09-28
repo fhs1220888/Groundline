@@ -299,3 +299,75 @@ def test_openai_responses_backend(monkeypatch):
     assert res.agent["usage"] == {"input_tokens": 300, "output_tokens": 60, "requests": 3}
     # third request carries the verifier rejection as a function_call_output
     assert "Verifier rejected" in seen[2]["input"][0]["output"]
+
+
+# ---------------------------------------------------------------------------- real data: HANARO solid motor
+HANARO = __import__("pathlib").Path(__file__).resolve().parents[1] / "examples" / "hanaro_knsb" / "run.csv"
+
+
+def _toy_session(cols, fs=100.0, meta_channels=None):
+    import pandas as pd
+
+    df = pd.DataFrame(cols)
+    meta = {"sample_rate_hz": fs, "channels": meta_channels or {}}
+    return Session(df, meta, None, {})
+
+
+def test_slow_channel_is_not_searched_above_its_nyquist():
+    t = np.arange(0, 10, 0.01)
+    pc = np.where((t > 3) & (t < 7), 40.0, 1.0)
+    s = _toy_session({"time": t, "Pc": pc},
+                     meta_channels={"Pc": {"unit": "bar", "kind": "pressure", "native_rate_hz": 10}})
+    r = s.run("detect_oscillation", channel="Pc", fmin=5).result
+    assert r["applicable"] is False and not r["events"]
+
+
+def test_recurring_gaps_are_reported_once_and_quiet_flatlines_ignored():
+    t = np.arange(0, 20, 0.01)
+    f = np.where((t > 8) & (t < 12), 1000.0, 0.0) + np.random.default_rng(0).normal(0, 2, t.size)
+    for k in range(10):  # a dropped DAQ frame every 2 s
+        f[(t >= 2 * k + 0.5) & (t < 2 * k + 0.6)] = np.nan
+    pc = np.round(np.where((t > 8) & (t < 12), 40.0, 1.29), 3)  # quantized, perfectly quiet before firing
+    pc[(t > 8) & (t < 12)] += np.sin(t[(t > 8) & (t < 12)])  # moving while firing
+    s = _toy_session({"time": t, "Pc": pc, "F_thrust": f},
+                     meta_channels={"Pc": {"unit": "bar", "kind": "pressure"},
+                                    "F_thrust": {"unit": "N", "kind": "force"}})
+    issues = s.run("check_sensor_health").result["issues"]
+    kinds = [(i["channel"], i["kind"]) for i in issues]
+    assert kinds.count(("F_thrust", "recurring_nan_gaps")) == 1
+    assert not any(k == "nan_gap" for _, k in kinds)
+    assert ("Pc", "flatline") not in kinds  # steady ambient reading before ignition is not a fault
+
+
+def test_steep_edge_on_slow_logger_is_not_a_spike():
+    t = np.arange(0, 10, 0.01)
+    native = np.arange(0, 10, 0.1)
+    p_native = np.interp(native, [0, 4, 4.5, 8, 8.5, 10], [1, 1, 45, 40, 1, 1])
+    pc = np.interp(t, native, p_native)
+    s = _toy_session({"time": t, "Pc": pc},
+                     meta_channels={"Pc": {"unit": "bar", "kind": "pressure", "native_rate_hz": 10}})
+    assert not s.run("check_sensor_health").result["issues"]
+
+
+def test_pulse_metrics_impulse():
+    t = np.arange(0, 10, 0.01)
+    f = np.where((t >= 3) & (t < 7), 500.0, 0.0) + 5.0  # 4 s at 500 N on a 5 N baseline
+    s = _toy_session({"time": t, "F_thrust": f}, meta_channels={"F_thrust": {"unit": "N", "kind": "force"}})
+    r = s.run("pulse_metrics").result
+    assert r["baseline"] == pytest.approx(5.0)
+    assert r["peak"] == pytest.approx(500.0)
+    assert r["integral"] == pytest.approx(2000.0, rel=0.01)
+
+
+@pytest.mark.skipif(not HANARO.exists(), reason="example data not present")
+def test_hanaro_static_fire_matches_team_processing():
+    s = Session.open(HANARO)
+    res = RuleAgent().run(s)
+    assert res.verification["verified"] == len(res.findings)
+    pm = next(e for e in s.ledger if e.tool == "pulse_metrics").result
+    # HANARO's own processed output: peak 2221.7 N, 6411 N·s over its 4.35 s window
+    assert pm["peak"] == pytest.approx(2221.7, rel=0.005)
+    assert pm["integral"] == pytest.approx(6411, rel=0.02)
+    kinds = {(f.channel, f.category) for f in res.findings}
+    assert ("F_thrust", "sensor_fault") in kinds  # recurring DAQ dropouts and the pre-test glitch
+    assert not any(f.channel == "Pc" and f.category == "sensor_fault" for f in res.findings)

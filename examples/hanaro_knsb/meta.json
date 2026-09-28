@@ -1,0 +1,54 @@
+{
+  "test_id": "HANARO KNSB_250220",
+  "description": "Solid rocket motor static fire (KNSB, 5 grain segments), SNU Rocket Team HANARO. Sample data from github.com/snu-hanaro/static-fire-toolkit (MIT License).",
+  "engine_type": "solid rocket motor (no valves, no feed system, no simulation prediction)",
+  "time_base": "DAQ clock of the thrust channel, seconds",
+  "sample_rate_hz": 100.0,
+  "channels": {
+    "Pc": {
+      "unit": "bar",
+      "kind": "pressure",
+      "desc": "chamber pressure, stand-alone logger (not zero-corrected)",
+      "native_rate_hz": 10.0,
+      "note": "logged at ~10 Hz and linearly interpolated onto the 100 Hz grid"
+    },
+    "F_thrust": {
+      "unit": "N",
+      "kind": "force",
+      "desc": "thrust, load cell",
+      "native_rate_hz": 103.5,
+      "note": "irregular DAQ timing; grid points > 25 ms from a raw sample are NaN"
+    },
+    "T_logger": {
+      "unit": "degC",
+      "kind": "housekeeping",
+      "desc": "pressure logger internal temperature",
+      "native_rate_hz": 10.0
+    }
+  },
+  "motor": {
+    "date": 250220,
+    "type": "KNSB",
+    "expt_file_name": "KNSB_250220",
+    "expt_excitation_voltage [V]": 11.94,
+    "expt_resistance [Ohm]": 200.4,
+    "totalmass [g]": 4996.3,
+    "Nozzlediameter [mm]": 20,
+    "Outerdiameter [mm]": 90,
+    "Innerdiameter [mm]": 30,
+    "singlegrainheight [mm]": 104.5,
+    "segment": 5
+  },
+  "preparation": {
+    "script": "examples/hanaro_knsb/prepare.py",
+    "pressure_clock_offset_s": 5.652,
+    "pressure_thrust_correlation": 0.99951,
+    "thrust_calibration": {
+      "slope_N_per_V": 552.157,
+      "intercept_N": -84.598,
+      "r2_vs_hanaro_processed": 0.99986,
+      "method": "least squares against HANARO processed thrust"
+    },
+    "thrust_max_gap_s": 0.025
+  }
+}

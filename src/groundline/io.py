@@ -57,6 +57,8 @@ def _guess_kind(name: str) -> str:
     n = name.lower()
     if n.startswith("cmd") or n.endswith("_cmd"):
         return "command"
+    if any(k in n for k in ("thrust", "force", "load")):
+        return "force"
     if n.startswith(("p", "pc")):
         return "pressure"
     if n.startswith("t"):
