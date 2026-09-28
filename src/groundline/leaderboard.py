@@ -55,10 +55,10 @@ def make_entry_agent(e: dict, lang: str):
         be = A.OpenAIResponses(e.get("model"), url, key, reasoning_effort=e.get("reasoning_effort"))
     else:
         be = A.OpenAICompatible(e.get("model"), url, key)
-        if e.get("reasoning_effort"):
-            be.reasoning_effort = e["reasoning_effort"]
-        if e.get("temperature") is not None:
-            be.temperature = float(e["temperature"])
+        # the entry is the whole configuration: settings meant for the default model in .env
+        # (e.g. GROUNDLINE_LLM_REASONING_EFFORT for gpt-5.6-sol) must not leak into a local model
+        be.reasoning_effort = e.get("reasoning_effort")
+        be.temperature = float(e["temperature"]) if e.get("temperature") is not None else None
     return A.LLMAgent(be, lang)
 
 
@@ -74,7 +74,8 @@ def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: li
         path = out / f"{_slug(name)}.json"
         if path.exists() and not force:
             prev = json.loads(path.read_text())
-            if prev.get("n_runs") == n and prev.get("seed") == seed:
+            usable = any("error" not in r for r in prev.get("runs", []))
+            if prev.get("n_runs") == n and prev.get("seed") == seed and usable:
                 print(f"[{name}] already done ({path}), skipping", file=sys.stderr)
                 continue
         if e.get("from"):
@@ -92,12 +93,15 @@ def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: li
             def prog(i, total, name=name):
                 print(f"\r  [{name}] run {i}/{total}", end="", file=sys.stderr, flush=True)
 
-            res = run_benchmark(lambda e=e: make_entry_agent(e, lang), n=n, seed=seed, progress=prog,
-                                keep_going=True)
+            try:
+                # a failure on the first run is almost always configuration (URL, key, model name,
+                # unsupported option): stop this model instead of failing the same way n times
+                res = run_benchmark(lambda e=e: make_entry_agent(e, lang), n=n, seed=seed, progress=prog)
+            except Exception as err:
+                print(f"\n[{name}] first run failed, skipping this model: {type(err).__name__}: {err}"[:900],
+                      file=sys.stderr)
+                continue
             print(file=sys.stderr)
-            if res["summary"].get("failed_runs") == n:
-                err = next((r["error"] for r in res["runs"] if "error" in r), "")
-                print(f"[{name}] every run failed, e.g.: {err}", file=sys.stderr)
         res["entry"] = {k: v for k, v in e.items() if k not in ("api_key",)}
         save(res, path)
     table = build_table(out, [e["name"] for e in config["models"]])

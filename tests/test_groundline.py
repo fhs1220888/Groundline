@@ -429,3 +429,12 @@ def test_leaderboard_runs_and_imports(tmp_path):
     assert "| rule | 2/2 | 100% |" in table and "| imported | 2/2 | 100% |" in table
     # second call reuses results
     assert run_leaderboard(cfg, tmp_path / "lb").read_text() == table
+
+
+def test_leaderboard_entry_ignores_env_reasoning_effort(monkeypatch):
+    from groundline.leaderboard import make_entry_agent
+
+    monkeypatch.setenv("GROUNDLINE_LLM_REASONING_EFFORT", "high")
+    a = make_entry_agent({"name": "local", "agent": "openai", "model": "qwen2.5:7b-16k",
+                          "base_url": "http://localhost:11434/v1", "api_key": "ollama"}, "zh")
+    assert a.backend.reasoning_effort is None
