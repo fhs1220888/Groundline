@@ -371,3 +371,10 @@ def test_hanaro_static_fire_matches_team_processing():
     kinds = {(f.channel, f.category) for f in res.findings}
     assert ("F_thrust", "sensor_fault") in kinds  # recurring DAQ dropouts and the pre-test glitch
     assert not any(f.channel == "Pc" and f.category == "sensor_fault" for f in res.findings)
+
+
+@pytest.mark.skipif(not HANARO.exists(), reason="example data not present")
+def test_ignition_ramp_is_not_an_oscillation():
+    s = Session.open(HANARO)
+    r = s.run("detect_oscillation", channel="F_thrust").result
+    assert not r["events"]

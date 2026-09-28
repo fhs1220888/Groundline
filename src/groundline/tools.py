@@ -388,7 +388,10 @@ def detect_oscillation(
         prom = amp / (float(np.median(mb)) + 1e-30)
         relative = abs(mean) > 3 * float(np.std(seg))
         amp_pct = 100 * amp / abs(mean) if relative else None
-        flagged = prom >= prominence and (amp_pct is None or amp_pct >= thr)
+        # a peak on the lowest bin of the band is leakage from a slower transient (e.g. the ignition rise)
+        # entering the window, not a narrow-band oscillation inside the band
+        at_edge = k_rel == 0
+        flagged = prom >= prominence and (amp_pct is None or amp_pct >= thr) and not at_edge
         rows.append(
             {
                 "t_center": float(t[i0 + n // 2]),

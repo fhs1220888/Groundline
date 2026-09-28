@@ -9,3 +9,6 @@ dist/
 groundline_demo/
 runs/
 *.tdms_index
+examples/**/report.html
+examples/**/report.json
+eval_*.json
