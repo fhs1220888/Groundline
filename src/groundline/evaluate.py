@@ -56,13 +56,24 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
         run = generate_run(seed + i)
         s = Session(run.data, run.meta, run.reference, run.limits)
         t0 = time.perf_counter()
-        res = make_agent().run(s)
+        try:
+            res = make_agent().run(s)
+        except Exception as e:  # one failed run (API error, timeout) should not lose the whole benchmark
+            rows.append({"seed": seed + i, "anomalies": [a.type for a in run.truth],
+                         "error": f"{type(e).__name__}: {e}"[:500]})
+            if progress:
+                progress(i + 1, n)
+            if i == 0:
+                raise
+            continue
         m = match(res.findings, run.truth, tol_s)
         rows.append({
             "seed": seed + i,
             "anomalies": [a.type for a in run.truth],
             "match": m,
             "verification": res.verification,
+            "first_submission": res.agent.get("first_submission"),
+            "usage": res.agent.get("usage"),
             "elapsed_s": time.perf_counter() - t0,
             "n_evidence": len(s.ledger),
         })
@@ -72,6 +83,8 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
 
 
 def summarize(rows: list[dict]) -> dict:
+    errors = [r for r in rows if "error" in r]
+    rows = [r for r in rows if "error" not in r]
     by_type: dict[str, dict] = defaultdict(lambda: {"n": 0, "detected": 0, "category_ok": 0, "loc_err": []})
     n_claims = n_fp = 0
     verified = findings = num_total = num_ok = 0
@@ -102,6 +115,17 @@ def summarize(rows: list[dict]) -> dict:
             "category_accuracy": d["category_ok"] / d["n"],
             "median_t_start_error_s": le[len(le) // 2] if le else None,
         }
+    firsts = [r["first_submission"] for r in rows if r.get("first_submission")]
+    first = None
+    if firsts:
+        ft = sum(f["numbers_total"] for f in firsts)
+        fg = sum(f["numbers_grounded"] for f in firsts)
+        first = {"claims_verified": f"{sum(f['verified'] for f in firsts)}/{sum(f['n_findings'] for f in firsts)}",
+                 "numbers_grounded": f"{fg}/{ft}", "ungrounded_numbers_caught": ft - fg}
+    usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
+    for r in rows:
+        for k in usage:
+            usage[k] += (r.get("usage") or {}).get(k, 0)
     n_truth = sum(d["n"] for d in by_type.values())
     n_det = sum(d["detected"] for d in by_type.values())
     n_nominal = sum(1 for r in rows if not r["anomalies"])
@@ -116,6 +140,9 @@ def summarize(rows: list[dict]) -> dict:
         "claims_verified": f"{verified}/{findings}",
         "numbers_grounded": f"{num_ok}/{num_total}",
         "mean_elapsed_s": sum(r["elapsed_s"] for r in rows) / len(rows) if rows else None,
+        "first_submission": first,
+        "usage": usage if usage["requests"] else None,
+        "failed_runs": len(errors),
         "per_type": per_type,
     }
 
@@ -131,6 +158,18 @@ def format_summary(summary: dict) -> str:
         f"{summary['false_positives_on_nominal_runs']})",
         f"claims verified {summary['claims_verified']} · numbers grounded {summary['numbers_grounded']} · "
         f"mean time {summary['mean_elapsed_s']:.2f} s/run",
+    ]
+    if summary.get("first_submission"):
+        f = summary["first_submission"]
+        lines.append(f"first draft (before verifier feedback): claims verified {f['claims_verified']} · numbers "
+                     f"grounded {f['numbers_grounded']} · invented numbers caught {f['ungrounded_numbers_caught']}")
+    if summary.get("usage"):
+        u = summary["usage"]
+        lines.append(f"LLM usage: {u['requests']} requests · {u['input_tokens']:,} input / "
+                     f"{u['output_tokens']:,} output tokens")
+    if summary.get("failed_runs"):
+        lines.append(f"failed runs: {summary['failed_runs']} (see JSON for errors)")
+    lines += [
         "",
         "| anomaly | n | recall | category acc. | median t_start error |",
         "|---|---|---|---|---|",

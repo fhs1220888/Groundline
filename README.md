@@ -39,6 +39,10 @@ groundline analyze path/to/run.csv --reference sim.csv --limits limits.json
 规则 agent（默认）是一套固定的检查流程，不需要任何模型。换成 LLM agent 后，由模型自己规划分析步骤、交叉验证并撰写结论：
 
 ```bash
+# OpenAI
+export OPENAI_API_KEY=sk-...
+groundline analyze run.csv --agent openai --model gpt-4o-mini
+
 # 任何 OpenAI 兼容接口：Qwen / DeepSeek / vLLM / Ollama 本地部署都可以
 export GROUNDLINE_LLM_BASE_URL=http://localhost:11434/v1   # 例如 Ollama
 export GROUNDLINE_LLM_MODEL=qwen2.5:32b
@@ -48,6 +52,14 @@ groundline analyze run.csv --agent openai
 export ANTHROPIC_API_KEY=...
 groundline analyze run.csv --agent anthropic --model claude-sonnet-5
 ```
+
+评测 LLM agent 时，除了检出率，还会统计**初稿中被校验器拦下的编造数字**，以及修正后的结果和 token 用量：
+
+```bash
+groundline eval --agent openai --model gpt-4o-mini --n 10 --lang en --out eval_openai.json
+```
+
+默认不传 temperature（推理类模型不接受自定义值）；需要时用 `GROUNDLINE_LLM_TEMPERATURE=0` 设置。
 
 试验数据通常很敏感，所以接口按内网私有化部署设计：模型只看到工具的输出摘要，看不到原始数据。
 

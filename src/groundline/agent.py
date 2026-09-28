@@ -356,6 +356,7 @@ class LLMAgent:
         summary = ""
         fixes_left = self.fix_rounds
         ver: dict = {}
+        first_ver: dict | None = None
 
         for _step in range(self.max_steps):
             reply = self.backend.complete(system, messages, tools)
@@ -373,6 +374,8 @@ class LLMAgent:
                     findings = [Finding.from_dict(d) for d in args.get("findings", [])]
                     summary = args.get("summary", "")
                     ver = verify_findings(findings, s)
+                    if first_ver is None:
+                        first_ver = dict(ver)
                     bad = [(i, f) for i, f in enumerate(findings) if f.verification["status"] != "verified"]
                     if bad and fixes_left > 0:
                         fixes_left -= 1
@@ -402,22 +405,31 @@ class LLMAgent:
             ver = verify_findings(findings, s)
         return AnalysisResult(findings, summary, ver,
                               {"type": "llm", "backend": self.backend.name, "model": self.backend.model,
-                               "lang": self.lang},
+                               "lang": self.lang, "first_submission": first_ver,
+                               "fix_rounds_used": self.fix_rounds - fixes_left,
+                               "usage": dict(getattr(self.backend, "usage", {}) or {})},
                               transcript, elapsed_s=time.perf_counter() - t0)
 
 
 # ---------------------------------------------------------------------------- backends
+def _check(r) -> None:
+    if r.status_code >= 400:
+        raise RuntimeError(f"LLM API error {r.status_code}: {r.text[:800]}")
+
+
 class OpenAICompatible:
     """Any OpenAI-compatible /chat/completions endpoint: OpenAI, DeepSeek, Qwen (DashScope), vLLM, Ollama..."""
 
     name = "openai-compatible"
 
     def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None,
-                 temperature: float = 0.0, timeout: float = 180.0):
+                 temperature: float | None = None, timeout: float = 180.0):
         self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "gpt-4o-mini")
         self.base_url = (base_url or os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
         self.api_key = api_key or os.environ.get("GROUNDLINE_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
-        self.temperature = temperature
+        t = os.environ.get("GROUNDLINE_LLM_TEMPERATURE")
+        self.temperature = temperature if temperature is not None else (float(t) if t else None)
+        self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
         self.timeout = timeout
 
     def complete(self, system: str, messages: list[dict], tools: list[dict]) -> dict:
@@ -441,12 +453,18 @@ class OpenAICompatible:
             "model": self.model,
             "messages": msgs,
             "tools": [{"type": "function", "function": t} for t in tools],
-            "temperature": self.temperature,
         }
+        if self.temperature is not None:  # reasoning models reject a non-default temperature
+            body["temperature"] = self.temperature
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
         r = httpx.post(f"{self.base_url}/chat/completions", json=body, headers=headers, timeout=self.timeout)
-        r.raise_for_status()
-        msg = r.json()["choices"][0]["message"]
+        _check(r)
+        data = r.json()
+        u = data.get("usage") or {}
+        self.usage["input_tokens"] += u.get("prompt_tokens", 0)
+        self.usage["output_tokens"] += u.get("completion_tokens", 0)
+        self.usage["requests"] += 1
+        msg = data["choices"][0]["message"]
         calls = []
         for c in msg.get("tool_calls") or []:
             try:
@@ -466,6 +484,7 @@ class AnthropicBackend:
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.max_tokens = max_tokens
         self.timeout = timeout
+        self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
 
     def complete(self, system: str, messages: list[dict], tools: list[dict]) -> dict:
         import httpx
@@ -498,8 +517,12 @@ class AnthropicBackend:
         }
         r = httpx.post("https://api.anthropic.com/v1/messages", json=body, timeout=self.timeout,
                        headers={"x-api-key": self.api_key, "anthropic-version": "2023-06-01"})
-        r.raise_for_status()
+        _check(r)
         data = r.json()
+        u = data.get("usage") or {}
+        self.usage["input_tokens"] += u.get("input_tokens", 0)
+        self.usage["output_tokens"] += u.get("output_tokens", 0)
+        self.usage["requests"] += 1
         text = "".join(b.get("text", "") for b in data["content"] if b["type"] == "text")
         calls = [{"id": b["id"], "name": b["name"], "arguments": b.get("input") or {}}
                  for b in data["content"] if b["type"] == "tool_use"]

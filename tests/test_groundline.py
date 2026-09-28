@@ -192,3 +192,38 @@ def test_benchmark_rule_agent():
     s = res["summary"]
     assert s["recall"] >= 0.9
     assert s["precision"] >= 0.9
+
+
+def test_openai_backend_wire_format(monkeypatch):
+    """OpenAI-compatible backend: request shape, no forced temperature, usage + first-draft tracking."""
+    import httpx
+
+    from groundline.agent import make_agent
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        assert url.endswith("/chat/completions")
+        assert "temperature" not in json
+        tool_msgs = [m for m in json["messages"] if m["role"] == "tool"]
+        if not tool_msgs:
+            tc = [{"id": "a1", "type": "function", "function": {"name": "check_redlines", "arguments": "{}"}}]
+        else:
+            ev = [__import__("json").loads(m["content"]) for m in tool_msgs if "evidence_id" in m["content"]][-1]
+            n_sub = sum(1 for m in json["messages"] if m["role"] == "assistant"
+                        and any(t["function"]["name"] == "submit_report" for t in m.get("tool_calls", [])))
+            num = "123.45" if n_sub == 0 else str(ev["result"]["persistence_s"])
+            args = {"summary": "s", "findings": [{"title": "t", "statement": f"persistence {num} s",
+                                                  "category": "observation", "severity": "info",
+                                                  "evidence": [ev["evidence_id"]]}]}
+            tc = [{"id": f"s{n_sub}", "type": "function",
+                   "function": {"name": "submit_report", "arguments": __import__("json").dumps(args)}}]
+        body = {"choices": [{"message": {"content": "", "tool_calls": tc}}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 10}}
+        return httpx.Response(200, json=body, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    _, s = session_for(["overtemp"], seed=2)
+    res = make_agent("openai", "en", "fake", "http://x/v1", "k").run(s)
+    assert res.verification["verified"] == 1
+    assert res.agent["first_submission"]["numbers_grounded"] == 0
+    assert res.agent["fix_rounds_used"] == 1
+    assert res.agent["usage"]["requests"] == 3
