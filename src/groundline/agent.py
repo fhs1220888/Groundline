@@ -273,7 +273,9 @@ SUBMIT_TOOL = {
                         "title": {"type": "string"},
                         "statement": {"type": "string",
                                       "description": "the claim; every number must come from the cited evidence"},
-                        "category": {"type": "string", "enum": list(CATEGORIES)},
+                        "category": {"type": "string", "enum": list(CATEGORIES),
+                                     "description": "the anomaly class found; use 'observation' for "
+                                                    "checks that passed or found nothing"},
                         "severity": {"type": "string", "enum": list(SEVERITIES)},
                         "channel": {"type": "string"},
                         "t_start": {"type": "number"},
@@ -309,6 +311,11 @@ Method:
 5. Include one 'observation' finding describing the test sequence.
 6. Call submit_report once. Categories: {categories}. Severities: critical (safety/redline/instability),
    warning (needs engineering attention), info.
+   A category other than 'observation' means "this anomaly was found". A check that passed or found nothing
+   ("no redline exceeded", "valve response within limit", "no oscillation detected", "matches the simulation")
+   is NOT an anomaly: use category 'observation' and severity 'info' for it, or fold it into the summary.
+   Likewise a deviation that is a consequence of an anomaly you already report (e.g. a temperature lag caused by
+   a late valve opening) belongs in that anomaly's finding, not in a finding of its own.
 Write titles and statements in {language}. Be concise and specific; engineers will read this.
 """
 
