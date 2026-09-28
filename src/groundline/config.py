@@ -11,6 +11,7 @@ Recognised keys (see ``.env.example``)::
     GROUNDLINE_LLM_MODEL    model name
     GROUNDLINE_LLM_BASE_URL OpenAI-compatible endpoint (Qwen, DeepSeek, vLLM, Ollama ...)
     GROUNDLINE_LLM_TEMPERATURE
+    GROUNDLINE_LLM_REASONING_EFFORT  none | low | medium | high (reasoning models)
     GROUNDLINE_LANG         zh | en
 """
 
@@ -70,6 +71,7 @@ def describe() -> dict:
         "agent": os.environ.get("GROUNDLINE_AGENT", "rule"),
         "model": os.environ.get("GROUNDLINE_LLM_MODEL"),
         "base_url": os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1 (default)"),
+        "reasoning_effort": os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT", "(model default)"),
         "lang": os.environ.get("GROUNDLINE_LANG", "zh"),
         "OPENAI_API_KEY": mask(os.environ.get("OPENAI_API_KEY")),
         "GROUNDLINE_LLM_API_KEY": mask(os.environ.get("GROUNDLINE_LLM_API_KEY")),

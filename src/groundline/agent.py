@@ -456,6 +456,8 @@ class OpenAICompatible:
         }
         if self.temperature is not None:  # reasoning models reject a non-default temperature
             body["temperature"] = self.temperature
+        if self.reasoning_effort:  # e.g. none | low | medium | high for reasoning models
+            body["reasoning_effort"] = self.reasoning_effort
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
         r = httpx.post(f"{self.base_url}/chat/completions", json=body, headers=headers, timeout=self.timeout)
         _check(r)
