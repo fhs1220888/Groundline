@@ -128,7 +128,7 @@ def build_table(out: str | Path, order: list[str] | None = None) -> str:
         rank = {n: i for i, n in enumerate(order)}
         rows.sort(key=lambda r: rank.get(r[0], len(rank)))
     head = [
-        "| 模型 | 交出报告 | 检出率 | 精确率 | 正常试车误报 | 初稿中无出处的数字 | 校验后仍无出处 | 用到修正轮 | token/次 | 秒/次 |",
+        "| 模型 | 交出报告 | 检出率（严格 / 宽松） | 精确率 | 正常试车误报 | 初稿中无出处的数字 | 校验后仍无出处 | 用到修正轮 | token/次 | 秒/次 |",
         "|---|---|---|---|---|---|---|---|---|---|",
     ]
     lines = []
@@ -150,7 +150,8 @@ def build_table(out: str | Path, order: list[str] | None = None) -> str:
             continue
         fixes = s["fix_rounds_used"] if is_llm else "–"
         lines.append(
-            f"| {name} | {s['reports_submitted']}/{total} | {_pct(s['recall_all_runs'])} | {_pct(s['precision'])} | "
+            f"| {name} | {s['reports_submitted']}/{total} | {_pct(s['recall_all_runs'])} / "
+            f"{_pct(s['recall_loose_all_runs'])} | {_pct(s['precision'])} | "
             f"{s['false_positives_on_nominal_runs']}（{s['nominal_runs']} 次） | {first} | "
             f"{s['ungrounded_numbers']} 个数字、{s['unsupported_claims']} 条结论 | {fixes} | {tok} | "
             f"{s['mean_elapsed_s']:.1f} |"
@@ -159,7 +160,8 @@ def build_table(out: str | Path, order: list[str] | None = None) -> str:
         "",
         f"同一组 {rows[0][1].get('n_runs', '?')} 次合成试车（种子从 {rows[0][1].get('seed', '?')} 开始）。"
         if rows else "",
-        "检出率按全部试车计算：崩溃或没有交报告的试车，其中的异常都算漏检。",
+        "检出率按全部试车计算：崩溃或没有交报告的试车，其中的异常都算漏检。严格：结论必须写明通道且时间对得上；"
+        "宽松：结论没填通道时，只要类别对、时间不冲突也算检出（模型发现了问题，但没填好结构化字段）。",
         "“初稿中无出处的数字”是校验器第一次拦下的数字（在所引用的证据里找不到），也就是没有校验器时会进入报告的编造数字。",
     ]
     return "\n".join(head + lines + notes)

@@ -357,6 +357,8 @@ def detect_oscillation(
         }, None
     # at least 16 frequency bins in the band, otherwise the prominence test is meaningless
     window_s = max(window_s, 16.0 / (fmax - fmin))
+    # a window longer than the analysed span (a model asked for window_s=400) has nothing to slide over
+    window_s = min(window_s, max(t_end - t_start, 16.0 / fs))
     x_all = s.require_channel(channel)
     nan_all = np.isnan(x_all)
     x_all = _filled(x_all)

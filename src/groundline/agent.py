@@ -398,6 +398,7 @@ class LLMAgent:
         fixes_left = self.fix_rounds
         ver: dict = {}
         first_ver: dict | None = None
+        first_flagged: list[dict] = []
 
         for _step in range(self.max_steps):
             reply = self.backend.complete(system, messages, tools)
@@ -433,6 +434,10 @@ class LLMAgent:
                     ver = verify_findings(findings, s)
                     if first_ver is None:
                         first_ver = dict(ver)
+                        first_flagged = [{"title": f.title, "statement": f.statement, "evidence": f.evidence,
+                                          "ungrounded_numbers": f.verification["ungrounded_numbers"],
+                                          "problems": f.verification["problems"]}
+                                         for f in findings if f.verification["status"] != "verified"]
                     bad = [(i, f) for i, f in enumerate(findings) if f.verification["status"] != "verified"]
                     if bad and fixes_left > 0:
                         fixes_left -= 1
@@ -463,6 +468,7 @@ class LLMAgent:
         return AnalysisResult(findings, summary, ver,
                               {"type": "llm", "backend": self.backend.name, "model": self.backend.model,
                                "lang": self.lang, "first_submission": first_ver, "submitted": first_ver is not None,
+                               "first_draft_flagged": first_flagged,
                                "fix_rounds_used": self.fix_rounds - fixes_left,
                                "usage": dict(getattr(self.backend, "usage", {}) or {})},
                               transcript, elapsed_s=time.perf_counter() - t0)

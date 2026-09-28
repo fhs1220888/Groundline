@@ -426,7 +426,7 @@ def test_leaderboard_runs_and_imports(tmp_path):
     ]}
     md = run_leaderboard(cfg, tmp_path / "lb")
     table = md.read_text()
-    assert "| rule | 2/2 | 100% |" in table and "| imported | 2/2 | 100% |" in table
+    assert "| rule | 2/2 | 100% / 100% |" in table and "| imported | 2/2 | 100% / 100% |" in table
     # second call reuses results
     assert run_leaderboard(cfg, tmp_path / "lb").read_text() == table
 
@@ -438,3 +438,16 @@ def test_leaderboard_entry_ignores_env_reasoning_effort(monkeypatch):
     a = make_entry_agent({"name": "local", "agent": "openai", "model": "qwen2.5:7b-16k",
                           "base_url": "http://localhost:11434/v1", "api_key": "ollama"}, "zh")
     assert a.backend.reasoning_effort is None
+
+
+def test_loose_match_counts_channelless_claim_with_right_category():
+    run, _ = session_for(["overtemp"], seed=5)
+    f = Finding("coolant outlet over redline", "…", "redline_violation", "critical", None, None, None, ["E1"])
+    m = match([f], run.truth)
+    assert not m["truth"][0]["detected"] and m["truth"][0]["detected_loose"]
+
+
+def test_oscillation_window_longer_than_span_is_clamped():
+    _, s = session_for(["oscillation"], seed=21)
+    r = s.run("detect_oscillation", channel="Pc", window_s=400).result
+    assert r["window_s"] <= r["t_end"] - r["t_start"] + 1e-9

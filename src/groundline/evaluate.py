@@ -38,12 +38,17 @@ def match(findings: list[Finding], truth: list[Anomaly], tol_s: float = 0.25) ->
         chans = {a.channel, *a.related_channels}
         hits = [i for i, f in enumerate(claims) if f.channel in chans and _overlaps(f, a, tol_s)]
         used.update(hits)
+        # loose: a claim that names no channel but has the right category (and a compatible time) —
+        # the model found the problem but did not fill in the structured field
+        loose = bool(hits) or any(not claims[i].channel and claims[i].category == a.category
+                                  and _overlaps(claims[i], a, tol_s) for i in range(len(claims)))
         cat_ok = any(claims[i].category == a.category for i in hits)
         loc_err = None
         primary = [claims[i] for i in hits if claims[i].category == a.category and claims[i].t_start is not None]
         if primary:
             loc_err = min(abs(f.t_start - a.t_start) for f in primary)
-        per_truth.append({"type": a.type, "channel": a.channel, "detected": bool(hits), "category_ok": cat_ok,
+        per_truth.append({"type": a.type, "channel": a.channel, "detected": bool(hits), "detected_loose": loose,
+                          "category_ok": cat_ok,
                           "t_start_error_s": loc_err})
     fps = [claims[i] for i in range(len(claims)) if i not in used]
     return {"truth": per_truth, "n_claims": len(claims), "false_positives": [
@@ -81,6 +86,12 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
             "usage": res.agent.get("usage"),
             "elapsed_s": time.perf_counter() - t0,
             "n_evidence": len(s.ledger),
+            # enough to audit what the verifier flagged without re-running the model
+            "findings": [{"title": f.title, "statement": f.statement, "category": f.category, "channel": f.channel,
+                          "evidence": f.evidence, "status": f.verification.get("status"),
+                          "ungrounded_numbers": f.verification.get("ungrounded_numbers"),
+                          "problems": f.verification.get("problems")} for f in res.findings],
+            "first_draft_flagged": res.agent.get("first_draft_flagged"),
         })
         if progress:
             progress(i + 1, n)
@@ -137,6 +148,7 @@ def summarize(rows: list[dict]) -> dict:
     fp_nominal = sum(len(r["match"]["false_positives"]) for r in rows if not r["anomalies"])
     # a run that crashed or never submitted a report still had anomalies to find
     n_truth_all = n_truth + sum(len(r["anomalies"]) for r in errors)
+    n_loose = sum(t.get("detected_loose", t["detected"]) for r in rows for t in r["match"]["truth"])
     submitted = sum(1 for r in rows if r.get("submitted", r["verification"]["n_findings"] > 0))
     fixes = sum(r.get("fix_rounds_used", 0) or 0 for r in rows)
     first_rate = None
@@ -147,6 +159,7 @@ def summarize(rows: list[dict]) -> dict:
         "runs_total": len(rows) + len(errors),
         "reports_submitted": submitted,
         "recall_all_runs": n_det / n_truth_all if n_truth_all else None,
+        "recall_loose_all_runs": n_loose / n_truth_all if n_truth_all else None,
         "unsupported_claims": findings - verified,
         "ungrounded_numbers": num_total - num_ok,
         "first_draft_ungrounded_rate": first_rate,
