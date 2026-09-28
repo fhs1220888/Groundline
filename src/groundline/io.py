@@ -85,7 +85,7 @@ def read_tdms(path: str | Path) -> tuple[pd.DataFrame, dict]:
     try:
         from nptdms import TdmsFile
     except ImportError as e:  # pragma: no cover
-        raise ImportError("Reading TDMS needs `pip install veritest[tdms]` (nptdms)") from e
+        raise ImportError("Reading TDMS needs `pip install groundline[tdms]` (nptdms)") from e
     f = TdmsFile.read(str(path))
     cols: dict[str, np.ndarray] = {}
     units: dict[str, dict] = {}
@@ -111,7 +111,7 @@ def write_tdms(df: pd.DataFrame, path: str | Path, meta: dict | None = None) -> 
     try:
         from nptdms import ChannelObject, TdmsWriter
     except ImportError as e:  # pragma: no cover
-        raise ImportError("Writing TDMS needs `pip install veritest[tdms]` (nptdms)") from e
+        raise ImportError("Writing TDMS needs `pip install groundline[tdms]` (nptdms)") from e
     path = Path(path)
     meta = meta or {}
     dt = float(np.median(np.diff(df["time"].to_numpy())))

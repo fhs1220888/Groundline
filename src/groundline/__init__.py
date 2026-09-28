@@ -1,4 +1,4 @@
-"""veritest — a verifiable test-data analysis agent."""
+"""groundline — a verifiable test-data analysis agent."""
 
 __version__ = "0.1.0"
 

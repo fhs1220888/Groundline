@@ -1,16 +1,18 @@
-# veritest
+# Groundline
 
 **可验证的试验数据分析 agent：报告里的每一个数字都能追溯到一次可复现的计算。**
-*A verifiable test-data analysis agent: every number in the report traces back to a reproducible computation.*
+*Verifiable AI agent for engine test data: every number in the report traces back to a reproducible computation.*
+
+名字取自 *grounded*（每个数字都有依据）和 *redline*（红线判读）。
 
 ![report](docs/report_screenshot.png)
 
-把一次发动机热试车（或任何台架试验）的数据交给 veritest，它会完成工况分段、传感器健康检查、红线判读、阀门响应、振荡检测和仿真对比，然后写出分析报告。和一般的 "AI 分析" 不同的是：
+把一次发动机热试车（或任何台架试验）的数据交给 Groundline，它会完成工况分段、传感器健康检查、红线判读、阀门响应、振荡检测和仿真对比，然后写出分析报告。和一般的 "AI 分析" 不同的是：
 
 - **数值计算只由确定性工具完成。** 大模型看不到原始数据，只负责决定调用哪些工具、怎么深挖，以及把结果写成人能读的结论。
 - **每次工具调用都记入证据账本。** 账本记录参数、数据文件 SHA-256、工具源码哈希、结果和图，报告里的结论只能引用这些证据（E1、E2……）。
 - **校验器逐个检查结论里的数字。** 标题和正文里的每个数字都必须能在所引用的证据中找到（允许四舍五入和 s↔ms、比例↔% 换算）。找不到的数字会在报告里用红色波浪线标出；如果用的是 LLM agent，它会收到驳回意见并有一次修正机会。
-- **任何结论都可以复现。** `veritest reproduce report.json` 会用原始数据把账本里的每条证据重新执行一遍，逐条比对结果。
+- **任何结论都可以复现。** `groundline reproduce report.json` 会用原始数据把账本里的每条证据重新执行一遍，逐条比对结果。
 
 > 状态：v0.1 原型，数据由内置的合成器生成，还没有接入真实试车数据。
 
@@ -19,18 +21,18 @@
 ```bash
 pip install -e ".[all]"        # 最小安装只需要 numpy/scipy/pandas/matplotlib：pip install -e .
 
-veritest demo                  # 生成一次带异常的合成热试车，并用规则 agent 分析
-open veritest_demo/report.html
-veritest reproduce veritest_demo/report.json   # 13/13 evidence entries reproduced exactly
+groundline demo                  # 生成一次带异常的合成热试车，并用规则 agent 分析
+open groundline_demo/report.html
+groundline reproduce groundline_demo/report.json   # 13/13 evidence entries reproduced exactly
 ```
 
 分析自己的数据（CSV 的第一列为时间，也支持 NI TDMS）：
 
 ```bash
-veritest analyze path/to/run.csv --reference sim.csv --limits limits.json
+groundline analyze path/to/run.csv --reference sim.csv --limits limits.json
 ```
 
-`limits.json` 的格式可以参考 `veritest synth` 生成的示例，里面包括红线、红线持续时间判据、阀门允许延迟、振荡阈值和仿真偏差容差。
+`limits.json` 的格式可以参考 `groundline synth` 生成的示例，里面包括红线、红线持续时间判据、阀门允许延迟、振荡阈值和仿真偏差容差。
 
 ## 使用大模型
 
@@ -38,13 +40,13 @@ veritest analyze path/to/run.csv --reference sim.csv --limits limits.json
 
 ```bash
 # 任何 OpenAI 兼容接口：Qwen / DeepSeek / vLLM / Ollama 本地部署都可以
-export VERITEST_LLM_BASE_URL=http://localhost:11434/v1   # 例如 Ollama
-export VERITEST_LLM_MODEL=qwen2.5:32b
-veritest analyze run.csv --agent openai
+export GROUNDLINE_LLM_BASE_URL=http://localhost:11434/v1   # 例如 Ollama
+export GROUNDLINE_LLM_MODEL=qwen2.5:32b
+groundline analyze run.csv --agent openai
 
 # Anthropic
 export ANTHROPIC_API_KEY=...
-veritest analyze run.csv --agent anthropic --model claude-sonnet-5
+groundline analyze run.csv --agent anthropic --model claude-sonnet-5
 ```
 
 试验数据通常很敏感，所以接口按内网私有化部署设计：模型只看到工具的输出摘要，看不到原始数据。
@@ -52,7 +54,7 @@ veritest analyze run.csv --agent anthropic --model claude-sonnet-5
 ## 作为 MCP 服务器
 
 ```bash
-veritest-mcp     # stdio 传输，配置示例见 examples/mcp_config.json
+groundline-mcp     # stdio 传输，配置示例见 examples/mcp_config.json
 ```
 
 它提供 `open_run`、`list_analysis_tools`、`run_analysis`、`verify`、`write_html_report` 五个工具。任何 MCP 客户端（Claude Desktop、Cursor 或你自己的 agent）都可以充当规划者，校验规则保持不变。
@@ -70,14 +72,14 @@ veritest-mcp     # stdio 传输，配置示例见 examples/mcp_config.json
 | `compare_reference` | 与仿真预测对比：平均偏差、RMSE，以及持续超差的时间段 |
 | `channel_stats` / `plot_window` | 深挖用的统计和作图 |
 
-`veritest tools` 可以查看完整的参数说明。
+`groundline tools` 可以查看完整的参数说明。
 
 ## 基准测试
 
 合成器可以注入六类已知异常，每次都附带真值：燃烧振荡、冷却剂超温、传感器冻结或缺失、测量尖峰、燃料阀延迟、室压偏低（c* 效率不足）。因此可以对 agent 做定量评测：
 
 ```bash
-veritest eval --n 50 --seed 1000
+groundline eval --n 50 --seed 1000
 ```
 
 规则 agent 在 50 次随机试车上的结果如下：
@@ -108,7 +110,7 @@ veritest eval --n 50 --seed 1000
 ## 目录结构
 
 ```
-src/veritest/
+src/groundline/
   synth.py        合成热试车数据和异常真值
   io.py           CSV / TDMS 读写
   session.py      Session 与证据账本

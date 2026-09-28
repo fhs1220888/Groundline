@@ -4,7 +4,7 @@ The client opens a session on a data file, calls analysis tools by name, and
 submits findings for verification. Numbers still come only from the tools, so
 the verifier works the same way as with the built-in agents.
 
-Run with ``veritest-mcp`` (stdio transport).
+Run with ``groundline-mcp`` (stdio transport).
 """
 
 from __future__ import annotations
@@ -19,12 +19,12 @@ def build_server():
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError as e:  # pragma: no cover
-        raise ImportError("the MCP server needs `pip install veritest[mcp]`") from e
+        raise ImportError("the MCP server needs `pip install groundline[mcp]`") from e
     from .agent import AnalysisResult
     from .report import write_report
     from .tools import REGISTRY
 
-    mcp = FastMCP("veritest")
+    mcp = FastMCP("groundline")
     sessions: dict[str, Session] = {}
 
     def _get(session_id: str) -> Session:
@@ -68,7 +68,7 @@ def build_server():
     @mcp.tool()
     def write_html_report(session_id: str, findings: list[dict], summary: str, out_path: str,
                           lang: str = "zh") -> dict:
-        """Verify the findings and write the HTML report (plus report.json for `veritest reproduce`)."""
+        """Verify the findings and write the HTML report (plus report.json for `groundline reproduce`)."""
         s = _get(session_id)
         fs = [Finding.from_dict(d) for d in findings]
         ver = verify_findings(fs, s)

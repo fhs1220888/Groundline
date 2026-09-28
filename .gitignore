@@ -6,6 +6,6 @@ dist/
 .venv/
 .pytest_cache/
 .env
-veritest_demo/
+groundline_demo/
 runs/
 *.tdms_index

@@ -3,13 +3,13 @@ import json
 import numpy as np
 import pytest
 
-from veritest import Session
-from veritest.agent import LLMAgent, RuleAgent, ScriptedBackend
-from veritest.evaluate import match, run_benchmark
-from veritest.findings import Finding, extract_numbers, verify_findings
-from veritest.report import write_report
-from veritest.reproduce import reproduce
-from veritest.synth import ANOMALY_TYPES, generate_run
+from groundline import Session
+from groundline.agent import LLMAgent, RuleAgent, ScriptedBackend
+from groundline.evaluate import match, run_benchmark
+from groundline.findings import Finding, extract_numbers, verify_findings
+from groundline.report import write_report
+from groundline.reproduce import reproduce
+from groundline.synth import ANOMALY_TYPES, generate_run
 
 
 def session_for(anomalies, seed=3):

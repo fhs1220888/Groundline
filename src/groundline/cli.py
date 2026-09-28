@@ -1,4 +1,4 @@
-"""Command line interface: ``veritest demo | synth | analyze | reproduce | eval | tools``."""
+"""Command line interface: ``groundline demo | synth | analyze | reproduce | eval | tools``."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ def _add_agent_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--agent", default="rule",
                    help="rule (default, no LLM) | openai (any OpenAI-compatible endpoint: Qwen, DeepSeek, vLLM, "
                         "Ollama...) | anthropic")
-    p.add_argument("--model", help="model name (or VERITEST_LLM_MODEL)")
-    p.add_argument("--base-url", help="OpenAI-compatible base URL (or VERITEST_LLM_BASE_URL)")
+    p.add_argument("--model", help="model name (or GROUNDLINE_LLM_MODEL)")
+    p.add_argument("--base-url", help="OpenAI-compatible base URL (or GROUNDLINE_LLM_BASE_URL)")
     p.add_argument("--lang", default="zh", choices=["zh", "en"], help="report language")
 
 
@@ -102,11 +102,11 @@ def cmd_tools(a) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(prog="veritest", description="Verifiable test-data analysis agent")
+    p = argparse.ArgumentParser(prog="groundline", description="Verifiable test-data analysis agent")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     d = sub.add_parser("demo", help="generate a synthetic hot-fire run and analyse it")
-    d.add_argument("--out", default="veritest_demo")
+    d.add_argument("--out", default="groundline_demo")
     d.add_argument("--seed", type=int, default=3)
     d.add_argument("--anomalies", default="oscillation,overtemp,valve_delay,sensor_spike,pc_deficit")
     _add_agent_args(d)

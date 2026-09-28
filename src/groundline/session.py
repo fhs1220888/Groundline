@@ -4,7 +4,7 @@ Every analysis step goes through :meth:`Session.run`, which executes a
 deterministic tool and records an :class:`Evidence` entry (tool, parameters,
 data hash, tool-source hash, result, figure).  Findings in the final report can
 only point at these entries, and each entry can be re-executed later with
-``veritest reproduce`` to prove the number came from the data.
+``groundline reproduce`` to prove the number came from the data.
 """
 
 from __future__ import annotations
@@ -74,7 +74,7 @@ class Evidence:
         params = ", ".join(f"{k}={v!r}" for k, v in self.params.items())
         call = f"s.run({self.tool!r}{', ' if params else ''}{params})"
         return (
-            "from veritest import Session\n"
+            "from groundline import Session\n"
             f"s = Session.open({', '.join(args)})\n"
             f"ev = {call}\n"
             "print(ev.result)"

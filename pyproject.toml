@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "veritest"
+name = "groundline"
 version = "0.1.0"
-description = "Verifiable test-data analysis agent: every claim in the report is traceable to reproducible evidence."
+description = "Verifiable AI agent for engine test data: every number in the report traces back to a reproducible computation."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -24,8 +24,8 @@ dev = ["pytest>=7", "httpx>=0.25", "nptdms>=1.7"]
 all = ["httpx>=0.25", "nptdms>=1.7", "mcp>=1.0"]
 
 [project.scripts]
-veritest = "veritest.cli:main"
-veritest-mcp = "veritest.mcp_server:main"
+groundline = "groundline.cli:main"
+groundline-mcp = "groundline.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

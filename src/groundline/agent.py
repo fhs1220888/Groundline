@@ -6,7 +6,7 @@
   writes the findings.  After it submits, the verifier checks every claim; if
   something is ungrounded the agent gets one chance to fix it.
 
-Both produce the same :class:`AnalysisResult`, rendered by ``veritest.report``.
+Both produce the same :class:`AnalysisResult`, rendered by ``groundline.report``.
 """
 
 from __future__ import annotations
@@ -414,9 +414,9 @@ class OpenAICompatible:
 
     def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None,
                  temperature: float = 0.0, timeout: float = 180.0):
-        self.model = model or os.environ.get("VERITEST_LLM_MODEL", "gpt-4o-mini")
-        self.base_url = (base_url or os.environ.get("VERITEST_LLM_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
-        self.api_key = api_key or os.environ.get("VERITEST_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+        self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "gpt-4o-mini")
+        self.base_url = (base_url or os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
+        self.api_key = api_key or os.environ.get("GROUNDLINE_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
         self.temperature = temperature
         self.timeout = timeout
 
@@ -462,7 +462,7 @@ class AnthropicBackend:
 
     def __init__(self, model: str | None = None, api_key: str | None = None, max_tokens: int = 4096,
                  timeout: float = 180.0):
-        self.model = model or os.environ.get("VERITEST_LLM_MODEL", "claude-sonnet-5")
+        self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "claude-sonnet-5")
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         self.max_tokens = max_tokens
         self.timeout = timeout

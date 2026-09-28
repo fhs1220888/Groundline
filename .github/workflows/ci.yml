@@ -13,4 +13,4 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: pip install -e ".[dev]"
       - run: pytest -q
-      - run: veritest demo --out /tmp/demo && veritest reproduce /tmp/demo/report.json
+      - run: groundline demo --out /tmp/demo && groundline reproduce /tmp/demo/report.json

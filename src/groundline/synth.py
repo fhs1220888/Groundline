@@ -10,7 +10,7 @@ The generator models a small pressure-fed liquid rocket engine firing:
 It also writes a noise-free "simulation prediction" (reference) sampled at a
 lower rate, a redline/limits file and a ground-truth list of every injected
 anomaly.  Because the truth is known, the output doubles as a benchmark for
-analysis agents (see ``veritest.evaluate``).
+analysis agents (see ``groundline.evaluate``).
 
 This is an engineering toy model, not a combustion model.  Its job is to
 produce data with realistic *structure* (phases, lags, noise, failure
@@ -392,7 +392,7 @@ def generate_run(
 
     meta = {
         "test_id": test_id or f"SYN-{seed:04d}",
-        "description": "Synthetic hot-fire test (veritest.synth)",
+        "description": "Synthetic hot-fire test (groundline.synth)",
         "sample_rate_hz": fs,
         "channels": CHANNELS,
         "sequence": asdict(seq),
