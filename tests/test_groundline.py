@@ -227,3 +227,20 @@ def test_openai_backend_wire_format(monkeypatch):
     assert res.agent["first_submission"]["numbers_grounded"] == 0
     assert res.agent["fix_rounds_used"] == 1
     assert res.agent["usage"]["requests"] == 3
+
+
+def test_dotenv_parsing_and_precedence(tmp_path, monkeypatch):
+    from groundline.config import load_dotenv, parse_dotenv
+
+    env = parse_dotenv('# c\nexport A=1\nB="two words"\nC=3 # note\nD=\'x\'\nbad line\n')
+    assert env == {"A": "1", "B": "two words", "C": "3", "D": "x"}
+    (tmp_path / ".env").write_text("GROUNDLINE_LLM_MODEL=from-file\nGROUNDLINE_LANG=en\n")
+    sub = tmp_path / "a" / "b"
+    sub.mkdir(parents=True)
+    monkeypatch.chdir(sub)
+    monkeypatch.setenv("GROUNDLINE_LANG", "zh")  # shell wins over file
+    monkeypatch.delenv("GROUNDLINE_LLM_MODEL", raising=False)
+    assert load_dotenv() == tmp_path / ".env"
+    import os
+    assert os.environ["GROUNDLINE_LLM_MODEL"] == "from-file"
+    assert os.environ["GROUNDLINE_LANG"] == "zh"

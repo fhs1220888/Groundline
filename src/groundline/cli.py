@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -11,12 +12,13 @@ from .agent import make_agent
 
 
 def _add_agent_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--agent", default="rule",
-                   help="rule (default, no LLM) | openai (any OpenAI-compatible endpoint: Qwen, DeepSeek, vLLM, "
-                        "Ollama...) | anthropic")
-    p.add_argument("--model", help="model name (or GROUNDLINE_LLM_MODEL)")
-    p.add_argument("--base-url", help="OpenAI-compatible base URL (or GROUNDLINE_LLM_BASE_URL)")
-    p.add_argument("--lang", default="zh", choices=["zh", "en"], help="report language")
+    p.add_argument("--agent", default=os.environ.get("GROUNDLINE_AGENT", "rule"),
+                   help="rule (no LLM) | openai (any OpenAI-compatible endpoint: Qwen, DeepSeek, vLLM, Ollama...) "
+                        "| anthropic. Default: GROUNDLINE_AGENT from .env, else rule")
+    p.add_argument("--model", help="model name (default: GROUNDLINE_LLM_MODEL)")
+    p.add_argument("--base-url", help="OpenAI-compatible base URL (default: GROUNDLINE_LLM_BASE_URL)")
+    p.add_argument("--lang", default=os.environ.get("GROUNDLINE_LANG", "zh"), choices=["zh", "en"],
+                   help="report language (default: GROUNDLINE_LANG, else zh)")
 
 
 def cmd_synth(a) -> int:
@@ -101,7 +103,18 @@ def cmd_tools(a) -> int:
     return 0
 
 
+def cmd_config(a) -> int:
+    from .config import describe
+
+    for k, v in describe().items():
+        print(f"{k:>22}: {v if v is not None else '-'}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
+    from .config import load_dotenv
+
+    load_dotenv()  # .env in the current directory or a parent; shell variables win
     p = argparse.ArgumentParser(prog="groundline", description="Verifiable test-data analysis agent")
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -138,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--out", help="write full results JSON here")
     _add_agent_args(e)
     e.set_defaults(fn=cmd_eval)
+
+    c = sub.add_parser("config", help="show the configuration the CLI will use (.env, agent, model; keys masked)")
+    c.set_defaults(fn=cmd_config)
 
     t = sub.add_parser("tools", help="list analysis tools")
     t.set_defaults(fn=cmd_tools)

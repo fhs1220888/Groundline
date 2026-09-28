@@ -36,7 +36,17 @@ groundline analyze path/to/run.csv --reference sim.csv --limits limits.json
 
 ## 使用大模型
 
-规则 agent（默认）是一套固定的检查流程，不需要任何模型。换成 LLM agent 后，由模型自己规划分析步骤、交叉验证并撰写结论：
+规则 agent（默认）是一套固定的检查流程，不需要任何模型。换成 LLM agent 后，由模型自己规划分析步骤、交叉验证并撰写结论。
+
+最省事的方式是在项目根目录放一个 `.env`（已在 `.gitignore` 中，不会被提交）：
+
+```bash
+cp .env.example .env      # 填入 OPENAI_API_KEY，按需改 GROUNDLINE_AGENT / GROUNDLINE_LLM_MODEL
+groundline config         # 查看当前生效的配置（key 会打码）
+groundline demo           # 之后所有命令默认使用 .env 里的 agent 和模型
+```
+
+Groundline 会从当前目录向上查找 `.env`；命令行参数和 shell 里已设置的环境变量优先于 `.env`。也可以不用 `.env`，直接用环境变量或参数：
 
 ```bash
 # OpenAI
@@ -133,6 +143,7 @@ src/groundline/
   reproduce.py    证据复现
   evaluate.py     基准评测
   mcp_server.py   MCP 服务器
+  config.py       .env 配置加载
   cli.py          命令行
 ```
 

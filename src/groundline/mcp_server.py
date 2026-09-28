@@ -80,6 +80,9 @@ def build_server():
 
 
 def main() -> None:
+    from .config import load_dotenv
+
+    load_dotenv()
     build_server().run()
 
 
