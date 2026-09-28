@@ -70,7 +70,11 @@ _SCALES = (1.0, 1000.0, 0.001, 100.0, 0.01, 60.0)
 
 def extract_numbers(text: str) -> list[tuple[str, float, int]]:
     out = []
-    for m in _NUM_RE.finditer(text or ""):
+    text = text or ""
+    for m in _NUM_RE.finditer(text):
+        i = m.start()
+        if i >= 2 and text[i - 1] in "-_" and text[i - 2].isalpha():
+            continue  # part of an identifier such as SYN-1013 or run_42, not a measured value
         tok = m.group(0).replace("−", "-")
         try:
             val = float(tok)

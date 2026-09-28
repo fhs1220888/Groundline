@@ -451,3 +451,8 @@ def test_oscillation_window_longer_than_span_is_clamped():
     _, s = session_for(["oscillation"], seed=21)
     r = s.run("detect_oscillation", channel="Pc", window_s=400).result
     assert r["window_s"] <= r["t_end"] - r["t_start"] + 1e-9
+
+
+def test_hyphenated_identifiers_are_not_numbers():
+    vals = [v for _, v, _ in extract_numbers("Tested SYN-1013 and run_42: peak 5.2 bar, -3 dB")]
+    assert vals == [5.2, -3.0]
