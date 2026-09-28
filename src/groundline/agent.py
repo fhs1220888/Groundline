@@ -429,6 +429,7 @@ class OpenAICompatible:
         self.api_key = api_key or os.environ.get("GROUNDLINE_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
         t = os.environ.get("GROUNDLINE_LLM_TEMPERATURE")
         self.temperature = temperature if temperature is not None else (float(t) if t else None)
+        self.reasoning_effort = os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT") or None
         self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
         self.timeout = timeout
 
