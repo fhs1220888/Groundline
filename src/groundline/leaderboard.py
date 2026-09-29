@@ -29,7 +29,7 @@ import re
 import sys
 from pathlib import Path
 
-from .evaluate import run_benchmark, save, summarize
+from .evaluate import BenchmarkInterrupted, is_infra_error, run_benchmark, save, summarize
 
 
 def _slug(name: str) -> str:
@@ -54,7 +54,7 @@ def make_entry_agent(e: dict, lang: str):
     if api == "responses":
         be = A.OpenAIResponses(e.get("model"), url, key, reasoning_effort=e.get("reasoning_effort"))
     else:
-        be = A.OpenAICompatible(e.get("model"), url, key)
+        be = A.OpenAICompatible(e.get("model"), url, key, timeout=float(e.get("timeout", 600)))
         # the entry is the whole configuration: settings meant for the default model in .env
         # (e.g. GROUNDLINE_LLM_REASONING_EFFORT for gpt-5.6-sol) must not leak into a local model
         be.reasoning_effort = e.get("reasoning_effort")
@@ -72,12 +72,14 @@ def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: li
         if only and name not in only:
             continue
         path = out / f"{_slug(name)}.json"
-        if path.exists() and not force:
-            prev = json.loads(path.read_text())
-            usable = any("error" not in r for r in prev.get("runs", []))
-            if prev.get("n_runs") == n and prev.get("seed") == seed and usable:
-                print(f"[{name}] already done ({path}), skipping", file=sys.stderr)
-                continue
+        prev = json.loads(path.read_text()) if path.exists() and not force else None
+        if prev and (prev.get("n_runs") != n or prev.get("seed") != seed):
+            prev = None
+        if prev and not prev.get("incomplete") and not any(is_infra_error(r.get("error", ""))
+                                                           for r in prev.get("runs", [])) \
+                and any("error" not in r for r in prev.get("runs", [])):
+            print(f"[{name}] already done ({path}), skipping", file=sys.stderr)
+            continue
         if e.get("from"):
             src = Path(e["from"])
             if not src.is_absolute() and base_dir:
@@ -88,15 +90,28 @@ def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: li
                                  f"leaderboard needs n={n} seed={seed}")
             print(f"[{name}] imported {src}", file=sys.stderr)
         else:
-            print(f"[{name}] running {n} tests...", file=sys.stderr)
+            resume = [r for r in prev["runs"]] if prev else None
+            kept = sum(1 for r in resume or [] if not is_infra_error(r.get("error", "")))
+            print(f"[{name}] running {n} tests" + (f" (resuming, {kept} already done)" if kept else "") + "...",
+                  file=sys.stderr)
 
             def prog(i, total, name=name):
                 print(f"\r  [{name}] run {i}/{total}", end="", file=sys.stderr, flush=True)
 
             try:
-                # a failure on the first run is almost always configuration (URL, key, model name,
-                # unsupported option): stop this model instead of failing the same way n times
-                res = run_benchmark(lambda e=e: make_entry_agent(e, lang), n=n, seed=seed, progress=prog)
+                # a non-connection failure on the first run is almost always configuration (URL, key, model
+                # name, unsupported option): stop this model instead of failing the same way n times
+                res = run_benchmark(lambda e=e: make_entry_agent(e, lang), n=n, seed=seed, progress=prog,
+                                    resume_rows=resume, infra_retries=1, stop_on_infra=True)
+            except BenchmarkInterrupted as bi:
+                part = {"n_runs": n, "seed": seed, "incomplete": True, "runs": bi.rows,
+                        "summary": summarize(bi.rows) if bi.rows else {},
+                        "entry": {k: v for k, v in e.items() if k not in ("api_key",)}}
+                save(part, path)
+                print(f"\n[{name}] lost the model server after {len(bi.rows)} of {n} runs ({bi}).\n"
+                      f"  Saved what is done. Check that the server (e.g. the Ollama app) is running, then run the "
+                      f"same command again: it continues from run {len(bi.rows) + 1}.", file=sys.stderr)
+                continue
             except Exception as err:
                 print(f"\n[{name}] first run failed, skipping this model: {type(err).__name__}: {err}"[:900],
                       file=sys.stderr)
@@ -122,11 +137,13 @@ def build_table(out: str | Path, order: list[str] | None = None) -> str:
         if "runs" not in res:
             continue
         name = (res.get("entry") or {}).get("name") or p.stem
+        if res.get("incomplete"):
+            name += f"（未跑完，{len(res['runs'])}/{res.get('n_runs')}）"
         s = summarize(res["runs"])  # recomputed, so files from older versions get the same columns
         rows.append((name, res, s))
     if order:
         rank = {n: i for i, n in enumerate(order)}
-        rows.sort(key=lambda r: rank.get(r[0], len(rank)))
+        rows.sort(key=lambda r: rank.get(r[0].split("（未跑完")[0], len(rank)))
     head = [
         "| 模型 | 交出报告 | 检出率（严格 / 宽松） | 精确率 | 正常试车误报 | 初稿中无出处的数字 | 校验后仍有问题 | 用到修正轮 | token/次 | 秒/次 |",
         "|---|---|---|---|---|---|---|---|---|---|",

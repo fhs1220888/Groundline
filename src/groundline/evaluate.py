@@ -14,6 +14,7 @@ were traceable to evidence.
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -55,24 +56,64 @@ def match(findings: list[Finding], truth: list[Anomaly], tol_s: float = 0.25) ->
         {"category": f.category, "channel": f.channel, "t_start": f.t_start, "title": f.title} for f in fps]}
 
 
+_INFRA = ("ConnectError", "ConnectTimeout", "RemoteProtocolError", "ReadError", "WriteError", "ReadTimeout",
+          "WriteTimeout", "PoolTimeout")
+
+
+def is_infra_error(err: str | BaseException) -> bool:
+    """The model server was unreachable or dropped the connection: not the model's fault, worth retrying."""
+    msg = err if isinstance(err, str) else f"{type(err).__name__}: {err}"
+    return msg.split(":", 1)[0] in _INFRA or bool(re.match(r"RuntimeError: LLM API error 5\d\d", msg))
+
+
+class BenchmarkInterrupted(RuntimeError):
+    """The model server went away mid-benchmark; ``rows`` holds the runs finished so far."""
+
+    def __init__(self, rows: list[dict], error: str):
+        super().__init__(error)
+        self.rows = rows
+
+
 def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, progress=None,
-                  keep_going: bool = False) -> dict:
+                  keep_going: bool = False, resume_rows: list[dict] | None = None, infra_retries: int = 0,
+                  stop_on_infra: bool = False) -> dict:
     """Run ``n`` synthetic tests. A failure on the very first run is raised (usually a bad key or URL)
-    unless ``keep_going`` is set, in which case every failure is recorded and the benchmark continues."""
+    unless ``keep_going`` is set, in which case every failure is recorded and the benchmark continues.
+
+    ``resume_rows``: results of an earlier, interrupted call; finished runs are kept and only missing ones
+    (or ones that failed because the server was unreachable) are run again. With ``stop_on_infra``, a run that
+    still cannot reach the server after ``infra_retries`` retries raises :class:`BenchmarkInterrupted`
+    instead of recording the same connection error for every remaining run."""
+    done = {r["seed"]: r for r in (resume_rows or []) if not is_infra_error(r.get("error", ""))}
     rows = []
     for i in range(n):
-        run = generate_run(seed + i)
-        s = Session(run.data, run.meta, run.reference, run.limits)
-        t0 = time.perf_counter()
-        try:
-            res = make_agent().run(s)
-        except Exception as e:  # one failed run (API error, timeout) should not lose the whole benchmark
-            rows.append({"seed": seed + i, "anomalies": [a.type for a in run.truth],
-                         "error": f"{type(e).__name__}: {e}"[:500]})
+        if seed + i in done:
+            rows.append(done[seed + i])
             if progress:
                 progress(i + 1, n)
-            if i == 0 and not keep_going:
-                raise
+            continue
+        run = generate_run(seed + i)
+        for attempt in range(infra_retries + 1):
+            s = Session(run.data, run.meta, run.reference, run.limits)
+            t0 = time.perf_counter()
+            try:
+                res = make_agent().run(s)
+                err = None
+                break
+            except Exception as e:  # one failed run (API error, timeout) should not lose the whole benchmark
+                err = e
+                if not is_infra_error(e) or attempt == infra_retries:
+                    break
+                time.sleep(10)
+        if err is not None:
+            msg = f"{type(err).__name__}: {err}"[:500]
+            if stop_on_infra and is_infra_error(err):
+                raise BenchmarkInterrupted(rows, msg) from err
+            rows.append({"seed": seed + i, "anomalies": [a.type for a in run.truth], "error": msg})
+            if progress:
+                progress(i + 1, n)
+            if not rows[:-1] and not keep_going:
+                raise err
             continue
         m = match(res.findings, run.truth, tol_s)
         rows.append({

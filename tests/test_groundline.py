@@ -529,3 +529,31 @@ def test_llm_runs_can_be_reverified_later():
     before = res["runs"][0]["verification"]
     after = reverify(json.loads(json.dumps(res)))["runs"][0]["verification"]
     assert before["numbers_grounded"] == after["numbers_grounded"] == 0
+
+
+def test_leaderboard_resumes_after_model_server_goes_away(tmp_path, monkeypatch):
+    import groundline.leaderboard as lb
+
+    class ConnectError(Exception):  # same name as httpx's, which is what matters
+        pass
+
+    calls = {"n": 0, "fail_from": 2}
+
+    class Flaky:
+        def run(self, s):
+            calls["n"] += 1
+            if calls["n"] >= calls["fail_from"]:
+                raise ConnectError("[Errno 61] Connection refused")
+            return RuleAgent("en").run(s)
+
+    monkeypatch.setattr(lb, "make_entry_agent", lambda e, lang: Flaky())
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    cfg = {"n": 3, "seed": 1000, "lang": "en", "models": [{"name": "local", "agent": "openai"}]}
+    lb.run_leaderboard(cfg, tmp_path)
+    part = json.loads((tmp_path / "local.json").read_text())
+    assert part["incomplete"] and len(part["runs"]) == 1
+    calls.update(n=0, fail_from=99)  # server is back
+    md = lb.run_leaderboard(cfg, tmp_path).read_text()
+    done = json.loads((tmp_path / "local.json").read_text())
+    assert not done.get("incomplete") and len(done["runs"]) == 3 and calls["n"] == 2
+    assert "| local | 3/3 |" in md
