@@ -85,7 +85,10 @@ def main() -> None:
     from .config import load_dotenv
 
     load_dotenv()
-    build_server().run()
+    try:
+        build_server().run()
+    except KeyboardInterrupt:  # Ctrl-C in a terminal is a normal way to stop a stdio server
+        pass
 
 
 if __name__ == "__main__":
