@@ -589,3 +589,12 @@ def test_run_time_budget_and_reply_cap():
     assert res.agent["timed_out"] and not res.agent["submitted"]
     a = make_entry_agent({"name": "x", "agent": "openai", "model": "m", "base_url": "http://localhost:11434/v1"}, "en")
     assert isinstance(a.backend, OpenAICompatible) and a.backend.max_tokens == 2048 and a.max_seconds == 1200
+
+
+def test_compound_units_are_read_whole_and_cancelled():
+    from groundline.semantics import _norm_unit, unit_after
+
+    assert unit_after("39.6 MPa·s。", 4) == "MPa·s"
+    assert unit_after("50 kg/s·s 和", 2) == "kg/s·s"
+    assert _norm_unit("kg/s·s") == _norm_unit("kg")  # a flow integral is a mass
+    assert _norm_unit("kg·s") != _norm_unit("kg/s·s")

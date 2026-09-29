@@ -73,9 +73,10 @@ def evidence_fields(obj, path: str = "", key: str = "", unit: str | None = None)
 
 
 # ---------------------------------------------------------------------------- reading the text
+_BASE_U = r"(?:MPa|kPa|Pa|bar|psi|degC|°C|℃|kg|Hz|hz|ms|sec|s|K|N|g|m|W|J|V|A|rpm)"
 _UNIT_RE = re.compile(
-    r"\s*(毫秒|秒|赫兹|ms|sec|s|Hz|hz|%|％|bar|MPa|kPa|Pa|K|°C|℃|degC|N·s|N\*s|N s|kg·s|kg/s|kg|g|N|"
-    r"个采样点|个|次|段|条|处|samples?|windows?|spikes?|gaps?)(?![A-Za-z])"
+    r"\s*(毫秒|秒|赫兹|%|％|个采样点|个|次|段|条|处|samples?|windows?|spikes?|gaps?"
+    r"|" + _BASE_U + r"(?:\s?[·*/]\s?" + _BASE_U + r")*)(?![A-Za-z])"
 )
 _TIME_U = {"毫秒", "秒", "ms", "sec", "s"}
 _FREQ_U = {"赫兹", "Hz", "hz"}
@@ -84,11 +85,24 @@ _COUNT_U = {"个采样点", "个", "次", "段", "条", "处", "sample", "sample
             "gap", "gaps"}
 
 
-def _norm_unit(u: str | None) -> str | None:
-    if u is None:
-        return None
-    u = u.strip().replace("·", "*").replace(" ", "*")
-    return {"°C": "degC", "℃": "degC"}.get(u, u)
+def _dims(u: str) -> tuple:
+    """Units as a cancelled product: "kg/s·s" -> (("kg", 1),), "N·s" -> (("N", 1), ("s", 1))."""
+    u = {"°C": "degC", "℃": "degC"}.get(u.strip(), u.strip())
+    powers: dict[str, int] = {}
+    sign = 1
+    for tok in re.findall(r"[·*/]|[^·*/\s]+", u):
+        if tok in "·*":
+            sign = 1
+        elif tok == "/":
+            sign = -1
+        else:
+            powers[tok] = powers.get(tok, 0) + sign
+            sign = 1
+    return tuple(sorted((k, v) for k, v in powers.items() if v))
+
+
+def _norm_unit(u: str | None) -> tuple | None:
+    return None if u is None else _dims(u)
 
 
 def unit_after(text: str, end: int) -> str | None:
