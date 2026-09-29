@@ -76,9 +76,17 @@ groundline eval --agent openai --model gpt-4o-mini --n 10 --lang en --out eval_o
 
 ## 作为 MCP 服务器
 
-```bash
-groundline-mcp     # stdio 传输，配置示例见 examples/mcp_config.json
+Groundline 已登记在 [MCP Registry](https://registry.modelcontextprotocol.io)，名称是 `io.github.fhs1220888/groundline`。从 Registry 安装的客户端会用 `uvx groundline mcp` 启动它；也可以手动加到 Claude Desktop、Cursor 等客户端的配置里：
+
+```json
+{
+  "mcpServers": {
+    "groundline": { "command": "uvx", "args": ["groundline", "mcp"] }
+  }
+}
 ```
+
+在本地仓库里，`groundline mcp`（或 `groundline-mcp`）会以 stdio 方式运行同一个服务器。
 
 它提供 `open_run`、`list_analysis_tools`、`run_analysis`、`verify`、`write_html_report` 五个工具。任何 MCP 客户端（Claude Desktop、Cursor 或你自己的 agent）都可以充当规划者，校验规则保持不变。
 

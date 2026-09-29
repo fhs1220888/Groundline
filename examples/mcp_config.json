@@ -1,7 +1,8 @@
 {
   "mcpServers": {
     "groundline": {
-      "command": "groundline-mcp"
+      "command": "uvx",
+      "args": ["groundline", "mcp"]
     }
   }
 }

@@ -1,12 +1,14 @@
 # Groundline
 
-English | [简体中文](README.zh-CN.md)
+English | [简体中文](https://github.com/fhs1220888/Groundline/blob/main/README.zh-CN.md)
+
+<!-- mcp-name: io.github.fhs1220888/groundline -->
 
 **A verifiable AI agent for engine test data: every number in the report traces back to a reproducible computation.**
 
 The name comes from *grounded* (every number has a source) and *redline* (limit checks).
 
-![report](docs/report_screenshot.png)
+![report](https://raw.githubusercontent.com/fhs1220888/Groundline/main/docs/report_screenshot.png)
 
 Give Groundline the data from an engine hot-fire (or any bench test) and it segments the run into phases, checks sensor health, redlines, valve response and oscillations, compares against the simulation prediction, and writes an analysis report. Unlike a typical "AI analysis":
 
@@ -76,9 +78,17 @@ Test data is usually sensitive, so the interface is built for on-premise deploym
 
 ## As an MCP server
 
-```bash
-groundline-mcp     # stdio transport; see examples/mcp_config.json
+Groundline is listed in the [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.fhs1220888/groundline`. Clients that install from the registry run it with `uvx groundline mcp`; to add it by hand (Claude Desktop, Cursor, ...):
+
+```json
+{
+  "mcpServers": {
+    "groundline": { "command": "uvx", "args": ["groundline", "mcp"] }
+  }
+}
 ```
+
+From a local checkout, `groundline mcp` (or `groundline-mcp`) runs the same server on stdio.
 
 It exposes five tools: `open_run`, `list_analysis_tools`, `run_analysis`, `verify` and `write_html_report`. Any MCP client (Claude Desktop, Cursor or your own agent) can act as the planner; the verification rules stay the same.
 

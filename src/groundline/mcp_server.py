@@ -4,7 +4,7 @@ The client opens a session on a data file, calls analysis tools by name, and
 submits findings for verification. Numbers still come only from the tools, so
 the verifier works the same way as with the built-in agents.
 
-Run with ``groundline-mcp`` (stdio transport).
+Run with ``groundline mcp`` / ``groundline-mcp`` (stdio transport), or ``uvx groundline mcp``.
 """
 
 from __future__ import annotations
@@ -57,12 +57,14 @@ def build_server():
     @mcp.tool()
     def verify(session_id: str, findings: list[dict]) -> dict:
         """Check findings (title, statement, category, severity, channel, t_start, t_end, evidence[]) against the
-        ledger. Every number in a statement must be present in the cited evidence."""
+        ledger. Every number in a statement must be present in the cited evidence, with a unit and role that fit
+        the evidence field it came from (e.g. a number after "peak" must come from a peak field)."""
         s = _get(session_id)
         fs = [Finding.from_dict(d) for d in findings]
         summary = verify_findings(fs, s)
         return {"summary": summary, "findings": [
-            {"title": f.title, **{k: f.verification[k] for k in ("status", "ungrounded_numbers", "problems")}}
+            {"title": f.title, **{k: f.verification[k] for k in ("status", "ungrounded_numbers", "semantic_problems",
+                                                                   "problems")}}
             for f in fs]}
 
     @mcp.tool()

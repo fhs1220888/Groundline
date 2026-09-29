@@ -142,6 +142,13 @@ def cmd_reverify(a) -> int:
     return 0
 
 
+def cmd_mcp(a) -> int:
+    from .mcp_server import main as mcp_main
+
+    mcp_main()
+    return 0
+
+
 def cmd_tools(a) -> int:
     from .tools import REGISTRY
 
@@ -199,6 +206,9 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--out", help="write full results JSON here")
     _add_agent_args(e)
     e.set_defaults(fn=cmd_eval)
+
+    mp = sub.add_parser("mcp", help="run the MCP server on stdio (same as groundline-mcp)")
+    mp.set_defaults(fn=cmd_mcp)
 
     vb = sub.add_parser("verifier-bench", help="plant known errors in correct findings and count what the verifier catches")
     vb.add_argument("--n", type=int, default=50)

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,20 +8,31 @@ version = "0.1.0"
 description = "Verifiable AI agent for engine test data: every number in the report traces back to a reproducible computation."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["mcp", "llm", "agent", "verification", "hallucination", "test-data", "rocket-engine"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering",
+]
 dependencies = [
   "numpy>=1.24",
   "scipy>=1.10",
   "pandas>=2.0",
   "matplotlib>=3.7",
+  "mcp>=1.0,<2",  # v2 renamed FastMCP; pinned until the server is ported. Core dep so `uvx groundline mcp` works
 ]
+
+[project.urls]
+Homepage = "https://github.com/fhs1220888/Groundline"
+Repository = "https://github.com/fhs1220888/Groundline"
 
 [project.optional-dependencies]
 llm = ["httpx>=0.25"]
 tdms = ["nptdms>=1.7"]
-mcp = ["mcp>=1.0"]
+mcp = ["mcp>=1.0,<2"]
 dev = ["pytest>=7", "httpx>=0.25", "nptdms>=1.7"]
-all = ["httpx>=0.25", "nptdms>=1.7", "mcp>=1.0"]
+all = ["httpx>=0.25", "nptdms>=1.7", "mcp>=1.0,<2"]
 
 [project.scripts]
 groundline = "groundline.cli:main"

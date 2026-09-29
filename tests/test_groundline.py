@@ -598,3 +598,47 @@ def test_compound_units_are_read_whole_and_cancelled():
     assert unit_after("50 kg/s·s 和", 2) == "kg/s·s"
     assert _norm_unit("kg/s·s") == _norm_unit("kg")  # a flow integral is a mass
     assert _norm_unit("kg·s") != _norm_unit("kg/s·s")
+
+
+# ---------------------------------------------------------------------------- MCP server / registry metadata
+def test_registry_metadata_is_consistent():
+    import pathlib
+    import re as _re
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    server = json.loads((root / "server.json").read_text())
+    version = _re.search(r'^version = "([^"]+)"', (root / "pyproject.toml").read_text(), _re.M).group(1)
+    assert server["version"] == version and server["packages"][0]["version"] == version
+    assert server["packages"][0]["identifier"] == "groundline"
+    assert f"mcp-name: {server['name']}" in (root / "README.md").read_text()
+    assert len(server["description"]) <= 100
+
+
+def test_mcp_server_round_trip(tmp_path):
+    import asyncio
+
+    pytest.importorskip("mcp")
+    from groundline.mcp_server import build_server
+
+    run = generate_run(21, ["oscillation"])
+    paths = run.save(tmp_path / "run")
+    srv = build_server()
+
+    async def go():
+        def payload(res):
+            blocks = res[0] if isinstance(res, tuple) else res
+            return json.loads(blocks[0].text)
+
+        opened = payload(await srv.call_tool("open_run", {"run_path": str(paths["run"])}))
+        sid = opened["session_id"]
+        ev = payload(await srv.call_tool("run_analysis", {"session_id": sid, "tool": "detect_oscillation",
+                                                          "params": {"channel": "Pc"}}))
+        f = ev["result"]["events"][0]
+        good = {"title": "osc", "statement": f"Pc oscillates at {f['freq_hz']:.0f} Hz", "category": "combustion_oscillation",
+                "severity": "critical", "channel": "Pc", "evidence": [ev["evidence_id"]]}
+        bad = {**good, "statement": f"Pc oscillates at {f['freq_hz'] + 300:.0f} Hz"}
+        v = payload(await srv.call_tool("verify", {"session_id": sid, "findings": [good, bad]}))
+        return v
+
+    v = asyncio.run(go())
+    assert v["summary"]["verified"] == 1 and v["summary"]["partial"] == 1
