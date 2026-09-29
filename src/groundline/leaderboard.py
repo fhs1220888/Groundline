@@ -54,12 +54,13 @@ def make_entry_agent(e: dict, lang: str):
     if api == "responses":
         be = A.OpenAIResponses(e.get("model"), url, key, reasoning_effort=e.get("reasoning_effort"))
     else:
-        be = A.OpenAICompatible(e.get("model"), url, key, timeout=float(e.get("timeout", 600)))
+        be = A.OpenAICompatible(e.get("model"), url, key, timeout=float(e.get("timeout", 600)),
+                                max_tokens=int(e.get("max_tokens", 2048)))
         # the entry is the whole configuration: settings meant for the default model in .env
         # (e.g. GROUNDLINE_LLM_REASONING_EFFORT for gpt-5.6-sol) must not leak into a local model
         be.reasoning_effort = e.get("reasoning_effort")
         be.temperature = float(e["temperature"]) if e.get("temperature") is not None else None
-    return A.LLMAgent(be, lang)
+    return A.LLMAgent(be, lang, max_seconds=float(e.get("run_timeout_s", 1200)))
 
 
 def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: list[str] | None = None,
@@ -98,11 +99,19 @@ def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: li
             def prog(i, total, name=name):
                 print(f"\r  [{name}] run {i}/{total}", end="", file=sys.stderr, flush=True)
 
+            entry = {k: v for k, v in e.items() if k not in ("api_key",)}
+
+            def checkpoint(rows, path=path, entry=entry):
+                # written after every run, so Ctrl-C or a crash loses at most the run in progress
+                save({"n_runs": n, "seed": seed, "incomplete": True, "runs": rows, "summary": summarize(rows),
+                      "entry": entry}, path)
+
             try:
                 # a non-connection failure on the first run is almost always configuration (URL, key, model
                 # name, unsupported option): stop this model instead of failing the same way n times
                 res = run_benchmark(lambda e=e: make_entry_agent(e, lang), n=n, seed=seed, progress=prog,
-                                    resume_rows=resume, infra_retries=1, stop_on_infra=True)
+                                    resume_rows=resume, infra_retries=1, stop_on_infra=True,
+                                    on_row=checkpoint)
             except BenchmarkInterrupted as bi:
                 part = {"n_runs": n, "seed": seed, "incomplete": True, "runs": bi.rows,
                         "summary": summarize(bi.rows) if bi.rows else {},
@@ -112,6 +121,10 @@ def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: li
                       f"  Saved what is done. Check that the server (e.g. the Ollama app) is running, then run the "
                       f"same command again: it continues from run {len(bi.rows) + 1}.", file=sys.stderr)
                 continue
+            except KeyboardInterrupt:
+                print(f"\n[{name}] stopped. Finished runs are saved in {path}; run the same command to continue.",
+                      file=sys.stderr)
+                raise SystemExit(130)
             except Exception as err:
                 print(f"\n[{name}] first run failed, skipping this model: {type(err).__name__}: {err}"[:900],
                       file=sys.stderr)

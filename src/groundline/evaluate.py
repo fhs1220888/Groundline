@@ -76,14 +76,15 @@ class BenchmarkInterrupted(RuntimeError):
 
 def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, progress=None,
                   keep_going: bool = False, resume_rows: list[dict] | None = None, infra_retries: int = 0,
-                  stop_on_infra: bool = False) -> dict:
+                  stop_on_infra: bool = False, on_row=None) -> dict:
     """Run ``n`` synthetic tests. A failure on the very first run is raised (usually a bad key or URL)
     unless ``keep_going`` is set, in which case every failure is recorded and the benchmark continues.
 
     ``resume_rows``: results of an earlier, interrupted call; finished runs are kept and only missing ones
     (or ones that failed because the server was unreachable) are run again. With ``stop_on_infra``, a run that
     still cannot reach the server after ``infra_retries`` retries raises :class:`BenchmarkInterrupted`
-    instead of recording the same connection error for every remaining run."""
+    instead of recording the same connection error for every remaining run. ``on_row(rows)`` is called after
+    every finished run (used to checkpoint long benchmarks to disk)."""
     done = {r["seed"]: r for r in (resume_rows or []) if not is_infra_error(r.get("error", ""))}
     rows = []
     for i in range(n):
@@ -110,6 +111,8 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
             if stop_on_infra and is_infra_error(err):
                 raise BenchmarkInterrupted(rows, msg) from err
             rows.append({"seed": seed + i, "anomalies": [a.type for a in run.truth], "error": msg})
+            if on_row:
+                on_row(rows)
             if progress:
                 progress(i + 1, n)
             if not rows[:-1] and not keep_going:
@@ -142,6 +145,8 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
             rows[-1]["first_draft_full"] = res.agent.get("first_draft_findings")
             rows[-1]["ledger"] = [{"id": e.id, "tool": e.tool, "params": e.params, "result": e.result}
                                   for e in s.ledger]
+        if on_row:
+            on_row(rows)
         if progress:
             progress(i + 1, n)
     return {"n_runs": n, "seed": seed, "tol_s": tol_s, "summary": summarize(rows), "runs": rows}

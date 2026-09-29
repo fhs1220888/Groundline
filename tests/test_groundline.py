@@ -557,3 +557,35 @@ def test_leaderboard_resumes_after_model_server_goes_away(tmp_path, monkeypatch)
     done = json.loads((tmp_path / "local.json").read_text())
     assert not done.get("incomplete") and len(done["runs"]) == 3 and calls["n"] == 2
     assert "| local | 3/3 |" in md
+
+
+def test_leaderboard_checkpoints_every_run_and_survives_ctrl_c(tmp_path, monkeypatch):
+    import groundline.leaderboard as lb
+
+    calls = {"n": 0}
+
+    class Slow:
+        def run(self, s):
+            calls["n"] += 1
+            if calls["n"] == 3:
+                raise KeyboardInterrupt
+            return RuleAgent("en").run(s)
+
+    monkeypatch.setattr(lb, "make_entry_agent", lambda e, lang: Slow())
+    cfg = {"n": 4, "seed": 1000, "lang": "en", "models": [{"name": "local", "agent": "openai"}]}
+    with pytest.raises(SystemExit):
+        lb.run_leaderboard(cfg, tmp_path)
+    part = json.loads((tmp_path / "local.json").read_text())
+    assert part["incomplete"] and len(part["runs"]) == 2
+
+
+def test_run_time_budget_and_reply_cap():
+    from groundline.agent import OpenAICompatible
+    from groundline.leaderboard import make_entry_agent
+
+    _, s = session_for([], seed=4)
+    stall = [{"content": "thinking...", "tool_calls": []}] * 50
+    res = LLMAgent(ScriptedBackend(stall), lang="en", max_seconds=0.0).run(s)
+    assert res.agent["timed_out"] and not res.agent["submitted"]
+    a = make_entry_agent({"name": "x", "agent": "openai", "model": "m", "base_url": "http://localhost:11434/v1"}, "en")
+    assert isinstance(a.backend, OpenAICompatible) and a.backend.max_tokens == 2048 and a.max_seconds == 1200

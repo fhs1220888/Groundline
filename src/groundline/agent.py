@@ -374,10 +374,11 @@ def _compact(result: dict, limit: int = 6000) -> str:
 
 class LLMAgent:
     def __init__(self, backend: Backend, lang: str = "zh", max_steps: int = 24, fix_rounds: int = 1,
-                 prefetch: bool = True):
+                 prefetch: bool = True, max_seconds: float | None = None):
         self.backend = backend
         self.lang = lang
         self.max_steps = max_steps
+        self.max_seconds = max_seconds  # wall-clock budget for one analysis; None = unlimited
         self.fix_rounds = fix_rounds
         self.prefetch = prefetch
 
@@ -401,7 +402,11 @@ class LLMAgent:
         first_flagged: list[dict] = []
         first_findings: list[dict] = []
 
+        timed_out = False
         for _step in range(self.max_steps):
+            if self.max_seconds is not None and time.perf_counter() - t0 > self.max_seconds:
+                timed_out = True  # treated like running out of steps: whatever was submitted stands
+                break
             reply = self.backend.complete(system, messages, tools)
             calls = reply.get("tool_calls") or []
             messages.append({"role": "assistant", "content": reply.get("content") or "", "tool_calls": calls})
@@ -472,7 +477,7 @@ class LLMAgent:
             ver = verify_findings(findings, s)
         return AnalysisResult(findings, summary, ver,
                               {"type": "llm", "backend": self.backend.name, "model": self.backend.model,
-                               "lang": self.lang, "first_submission": first_ver, "submitted": first_ver is not None,
+                               "lang": self.lang, "first_submission": first_ver, "submitted": first_ver is not None, "timed_out": timed_out,
                                "first_draft_flagged": first_flagged, "first_draft_findings": first_findings,
                                "fix_rounds_used": self.fix_rounds - fixes_left,
                                "usage": dict(getattr(self.backend, "usage", {}) or {})},
@@ -581,7 +586,8 @@ class OpenAICompatible:
     name = "openai-compatible"
 
     def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None,
-                 temperature: float | None = None, timeout: float = 180.0):
+                 temperature: float | None = None, timeout: float = 180.0,
+                 max_tokens: int | None = None):
         self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "gpt-4o-mini")
         self.base_url = (base_url or os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
         self.api_key = api_key or os.environ.get("GROUNDLINE_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
@@ -589,6 +595,7 @@ class OpenAICompatible:
         self.temperature = temperature if temperature is not None else (float(t) if t else None)
         self.reasoning_effort = os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT") or None
         self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
+        self.max_tokens = max_tokens
         self.timeout = timeout
 
     def complete(self, system: str, messages: list[dict], tools: list[dict]) -> dict:
@@ -615,6 +622,8 @@ class OpenAICompatible:
         }
         if self.temperature is not None:  # reasoning models reject a non-default temperature
             body["temperature"] = self.temperature
+        if self.max_tokens:  # cap one reply, so a small model stuck repeating itself cannot run for an hour
+            body["max_tokens"] = self.max_tokens
         if self.reasoning_effort:  # e.g. none | low | medium | high for reasoning models
             body["reasoning_effort"] = self.reasoning_effort
         headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
