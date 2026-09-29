@@ -1,60 +1,61 @@
 # Groundline
 
-**可验证的试验数据分析 agent：报告里的每一个数字都能追溯到一次可复现的计算。**
-*Verifiable AI agent for engine test data: every number in the report traces back to a reproducible computation.*
+English | [简体中文](README.zh-CN.md)
 
-名字取自 *grounded*（每个数字都有依据）和 *redline*（红线判读）。
+**A verifiable AI agent for engine test data: every number in the report traces back to a reproducible computation.**
+
+The name comes from *grounded* (every number has a source) and *redline* (limit checks).
 
 ![report](docs/report_screenshot.png)
 
-把一次发动机热试车（或任何台架试验）的数据交给 Groundline，它会完成工况分段、传感器健康检查、红线判读、阀门响应、振荡检测和仿真对比，然后写出分析报告。和一般的 "AI 分析" 不同的是：
+Give Groundline the data from an engine hot-fire (or any bench test) and it segments the run into phases, checks sensor health, redlines, valve response and oscillations, compares against the simulation prediction, and writes an analysis report. Unlike a typical "AI analysis":
 
-- **数值计算只由确定性工具完成。** 大模型看不到原始数据，只负责决定调用哪些工具、怎么深挖，以及把结果写成人能读的结论。
-- **每次工具调用都记入证据账本。** 账本记录参数、数据文件 SHA-256、工具源码哈希、结果和图，报告里的结论只能引用这些证据（E1、E2……）。
-- **校验器逐个检查结论里的数字。** 标题和正文里的每个数字都必须能在所引用的证据中找到（允许四舍五入和 s↔ms、比例↔% 换算）。找不到的数字会在报告里用红色波浪线标出；如果用的是 LLM agent，它会收到驳回意见并有一次修正机会。它还检查数字的含义：数字后面写的单位（s、Hz、%、bar、N·s……）要和证据字段的单位对得上；数字前面有“峰值”“持续”“平均”“总冲”这类词时，数字必须来自对应的字段（见[语义校验](#语义校验)）。
-- **任何结论都可以复现。** `groundline reproduce report.json` 会用原始数据把账本里的每条证据重新执行一遍，逐条比对结果。
+- **All numbers come from deterministic tools.** The LLM never sees raw samples. It only decides which tools to call and how to dig deeper, and turns their results into readable findings.
+- **Every tool call goes into an evidence ledger.** The ledger records parameters, the data file's SHA-256, a hash of the tool's source code, the result and the figure. Findings may only cite these entries (E1, E2, ...).
+- **A verifier checks every number in every finding.** Each number in a title or statement must be found in the evidence it cites (rounding and s↔ms, fraction↔% conversions allowed). Numbers that are not found get a red squiggle in the report, and an LLM agent gets the rejection back with one chance to fix it. The verifier also checks what a number *means*: the unit written after it (s, Hz, %, bar, N·s, ...) must match the unit of the evidence field, and a number introduced by a word such as "peak", "duration", "mean" or "impulse" must come from a field with that role (see [Semantic verification](#semantic-verification)).
+- **Every finding can be reproduced.** `groundline reproduce report.json` re-runs every ledger entry on the raw data and compares the results one by one.
 
-> 状态：v0.1 原型。基准测试用内置合成器生成的数据；另有一次公开的真实固体发动机静态点火数据作为示例（见[真实数据示例](#真实数据示例hanaro-固体发动机静态点火)），还没有在液体发动机真实试车数据上验证过。
+> Status: v0.1 prototype. Benchmarks use data from the built-in synthetic generator, plus one public real static fire of a solid motor as an example (see [Real-data example](#real-data-example-hanaro-solid-motor-static-fire)). Not yet validated on real liquid-engine test data.
 
-## 快速开始
+## Quick start
 
 ```bash
-pip install -e ".[all]"        # 最小安装只需要 numpy/scipy/pandas/matplotlib：pip install -e .
+pip install -e ".[all]"        # minimal install needs only numpy/scipy/pandas/matplotlib: pip install -e .
 
-groundline demo                  # 生成一次带异常的合成热试车，并用规则 agent 分析
+groundline demo                  # generate a synthetic hot-fire with anomalies and analyse it with the rule agent
 open groundline_demo/report.html
 groundline reproduce groundline_demo/report.json   # 13/13 evidence entries reproduced exactly
 ```
 
-分析自己的数据（CSV 的第一列为时间，也支持 NI TDMS）：
+Analyse your own data (CSV with time in the first column; NI TDMS is supported too):
 
 ```bash
 groundline analyze path/to/run.csv --reference sim.csv --limits limits.json
 ```
 
-`limits.json` 的格式可以参考 `groundline synth` 生成的示例，里面包括红线、红线持续时间判据、阀门允许延迟、振荡阈值和仿真偏差容差。
+For the `limits.json` format, see the example written by `groundline synth`: redlines, redline persistence, allowed valve latency, oscillation thresholds and the tolerance for deviation from the simulation.
 
-## 使用大模型
+## Using an LLM
 
-规则 agent（默认）是一套固定的检查流程，不需要任何模型。换成 LLM agent 后，由模型自己规划分析步骤、交叉验证并撰写结论。
+The rule agent (the default) is a fixed checklist and needs no model. With an LLM agent, the model plans the analysis, cross-checks and writes the findings itself.
 
-最省事的方式是在项目根目录放一个 `.env`（已在 `.gitignore` 中，不会被提交）：
+The easiest setup is a `.env` in the project root (it is in `.gitignore` and never committed):
 
 ```bash
-cp .env.example .env      # 填入 OPENAI_API_KEY，按需改 GROUNDLINE_AGENT / GROUNDLINE_LLM_MODEL
-groundline config         # 查看当前生效的配置（key 会打码）
-groundline demo           # 之后所有命令默认使用 .env 里的 agent 和模型
+cp .env.example .env      # fill in OPENAI_API_KEY; change GROUNDLINE_AGENT / GROUNDLINE_LLM_MODEL as needed
+groundline config         # show the configuration in effect (keys masked)
+groundline demo           # from now on every command uses the agent and model from .env
 ```
 
-Groundline 会从当前目录向上查找 `.env`；命令行参数和 shell 里已设置的环境变量优先于 `.env`。也可以不用 `.env`，直接用环境变量或参数：
+Groundline looks for `.env` from the current directory upwards; command-line arguments and variables already set in the shell take precedence. You can also skip `.env` and use environment variables or arguments:
 
 ```bash
 # OpenAI
 export OPENAI_API_KEY=sk-...
 groundline analyze run.csv --agent openai --model gpt-4o-mini
 
-# 任何 OpenAI 兼容接口：Qwen / DeepSeek / vLLM / Ollama 本地部署都可以
-export GROUNDLINE_LLM_BASE_URL=http://localhost:11434/v1   # 例如 Ollama
+# Any OpenAI-compatible endpoint: Qwen, DeepSeek, vLLM, a local Ollama ...
+export GROUNDLINE_LLM_BASE_URL=http://localhost:11434/v1   # e.g. Ollama
 export GROUNDLINE_LLM_MODEL=qwen2.5:32b
 groundline analyze run.csv --agent openai
 
@@ -63,51 +64,51 @@ export ANTHROPIC_API_KEY=...
 groundline analyze run.csv --agent anthropic --model claude-sonnet-5
 ```
 
-评测 LLM agent 时，除了检出率，还会统计**初稿中被校验器拦下的编造数字**，以及修正后的结果和 token 用量：
+When benchmarking an LLM agent, besides detection rates Groundline also counts **the invented numbers the verifier caught in the first draft**, the result after the fix round, and token usage:
 
 ```bash
 groundline eval --agent openai --model gpt-4o-mini --n 10 --lang en --out eval_openai.json
 ```
 
-连接官方 OpenAI 时自动使用 Responses API（推理模型如 `gpt-5.6-sol` 只有在这个接口上才能同时推理和调用工具），推理强度用 `GROUNDLINE_LLM_REASONING_EFFORT` 设置；连接其他 OpenAI 兼容服务时使用 Chat Completions，可用 `GROUNDLINE_OPENAI_API=responses|chat` 强制指定。默认不传 temperature，需要时用 `GROUNDLINE_LLM_TEMPERATURE` 设置。
+With the official OpenAI endpoint the Responses API is used automatically (reasoning models such as `gpt-5.6-sol` can only reason and call tools together there); set the reasoning effort with `GROUNDLINE_LLM_REASONING_EFFORT`. Other OpenAI-compatible services use Chat Completions; force either with `GROUNDLINE_OPENAI_API=responses|chat`. No temperature is sent by default; set one with `GROUNDLINE_LLM_TEMPERATURE`.
 
-试验数据通常很敏感，所以接口按内网私有化部署设计：模型只看到工具的输出摘要，看不到原始数据。
+Test data is usually sensitive, so the interface is built for on-premise deployment: the model only sees summaries of tool outputs, never the raw data.
 
-## 作为 MCP 服务器
+## As an MCP server
 
 ```bash
-groundline-mcp     # stdio 传输，配置示例见 examples/mcp_config.json
+groundline-mcp     # stdio transport; see examples/mcp_config.json
 ```
 
-它提供 `open_run`、`list_analysis_tools`、`run_analysis`、`verify`、`write_html_report` 五个工具。任何 MCP 客户端（Claude Desktop、Cursor 或你自己的 agent）都可以充当规划者，校验规则保持不变。
+It exposes five tools: `open_run`, `list_analysis_tools`, `run_analysis`, `verify` and `write_html_report`. Any MCP client (Claude Desktop, Cursor or your own agent) can act as the planner; the verification rules stay the same.
 
-## 分析工具
+## Analysis tools
 
-| 工具 | 作用 |
+| Tool | What it does |
 |---|---|
-| `describe_data` | 通道、采样率、单位、NaN 统计 |
-| `segment_phases` | 基于室压 10%/90% 划分预试、启动、主级、关机、后处理五个阶段，并记录阀门指令时刻 |
-| `check_sensor_health` | NaN 缺失、信号冻结、孤立尖峰（局部稳健 σ） |
-| `check_redlines` | 红线判读，带持续时间判据和 5 ms 平滑，短毛刺记为被抑制的瞬态 |
-| `measure_valve_response` | 从阀门指令到响应通道起跳的延迟，与允许值比较 |
-| `detect_oscillation` | 滑动窗口 FFT，给出窄带振荡的频率、幅值（% of mean）和起止时间 |
-| `compare_reference` | 与仿真预测对比：平均偏差、RMSE，以及持续超差的时间段 |
-| `pulse_metrics` | 脉冲型通道（如固体发动机推力）的峰值、工作时间、积分（总冲）和平均值 |
-| `channel_stats` / `plot_window` | 深挖用的统计和作图 |
+| `describe_data` | Channels, sample rate, units, NaN counts |
+| `segment_phases` | Splits the run into pre-test, startup, mainstage, shutdown and post-test at 10 % / 90 % of chamber pressure, and records valve command times |
+| `check_sensor_health` | NaN gaps, frozen signals, isolated spikes (local robust σ) |
+| `check_redlines` | Redline checks with a persistence criterion and 5 ms smoothing; short glitches are counted as suppressed transients |
+| `measure_valve_response` | Latency from a valve command to the response channel moving, compared with the allowed value |
+| `detect_oscillation` | Sliding-window FFT: frequency, amplitude (% of mean) and start/end of narrow-band oscillations |
+| `compare_reference` | Comparison with the simulation prediction: mean deviation, RMSE and intervals of sustained deviation |
+| `pulse_metrics` | Peak, action time, integral (total impulse) and mean of a pulse-shaped channel such as solid-motor thrust |
+| `channel_stats` / `plot_window` | Statistics and plots for drilling down |
 
-`groundline tools` 可以查看完整的参数说明。
+`groundline tools` prints the full parameter descriptions.
 
-## 基准测试
+## Benchmarks
 
-合成器可以注入六类已知异常，每次都附带真值：燃烧振荡、冷却剂超温、传感器冻结或缺失、测量尖峰、燃料阀延迟、室压偏低（c* 效率不足）。因此可以对 agent 做定量评测：
+The synthetic generator can inject six kinds of known anomalies, always with ground truth: combustion oscillation, coolant over-temperature, a frozen or missing sensor, measurement spikes, a late fuel valve, and low chamber pressure (low c* efficiency). That makes agents measurable:
 
 ```bash
 groundline eval --n 50 --seed 1000
 ```
 
-规则 agent 在 50 次随机试车上的结果如下：
+Rule agent on 50 random runs:
 
-| 异常 | n | 检出率 | 分类正确率 | 起始时刻误差（中位数） |
+| Anomaly | n | Recall | Category accuracy | Median start-time error |
 |---|---|---|---|---|
 | oscillation | 15 | 100% | 100% | 12 ms |
 | overtemp | 22 | 100% | 100% | 0 ms |
@@ -116,162 +117,171 @@ groundline eval --n 50 --seed 1000
 | valve_delay | 15 | 100% | 100% | 0 ms |
 | pc_deficit | 14 | 100% | 100% | 112 ms |
 
-总体精确率为 100%，4 次正常试车上的误报为 0，134/134 条结论通过校验，942/942 个数字可溯源。
+Overall precision is 100%, with 0 false positives on the 4 nominal runs; 134/134 findings verified and 942/942 numbers grounded.
 
-LLM agent（`gpt-5.6-sol`，Responses API）在同一组种子的前 14 次试车上（`--n 14 --seed 1000`，含 2 次正常试车，6 类异常全覆盖）：
+The LLM agent (`gpt-5.6-sol`, Responses API) on the first 14 runs of the same seeds (`--n 14 --seed 1000`, including 2 nominal runs and all six anomaly types):
 
-| 指标 | 规则 agent | gpt-5.6-sol |
+| Metric | Rule agent | gpt-5.6-sol |
 |---|---|---|
-| 检出率 / 分类正确率 | 100% / 100% | 100% / 100% |
-| 精确率 | 100% | 95%（1 条误报） |
-| 正常试车上的误报 | 0 | 0 |
-| 初稿中编造的数字 | — | 0 / 376 |
-| 每次试车 | 1.6 s | 22 s，约 1.9 万输入 / 1,400 输出 token |
+| Recall / category accuracy | 100% / 100% | 100% / 100% |
+| Precision | 100% | 95% (1 false positive) |
+| False positives on nominal runs | 0 | 0 |
+| Invented numbers in first drafts | — | 0 / 376 |
+| Per run | 1.6 s | 22 s, about 19k input / 1,400 output tokens |
 
-唯一的误报是把阀门延迟引起的冷却剂温升滞后单独报成了一条性能偏差，没有归到阀门延迟下面。样本只有 14 次、只跑了一轮，模型输出本身有随机性，这组数字只能作为粗略参考。
+The one false positive reports the coolant temperature lag caused by the late valve as a separate performance deviation instead of attributing it to the valve delay. With only 14 runs, one pass, and non-deterministic model output, treat these numbers as a rough guide.
 
-第一次评测时精确率只有 36%：37 条"误报"里有 35 条其实是"阀门响应合格""未检出振荡"这类检查通过的结论，被模型填成了异常类别。提示词里补上"非 observation 类别表示发现了异常，检查通过的结论用 observation"之后，精确率升到 95%。评测标准没有改动。
+The first evaluation scored only 36% precision: 35 of the 37 "false positives" were passed checks such as "valve response within limits" or "no oscillation detected" that the model had filed under an anomaly category. After adding one rule to the prompt ("a category other than observation means an anomaly was found; checks that passed use observation"), precision rose to 95%. The scoring was not changed.
 
-### 多模型排行榜
+### Model leaderboard
 
-`groundline leaderboard` 让多个 agent / 模型跑同一组合成试车，并汇总成一张表（`leaderboard/LEADERBOARD.md`）。模型列表写在 JSON 里，示例见 `examples/leaderboard.json`：规则 agent、gpt-5.6-sol，以及通过 [Ollama](https://ollama.com) 在本地运行的 Qwen2.5 7B / 14B。已有的 `groundline eval` 结果可以用 `"from"` 直接导入，不必重跑。结果按模型分别保存，中断后再次运行会接着跑没跑完的模型。
+`groundline leaderboard` runs several agents / models on the same synthetic runs and summarises them in one table (`leaderboard/LEADERBOARD.md`). Models are listed in a JSON file; `examples/leaderboard.json` has the rule agent, gpt-5.6-sol and Qwen2.5 7B / 3B running locally through [Ollama](https://ollama.com) (14B needs more memory). An existing `groundline eval` result can be imported with `"from"` instead of re-running it. Results are saved after every run, so an interrupted leaderboard resumes where it stopped.
 
 ```bash
-groundline leaderboard examples/leaderboard.json            # 全部模型
+groundline leaderboard examples/leaderboard.json            # all models
 groundline leaderboard examples/leaderboard.json --only "qwen2.5-7b (本地)"
 ```
 
-表里最关键的一列是**初稿中无出处的数字**：校验器第一次拦下、在所引用证据里找不到的数字，也就是没有校验器时会直接进入报告的数字。检出率按全部试车计算，模型崩溃或没交报告的试车里的异常都算漏检。
+The key column is **numbers without a source in the first draft**: numbers the verifier stopped on the first submission because they are not in the cited evidence, i.e. numbers that would have gone into the report without a verifier. Recall is computed over all runs: anomalies in runs where the model crashed or submitted nothing count as missed.
 
-2026-09-29 的结果（`--n 14 --seed 1000`，本地模型在 16 GB 内存的 MacBook Pro 上用 Ollama 运行，上下文 16k；原始结果在 `docs/results/leaderboard/`）：
+Results from 2026-09-29 (`--n 14 --seed 1000`; local models ran with Ollama on a 16 GB MacBook Pro with a 16k context; raw results in `docs/results/leaderboard/`):
 
-| 模型 | 交出报告 | 检出率（严格 / 宽松） | 精确率 | 正常试车误报 | 初稿中无出处的数字 | 校验后仍无出处 | 秒/次 |
+| Model | Reports submitted | Recall (strict / loose) | Precision | FPs on nominal runs | First-draft numbers without a source | Still wrong after verification | s/run |
 |---|---|---|---|---|---|---|---|
-| 规则 agent | 14/14 | 100% / 100% | 100% | 0 | – | 0 | 1.3 |
-| gpt-5.6-sol | 14/14 | 100% / 100% | 95% | 0 | 0 / 376（0%） | 0 | 22 |
-| Qwen2.5 7B | 11/14 | 5% / 50% | 5% | 0 | 23 / 98（23%），另有 4 个含义不符 | 26 个数字、14 条结论 | 478 |
-| Qwen2.5 3B | 13/14 | 0% / 0% | – | 0 | 1 / 1 | 1 个数字、4 条结论 | 28 |
+| Rule agent | 14/14 | 100% / 100% | 100% | 0 | – | 0 | 1.3 |
+| gpt-5.6-sol | 14/14 | 100% / 100% | 95% | 0 | 0 / 376 (0%) | 0 | 22 |
+| Qwen2.5 7B | 11/14 | 5% / 50% | 5% | 0 | 23 / 98 (23%), plus 4 with the wrong meaning | 26 numbers, 14 findings | 478 |
+| Qwen2.5 3B | 13/14 | 0% / 0% | – | 0 | 1 / 1 | 1 number, 4 findings | 28 |
 
-Qwen2.5 7B 前后跑了三次，结果差别很大（交出报告 11 / 7 / 11 次，初稿中无出处的数字 15% / 12% / 23%），表里是最后一次，也是第一次存下了证据账本、可以用新校验器重新校验的一次。
+Strict recall needs the finding's channel field and time window to match; loose recall also counts a finding with no channel if its category is right and its time does not conflict (the model found the problem but did not fill in the structured field).
 
-第二次运行时，我们逐条核对了 7B 初稿里被拦下的 10 个数字（用同样的种子重算证据）：
+Qwen2.5 7B was run three times with very different results (reports submitted 11 / 7 / 11; first-draft numbers without a source 15% / 12% / 23%). The table shows the last run, the first one that stored its evidence ledger and could be re-verified with the new verifier.
 
-- **4 个是编造的数值**：把 49.9994 kg 的流量积分写成"近 60"；把实际约 10.3% 的最大偏差写成 2.29%；两处凭空写出的时长（"0.86 秒""持续 2 秒"）。
-- **6 个是真实数值、但引用了错误的证据**：其中 2 个（主级段起止时刻）被拿来支撑一个错误结论，说冷却剂温度在整个主级段都超限，而实际越限只有 3.95–5.91 s。
-- **没有误报**：被拦下的每个数字都对应一个真实的问题。3B 的结果里有 1 处误报，把试车编号"SYN-1013"当成了数值，已修正。
+On the second run we audited, one by one, the 10 numbers the verifier stopped in the 7B first drafts, recomputing the evidence from the same seeds:
 
-在最后一次运行里，语义校验又多拦下 4 个"有出处、但含义不符"的数字，原来只查出处的校验器会全部放行。逐条看，4 个都是真问题：
+- **4 were invented values**: a flow integral of 49.9994 kg written as "about 60"; a maximum deviation of about 10.3% written as 2.29%; two durations with no source ("0.86 s", "lasting 2 s").
+- **6 were real values cited from the wrong evidence**: 2 of them (the mainstage start and end times) propped up a wrong claim that the coolant was over its redline for the whole mainstage, when it was only over from 3.95 to 5.91 s.
+- **No false alarms**: every stopped number was a real problem. The 3B run had one false alarm, the test ID "SYN-1013" read as a number; fixed.
 
-- "持续时间约 0.2 秒"：0.2 是流量积分的值，并不是时长。这正是"编的数恰好对上某个无关数字"的漏洞。
-- "均值偏差为 0.069%"：证据里的 0.069 是以 MPa 为单位的绝对偏差，不是百分比。
-- 两处把流量积分的单位写成 "kg·s"：积分结果应该是 kg。
+On the last run, semantic verification stopped 4 more numbers that *have* a source but the wrong meaning; the grounding-only verifier would have passed all of them. All 4 are real problems:
 
-第一次在真实输出上运行时，语义校验还报了另外 4 处，核对后发现都是校验器自己的 bug：它把 "MPa·s""kg/s·s" 这种复合单位只读到了前半截。现在复合单位会整体读取并约分（kg/s·s = kg）。修正后，在 gpt-5.6-sol 的 60 个数字和规则 agent 的 1884 个数字上仍然没有误报。
+- "lasting about 0.2 s": 0.2 is the value of a flow integral, not a duration. This is exactly the "made-up number that happens to match an unrelated one" loophole.
+- "mean deviation 0.069%": the 0.069 in the evidence is an absolute deviation in MPa, not a percentage.
+- Two flow integrals given in "kg·s": the integral of a flow is a mass in kg.
 
-这组结果也说明了校验器的边界：
+The first time it ran on real output, semantic verification flagged 4 more numbers; the audit showed they were bugs in the verifier itself: it read compound units such as "MPa·s" and "kg/s·s" only up to the first unit. Compound units are now read whole and cancelled (kg/s·s = kg). After the fix there are still no false alarms on the 60 numbers written by gpt-5.6-sol or the 1,884 written by the rule agent.
 
-- **修正轮救不回小模型。** 最后一次运行中，7B 用了 9 次修正轮，校验后仍有 26 个数字有问题。校验器的作用是把问题标出来（报告里的红色波浪线），不能指望它让模型改对。
-- **它只检查"数字有没有出处"，不检查"用得对不对"。** 7B 把稳态的氧化剂流量说成"尖脉冲"，引用的数字全部真实，校验器无法发现。另有一处"总计 11 秒"是编的，却碰巧和证据里的某个数在 1% 以内对上，被放行了。
-- **小模型的主要问题是做不完任务，而不只是编数字。** 7B 每次都有几次在规定步数或时间内交不出报告；3B 大多交了空报告，不说话自然也就不编造。7B 三次运行之间差别很大，样本也小，这些数字只能作为粗略参考。
+These results also show the verifier's limits:
 
-**这组数字要打折扣看。** 规则 agent 是和这个合成器一起调出来的，满分只能说明管线自洽，不能说明它能处理真实数据。这个基准真正的用途是：
+- **The fix round does not rescue small models.** On the last run 7B used 9 fix rounds and still had 26 problem numbers after verification. The verifier's job is to flag problems (the red squiggles in the report), not to make the model get them right.
+- **Misreadings of the data are not caught.** 7B described a steady oxidiser flow as a "sharp pulse"; every number it cited was real and matched its field, so the verifier cannot see it. Before semantic verification, an invented "11 s in total" also passed because it happened to be within 1% of some number in the evidence; closing that loophole is what [semantic verification](#semantic-verification) is for.
+- **Small models mostly fail to finish the task, not just invent numbers.** Every 7B run had several tests where it could not submit a report within the step or time limit; 3B mostly submitted empty reports, and a model that says nothing invents nothing. With large run-to-run variation and a small sample, treat these numbers as a rough guide.
 
-1. 比较不同 LLM agent 的表现，以及它们编造数字的频率；
-2. 修改工具时防止回归；
-3. 接入更难的场景，比如多异常耦合、真实噪声谱、传感器漂移，以及和真实试车数据的对照。
+**Take these numbers with a grain of salt.** The rule agent was tuned together with this synthetic generator, so a perfect score only shows that the pipeline is self-consistent, not that it handles real data. The benchmark is really for:
 
-## 真实数据示例：HANARO 固体发动机静态点火
+1. comparing LLM agents, and how often they invent numbers;
+2. catching regressions when tools change;
+3. harder scenarios: coupled anomalies, realistic noise spectra, sensor drift, and comparison with real test data.
 
-`examples/hanaro_knsb/` 里是首尔大学火箭队 HANARO 公开的一次 KNSB 固体发动机静态点火（2025 年，数据来自 [snu-hanaro/static-fire-toolkit](https://github.com/snu-hanaro/static-fire-toolkit)，MIT 许可）。原始文件原样放在 `raw/`，`prepare.py` 把它们整理成 Groundline 的输入：
+## Real-data example: HANARO solid motor static fire
 
-- 推力来自称重传感器，采集时间不均匀、有重复时间戳。去重后插值到 100 Hz 网格，离最近原始样本超过 25 ms 的点保留为 NaN，不掩盖丢帧；
-- 公开资料里没有称重传感器的标定常数，所以电压到牛顿的换算用直线拟合 HANARO 自己处理后的推力曲线（R² = 0.9999）；
-- 压力来自一台独立的约 10 Hz 记录仪，时钟和推力采集卡不同步。时钟偏差取压力与推力相关性最大的平移量（+5.652 s，相关系数 0.9995）；
-- HANARO 没有公布壳体压力或推力的限值，所以不设红线，也没有仿真预测。
+`examples/hanaro_knsb/` holds a public KNSB solid-motor static fire by SNU Rocket Team HANARO (2025; data from [snu-hanaro/static-fire-toolkit](https://github.com/snu-hanaro/static-fire-toolkit), MIT License). The original files are kept unchanged in `raw/`, and `prepare.py` turns them into Groundline input:
+
+- Thrust comes from a load cell sampled at irregular times with repeated timestamps. Duplicates are averaged and the signal is interpolated onto a 100 Hz grid; grid points more than 25 ms from any raw sample stay NaN, so dropped frames stay visible.
+- The public files do not include the load-cell calibration constants, so volts are converted to newtons with a straight line fitted to HANARO's own processed thrust (R² = 0.9999).
+- Pressure comes from a separate logger at about 10 Hz whose clock is not synchronised with the thrust DAQ. The clock offset is the shift that maximises the correlation between pressure and thrust (+5.652 s, correlation 0.9995).
+- HANARO does not publish case-pressure or thrust limits, so there are no redlines, and there is no simulation prediction.
 
 ```bash
-python examples/hanaro_knsb/prepare.py        # 重新生成 run.csv / meta.json / limits.json
+python examples/hanaro_knsb/prepare.py        # regenerate run.csv / meta.json / limits.json
 groundline analyze examples/hanaro_knsb/run.csv
 ```
 
-规则 agent 的结果和 HANARO 自己的处理结果对照：
+Rule agent compared with HANARO's own processing:
 
-| | Groundline | HANARO 处理结果 |
+| | Groundline | HANARO processed |
 |---|---|---|
-| 推力峰值 | 2222.2 N | 2221.7 N |
-| 总冲 | 6362 N·s（按峰值 10% 截取，3.91 s）<br>6391 N·s（按 2% 截取，4.12 s） | 6411 N·s（其截取窗口 4.35 s） |
+| Peak thrust | 2222.2 N | 2221.7 N |
+| Total impulse | 6362 N·s (action time at 10% of peak, 3.91 s)<br>6391 N·s (at 2%, 4.12 s) | 6411 N·s (over its 4.35 s window) |
 
-另外发现了两处测量问题，都不在点火段内：推力通道有 285 段数据缺失，间隔中位数 0.67 s，规律性很强，更像采集系统周期性丢帧；点火前 121 s 左右推力通道有一个孤立尖峰。
+Because the thrust calibration was fitted to HANARO's curve, matching peaks are expected; the independent checks are the clock alignment, the action time and the impulse.
 
-LLM agent（gpt-5.6-sol）在这组数据上给出的 3 条结论与规则 agent 一致（时序、推力性能、推力通道的丢帧和尖峰），25 个数字全部可溯源，初稿没有编造数字。它还主动说明了 Pc 只有 10 Hz、不能用来判断振荡，改用推力通道检查 5–50 Hz 频段，没有发现振荡。4 次请求，约 1.3 万输入 token。
+Two measurement problems were also found, both outside the firing: the thrust channel has 285 data gaps with a median spacing of 0.67 s, regular enough to point to periodic dropped DAQ frames; and there is an isolated thrust spike about 121 s before ignition.
 
-这组数据暴露了几处只按液体发动机合成数据设计的假设，已经修正：
-- 慢速记录的通道被插值到快网格上后，振荡检测会去找超过其奈奎斯特频率的成分，尖峰检测会把每个真实采样点都当成尖峰。现在工具会读取 `meta.json` 里的 `native_rate_hz`，在原始采样率上判断；
-- 量化后静止的信号（如点火前稳定的环境压力）残差中位数为 0，噪声底被算成 0，一格的跳动就被当成尖峰；
-- 点火前后传感器读数本来就不变，不应报"信号冻结"。现在只报告与点火段重叠的冻结；
-- 反复出现的丢帧会被合并成一条结论，而不是几百条；
-- 点火时推力的快速爬升会泄漏到振荡检测频段的最低一格，被误报成"5 Hz 振荡"。现在峰值落在频段最低一格的窗口不计入；
-- 新增 `pulse_metrics` 工具计算推力峰值、工作时间和总冲。
+The LLM agent (gpt-5.6-sol) gave 3 findings on this data that agree with the rule agent (sequence, thrust performance, the thrust channel's gaps and spike). All 25 numbers are grounded and the first draft invented none. It also noted on its own that Pc is recorded at only 10 Hz and cannot show oscillations, and checked the thrust channel in the 5–50 Hz band instead (none found). 4 requests, about 13k input tokens.
 
-改动后，合成基准测试上规则 agent 的检出率、精确率仍是 100%，0 误报。
+The data exposed several assumptions built only on the synthetic liquid engine; they are fixed:
 
-## 语义校验
+- After a slow channel is interpolated onto a fast grid, oscillation detection searched above its Nyquist frequency and spike detection treated every real sample as a spike. Tools now read `native_rate_hz` from `meta.json` and judge at the channel's own rate.
+- A quantized, quiet signal (such as steady ambient pressure before ignition) has a median residual of 0, so its noise floor was 0 and a one-step flicker counted as a spike.
+- A sensor that does not change before or after the firing is not "frozen"; only flatlines that overlap the firing are reported now.
+- Hundreds of recurring dropped frames are reported as one finding instead of hundreds.
+- The fast thrust rise at ignition leaked into the lowest bin of the oscillation band and was reported as a "5 Hz oscillation"; windows whose peak sits on that bin are no longer flagged.
+- New `pulse_metrics` tool for peak thrust, action time and total impulse.
 
-只检查“数字在引用的证据里出现过”有两个漏洞，在上面 7B 模型的结果里都出现过：真实的数字被放错了位置（引用的数都是真的，意思却错了），以及编造的数字碰巧和证据里某个无关的数在舍入误差内对上。
+After the changes, the rule agent still scores 100% recall and precision with 0 false positives on the synthetic benchmark.
 
-所以校验器现在会记住每个证据数字来自哪个字段（`peak`、`duration_s`、`freq_hz`……）、带什么单位，再结合句子来读每个数字：
+## Semantic verification
 
-- **单位**：数字后面写了 s / ms，就只能对应时间字段；写 Hz 只能对应频率字段；写 % 只能对应百分比字段；写 bar、K、N·s 这类物理单位，就要和工具报告的单位一致。
-- **角色词**：数字前面紧挨着“峰值 / 持续 / 平均 / 总冲 / 频率 / 偏差 / 延迟”（或对应的英文），数字就必须来自名字对得上的字段。只有角色词直接引出数字时才算数：“持续超出红线 700 K”里的“持续”是副词，“峰值的 10%”说的是峰值的百分之十，这两种都不触发。区间的两个端点（1.27–9.02 s）也不做角色检查。
+Checking only that "the number appears in the cited evidence" has two loopholes, and both showed up in the 7B results above: a real number put in the wrong place (every cited number is real, but the meaning is wrong), and a made-up number that happens to match an unrelated number in the evidence within rounding.
 
-整个检查仍然是确定性的字符串和字段匹配，不用另一个大模型来判断。
+So the verifier now remembers which field every evidence number came from (`peak`, `duration_s`, `freq_hz`, ...) and its unit, and reads each number in the sentence together with:
 
-**校验器自己的考试**（`groundline verifier-bench`）：在规则 agent 生成的正确结论里，每次只改一个数字，植入三类已知错误，看新旧校验器各抓到多少。100 次合成试车，中英文各 50 次：
+- **its unit**: a number written with s / ms may only match a time field; Hz only a frequency field; % only a percentage field; a physical unit such as bar, K or N·s must match the unit the tool reported. Compound units are read whole and cancelled (kg/s·s = kg).
+- **its role word**: a number directly introduced by "peak / duration / mean / impulse / frequency / deviation / latency" (or the Chinese equivalents) must come from a field whose name fits that role. The word only counts when it leads straight into the number: in "continuously above the 700 K redline" the word describes the exceedance, and "10% of the peak" is a fraction of the peak; neither triggers the check. Range endpoints (1.27–9.02 s) get no role check either.
 
-| 植入的错误 | 数量 | 只查出处（原校验器） | 出处 + 语义（新校验器） |
+This is still deterministic string and field matching; no second LLM is asked to judge.
+
+**The verifier's own benchmark** (`groundline verifier-bench`): starting from correct rule-agent findings, change one number at a time to plant one of three known errors, and count what the old and new verifiers catch. 100 synthetic runs, 50 each in Chinese and English:
+
+| Planted error | Count | Grounding only (old verifier) | Grounding + semantics (new verifier) |
 |---|---|---|---|
-| 编造的数值（改动 −30% 到 +50%） | 1364 | 87% | **95%** |
-| 真实数值放错位置（换成同一条证据里的另一个字段） | 1436 | 0% | **45%** |
-| 单位写错（s ↔ Hz、% → s……） | 1168 | 0% | **92%** |
-| 未改动的正确结论（误报） | 268 | 0% | **0%** |
+| Invented value (changed by −30% to +50%) | 1364 | 87% | **95%** |
+| Real value in the wrong place (another field of the same evidence) | 1436 | 0% | **45%** |
+| Wrong unit (s ↔ Hz, % → s, ...) | 1168 | 0% | **92%** |
+| Unchanged correct findings (false alarms) | 268 | 0% | **0%** |
 
-“放错位置”只抓到 45%，要分两种情况看：换成不同类型的字段（比如把时长换成峰值压力）抓到 69%；换成同类型字段（比如把起始时刻换成另一个时刻）只抓到 13%，只有句子里有角色词时才能发现。这是这种方法的上限：两个都是“某个时刻”的数，光看字面分不出哪个才对。
+The 45% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 69% of the time; swapping in a field of the same kind (one time replaced by another time) only 13%, and only when the sentence has a role word. That is the limit of this approach: two numbers that are both "a time" cannot be told apart from the text alone.
 
-另外要注意，这些角色词规则是对着规则 agent 的模板句式写的，上表的误报率在它自己的句式上测出来，天然偏乐观。在独立的文本上，也就是 gpt-5.6-sol 写的两份报告（9 条结论、60 个数字，包括 HANARO 真实数据那份），新校验器同样没有误报。但要更可靠地估计误报率，还需要更多不同模型写的真实报告。
+Also note that the role-word rules were written against the rule agent's sentence templates, so the false-alarm rate above, measured on those same templates, is optimistic. On independent text, the two reports written by gpt-5.6-sol (9 findings, 60 numbers, including the HANARO real-data report), the new verifier also raised no false alarms. A more reliable false-alarm estimate needs more real reports from different models.
 
-LLM 基准测试现在会把每次试车的结论和证据账本一起存下来。以后校验器再改进，可以用 `groundline reverify <结果.json>` 直接重新校验，不必重跑模型。之前那两份本地模型的结果还没有存账本，要重跑一次才能用新校验器重新评分。
+LLM benchmark runs store every run's findings together with its evidence ledger. When the verifier improves, `groundline reverify <results.json>` re-scores them without re-running the model; the last 7B run above (`docs/results/leaderboard/`) was re-scored this way.
 
-## 设计要点
+## Design notes
 
-- **LLM 不做算术。** 系统提示明确要求结论里的每个数字都来自证据。比如模型想说"偏差 5%"，就必须调用 `compare_reference` 拿到这个数，而不是自己用两个数相减。
-- **规则 agent 也要过校验。** 开发过程中，校验器抓到了规则模板里写死的"5 个采样点"：这个判据当时没有出现在证据里。修复方法是把判据写进工具输出，而不是放宽校验。
-- **会归因的结论。** 如果流量和预测一致而室压偏低，报告会指向 c* 效率不足；如果燃料阀开得晚导致点火推迟，由此产生的温升滞后会被归到阀门延迟下面，而不是单独报成一个问题。
+- **The LLM does no arithmetic.** The system prompt requires every number in a finding to come from evidence. To say "5% deviation", the model has to call `compare_reference` and get that number, not subtract two numbers itself.
+- **The rule agent has to pass the verifier too.** During development the verifier caught a hard-coded "5 samples" in a rule template that did not appear in any evidence. The fix was to put the criterion into the tool output, not to loosen the verifier.
+- **Findings that attribute causes.** If the flows match the prediction but chamber pressure is low, the report points to low c* efficiency; if a late fuel valve delays ignition, the resulting temperature lag is attributed to the valve delay instead of being reported as a separate problem.
 
-## 目录结构
+## Layout
 
 ```
 src/groundline/
-  synth.py        合成热试车数据和异常真值
-  io.py           CSV / TDMS 读写
-  session.py      Session 与证据账本
-  tools.py        确定性分析工具（全部数值来源）
-  findings.py     结论数据结构与数字溯源校验器
-  agent.py        规则 agent、LLM agent（OpenAI 兼容 / Anthropic）
-  report.py       自包含 HTML 报告和 report.json
-  reproduce.py    证据复现
-  evaluate.py     基准评测
-  mcp_server.py   MCP 服务器
-  config.py       .env 配置加载
-  cli.py          命令行
+  synth.py           synthetic hot-fire data with ground-truth anomalies
+  io.py              CSV / TDMS I/O
+  session.py         Session and the evidence ledger
+  tools.py           deterministic analysis tools (the only source of numbers)
+  findings.py        findings and the grounding verifier
+  semantics.py       semantic verification: units and role words against evidence fields
+  agent.py           rule agent, LLM agent (OpenAI Responses / compatible endpoints / Anthropic)
+  report.py          self-contained HTML report and report.json
+  reproduce.py       evidence reproduction
+  evaluate.py        benchmark and re-verification
+  leaderboard.py     multi-model leaderboard
+  verifier_bench.py  benchmark of the verifier itself (planted errors)
+  mcp_server.py      MCP server
+  config.py          .env loading
+  cli.py             command line
 ```
 
-## 路线图
+## Roadmap
 
-- [ ] 在真实试车数据（脱敏后）上验证判据，校准阈值
-- [ ] 偏差归因：仿真和实测对不上时，按机理、网格、边界条件、制造偏差、传感器分别列出候选原因并设计验证
-- [ ] 多次试车横向对比与趋势分析
-- [ ] 更难的合成场景和 LLM agent 排行榜
-- [ ] 试验报告模板（Word/PDF 导出）
+- [ ] Validate criteria and calibrate thresholds on real (anonymised) liquid-engine test data (a public solid-motor example is already included)
+- [ ] Deviation attribution: when simulation and measurement disagree, list candidate causes (physics, mesh, boundary conditions, manufacturing, sensors) and design checks
+- [ ] Cross-run comparison and trend analysis
+- [x] LLM agent leaderboard and verifier benchmark
+- [ ] Harder synthetic scenarios (coupled anomalies, realistic noise spectra, sensor drift)
+- [ ] Test report templates (Word/PDF export)
 
 ## License
 
