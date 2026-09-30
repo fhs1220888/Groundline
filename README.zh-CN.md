@@ -8,7 +8,7 @@
 
 名字取自 *grounded*（每个数字都有依据）和 *redline*（红线判读）。
 
-![report](docs/report_screenshot.png)
+![report](docs/report_screenshot_zh.png)
 
 把一次发动机热试车（或任何台架试验）的数据交给 Groundline，它会完成工况分段、传感器健康检查、红线判读、阀门响应、振荡检测和仿真对比，然后写出分析报告。和一般的 "AI 分析" 不同的是：
 
