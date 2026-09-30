@@ -630,14 +630,17 @@ def test_mcp_server_round_trip(tmp_path):
             return json.loads(blocks[0].text)
 
         opened = payload(await srv.call_tool("open_run", {"run_path": str(paths["run"])}))
-        sid = opened["session_id"]
-        ev = payload(await srv.call_tool("run_analysis", {"session_id": sid, "tool": "detect_oscillation",
+        sid = opened["run_id"]
+        ev = payload(await srv.call_tool("run_analysis", {"run_id": sid, "tool": "detect_oscillation",
                                                           "params": {"channel": "Pc"}}))
         f = ev["result"]["events"][0]
         good = {"title": "osc", "statement": f"Pc oscillates at {f['freq_hz']:.0f} Hz", "category": "combustion_oscillation",
                 "severity": "critical", "channel": "Pc", "evidence": [ev["evidence_id"]]}
         bad = {**good, "statement": f"Pc oscillates at {f['freq_hz'] + 300:.0f} Hz"}
-        v = payload(await srv.call_tool("verify", {"session_id": sid, "findings": [good, bad]}))
+        v = payload(await srv.call_tool("verify", {"run_id": sid, "findings": [good, bad]}))
+        # a bridge that strips the id: with one open run the server still knows which one is meant
+        v2 = payload(await srv.call_tool("verify", {"findings": [good, bad]}))
+        assert v2["summary"] == v["summary"]
         return v
 
     v = asyncio.run(go())

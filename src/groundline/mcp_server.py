@@ -27,20 +27,27 @@ def build_server():
     mcp = FastMCP("groundline")
     sessions: dict[str, Session] = {}
 
-    def _get(session_id: str) -> Session:
-        if session_id not in sessions:
-            raise ValueError(f"unknown session {session_id!r}; call open_run first")
-        return sessions[session_id]
+    def _get(run_id: str | None) -> Session:
+        # `run_id` is optional: some MCP bridges strip argument names they use themselves (a proxy dropped
+        # the old name, `session_id`), and with a single open run there is nothing to choose between
+        if run_id is None:
+            if len(sessions) == 1:
+                return next(iter(sessions.values()))
+            raise ValueError("run_id is required when more than one run is open; call open_run first"
+                             if sessions else "no run is open; call open_run first")
+        if run_id not in sessions:
+            raise ValueError(f"unknown run_id {run_id!r}; call open_run first")
+        return sessions[run_id]
 
     @mcp.tool()
     def open_run(run_path: str, reference_path: str | None = None, limits_path: str | None = None) -> dict:
         """Load a test run (CSV or TDMS). reference.csv / limits.json next to the file are picked up automatically.
-        Returns a session_id and an overview of the channels."""
+        Returns a run_id and an overview of the channels."""
         s = Session.open(run_path, reference_path, limits_path)
         sid = uuid.uuid4().hex[:8]
         sessions[sid] = s
         ev = s.run("describe_data")
-        return {"session_id": sid, "evidence_id": ev.id, "overview": ev.result}
+        return {"run_id": sid, "evidence_id": ev.id, "overview": ev.result}
 
     @mcp.tool()
     def list_analysis_tools() -> list[dict]:
@@ -49,17 +56,17 @@ def build_server():
                 for t in REGISTRY.values()]
 
     @mcp.tool()
-    def run_analysis(session_id: str, tool: str, params: dict | None = None) -> dict:
+    def run_analysis(tool: str, params: dict | None = None, run_id: str | None = None) -> dict:
         """Run one analysis tool. The call is stored in the evidence ledger; cite the returned evidence_id in findings."""
-        ev = _get(session_id).run(tool, **(params or {}))
+        ev = _get(run_id).run(tool, **(params or {}))
         return {"evidence_id": ev.id, "result": ev.result, "has_figure": ev.figure_png is not None}
 
     @mcp.tool()
-    def verify(session_id: str, findings: list[dict]) -> dict:
+    def verify(findings: list[dict], run_id: str | None = None) -> dict:
         """Check findings (title, statement, category, severity, channel, t_start, t_end, evidence[]) against the
         ledger. Every number in a statement must be present in the cited evidence, with a unit and role that fit
         the evidence field it came from (e.g. a number after "peak" must come from a peak field)."""
-        s = _get(session_id)
+        s = _get(run_id)
         fs = [Finding.from_dict(d) for d in findings]
         summary = verify_findings(fs, s)
         return {"summary": summary, "findings": [
@@ -68,10 +75,10 @@ def build_server():
             for f in fs]}
 
     @mcp.tool()
-    def write_html_report(session_id: str, findings: list[dict], summary: str, out_path: str,
+    def write_html_report(findings: list[dict], summary: str, out_path: str, run_id: str | None = None,
                           lang: str = "zh") -> dict:
         """Verify the findings and write the HTML report (plus report.json for `groundline reproduce`)."""
-        s = _get(session_id)
+        s = _get(run_id)
         fs = [Finding.from_dict(d) for d in findings]
         ver = verify_findings(fs, s)
         res = AnalysisResult(fs, summary, ver, {"type": "llm", "backend": "mcp-client", "model": "external"})
