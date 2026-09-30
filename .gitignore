@@ -9,7 +9,7 @@ dist/
 groundline_demo/
 runs/
 *.tdms_index
-examples/**/report.html
-examples/**/report.json
+examples/**/report*.html
+examples/**/report*.json
 eval_*.json
 leaderboard/
