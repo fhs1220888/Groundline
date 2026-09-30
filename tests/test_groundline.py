@@ -645,3 +645,19 @@ def test_mcp_server_round_trip(tmp_path):
 
     v = asyncio.run(go())
     assert v["summary"]["verified"] == 1 and v["summary"]["partial"] == 1
+
+
+def test_demo_js_verifier_matches_python(tmp_path):
+    """docs/demo/verifier.js must give the same verdicts as the Python verifier."""
+    import pathlib
+    import shutil
+    import subprocess
+    import sys
+
+    if not shutil.which("node"):
+        pytest.skip("node not installed")
+    demo = pathlib.Path(__file__).resolve().parents[1] / "docs" / "demo"
+    corpus = tmp_path / "corpus.json"
+    subprocess.run([sys.executable, str(demo / "make_parity_corpus.py"), str(corpus), "2"], check=True)
+    r = subprocess.run(["node", str(demo / "parity_check.mjs"), str(corpus)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr

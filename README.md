@@ -6,6 +6,8 @@ English | [简体中文](https://github.com/fhs1220888/Groundline/blob/main/READ
 
 **A verifiable AI agent for engine test data: every number in the report traces back to a reproducible computation.**
 
+**[Live demo](https://fhs1220888.github.io/Groundline/demo/)**: try to get a wrong number past the verifier, in your browser, on real static-fire evidence.
+
 The name comes from *grounded* (every number has a source) and *redline* (limit checks).
 
 ![report](https://raw.githubusercontent.com/fhs1220888/Groundline/main/docs/report_screenshot.png)

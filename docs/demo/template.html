@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Groundline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a test-report sheet. Narrow intro, then the verifier bench as two panes
+   (claim + verdict | evidence ledger), then plain report-style sections. */
+:root {
+  --bg: #eef1ef;        /* cool paper, faint green bias */
+  --surface: #ffffff;
+  --sunken: #f6f8f7;
+  --ink: #15201c;
+  --muted: #56645f;
+  --line: #d3dbd7;
+  --accent: #0b6e5f;    /* grounded */
+  --accent-soft: #dcefe9;
+  --flag: #b3261e;      /* not found in evidence */
+  --flag-soft: #f8e1de;
+  --warn: #9a5600;      /* found, wrong meaning */
+  --warn-soft: #fbecd5;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1412; --surface: #151d1a; --sunken: #111816; --ink: #e2ebe7; --muted: #94a49e; --line: #28352f;
+    --accent: #45c2aa; --accent-soft: #143a32; --flag: #ff8a80; --flag-soft: #43201d; --warn: #f2b35c; --warn-soft: #3d2c12;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1412; --surface: #151d1a; --sunken: #111816; --ink: #e2ebe7; --muted: #94a49e; --line: #28352f;
+  --accent: #45c2aa; --accent-soft: #143a32; --flag: #ff8a80; --flag-soft: #43201d; --warn: #f2b35c; --warn-soft: #3d2c12;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--font-body); }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; }
+code, pre, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+
+/* header */
+.top { border-bottom: 1px solid var(--line); background: var(--surface); }
+.top .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding-block: 12px; }
+.brand { font: 700 20px/1 var(--font-display); letter-spacing: 0.02em; color: var(--ink); text-decoration: none; }
+.brand small { font: 500 12px var(--font-mono); color: var(--muted); margin-left: 8px; letter-spacing: 0; }
+.top nav { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 14px; }
+
+/* intro */
+.intro { padding-block: 40px 28px; }
+.intro h1 { font: 700 clamp(28px, 4.4vw, 44px)/1.08 var(--font-display); margin: 0 0 14px; max-width: 22ch; text-wrap: balance; letter-spacing: -0.005em; }
+.intro p { margin: 0 0 12px; max-width: 64ch; color: var(--muted); font-size: 16px; }
+.intro p strong { color: var(--ink); font-weight: 600; }
+.install { display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px 8px 8px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); max-width: 100%; }
+.install code { font-size: 14px; white-space: nowrap; overflow-x: auto; }
+.btn { font: 500 13px var(--font-body); color: var(--ink); background: var(--sunken); border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+
+/* sections */
+section.block { padding-block: 36px; border-top: 1px solid var(--line); }
+h2 { font: 700 24px/1.2 var(--font-display); margin: 0 0 6px; letter-spacing: 0.005em; }
+.lede { margin: 0 0 20px; color: var(--muted); max-width: 70ch; }
+.eyebrow { font: 500 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 8px; }
+
+/* verifier bench */
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.presets .btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.bench { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.pane { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.pane-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.pane-h h3 { margin: 0; font: 600 14px var(--font-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.pane-b { padding: 16px; display: grid; gap: 14px; }
+label.f { display: grid; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 500; }
+input[type=text], textarea { width: 100%; font: 15px/1.5 var(--font-body); color: var(--ink); background: var(--sunken); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; }
+textarea { min-height: 92px; resize: vertical; }
+.cites { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+.cites label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.cites .mono { color: var(--muted); }
+
+.verdict { border-top: 1px solid var(--line); padding: 16px; display: grid; gap: 12px; }
+.status { display: inline-flex; align-items: center; gap: 8px; font: 600 13px var(--font-body); padding: 4px 10px; border-radius: 999px; width: fit-content; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.status.verified { color: var(--accent); background: var(--accent-soft); }
+.status.partial { color: var(--flag); background: var(--flag-soft); }
+.status.unsupported { color: var(--warn); background: var(--warn-soft); }
+.rendered { font-size: 16px; line-height: 1.75; }
+.rendered .t { font-weight: 600; display: block; margin-bottom: 4px; }
+.num { font-family: var(--font-mono); font-size: 0.92em; padding: 1px 3px; border-radius: 3px; cursor: default; }
+.num.ok { background: var(--accent-soft); color: var(--accent); }
+.num.bad { color: var(--flag); text-decoration: underline wavy var(--flag); text-underline-offset: 3px; }
+.num.mis { background: var(--warn-soft); color: var(--warn); text-decoration: underline dotted var(--warn); text-underline-offset: 3px; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; }
+.checks li { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.checks .k { font-family: var(--font-mono); text-align: right; }
+.checks .k.ok { color: var(--accent); } .checks .k.bad { color: var(--flag); } .checks .k.mis { color: var(--warn); }
+.checks .d { color: var(--muted); overflow-wrap: anywhere; }
+.checks .d b { color: var(--ink); font-weight: 500; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); }
+
+/* ledger */
+.ledger { display: grid; gap: 0; }
+.ev { border-bottom: 1px solid var(--line); }
+.ev:last-child { border-bottom: 0; }
+.ev summary { list-style: none; cursor: pointer; padding: 10px 16px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ev summary::-webkit-details-marker { display: none; }
+.ev summary::before { content: "▸"; color: var(--muted); font-size: 11px; transition: transform .15s; }
+.ev[open] summary::before { transform: rotate(90deg); }
+.ev .id { font: 600 13px var(--font-mono); color: var(--accent); }
+.ev .tool { font: 500 13px var(--font-mono); }
+.ev .par { font: 12px var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.ev.cited .id::after { content: " cited"; font-weight: 400; color: var(--muted); }
+.ev .body { padding: 0 16px 12px; display: grid; gap: 10px; }
+.ev img { width: 100%; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+.fields { overflow-x: auto; }
+.fields table { border-collapse: collapse; width: 100%; font: 12.5px/1.45 var(--font-mono); font-variant-numeric: tabular-nums; }
+.fields td { padding: 2px 6px; border-bottom: 1px dotted var(--line); vertical-align: top; }
+.fields td:first-child { color: var(--muted); overflow-wrap: anywhere; }
+.fields td:last-child { text-align: right; white-space: nowrap; }
+.fields tr.hit td { background: var(--accent-soft); color: var(--accent); }
+.fields tr.hit.mis td { background: var(--warn-soft); color: var(--warn); }
+
+/* how it works */
+.flow { list-style: none; counter-reset: s; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; padding: 0; margin: 0; }
+@media (max-width: 900px) { .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .flow { grid-template-columns: minmax(0, 1fr); } }
+.flow li { counter-increment: s; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-size: 14px; color: var(--muted); }
+.flow li::before { content: counter(s); display: block; font: 600 12px var(--font-mono); color: var(--accent); margin-bottom: 6px; }
+.flow b { display: block; color: var(--ink); font-weight: 600; margin-bottom: 2px; }
+
+/* results */
+.tables { display: grid; gap: 28px; }
+.tables > div { min-width: 0; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.tbl table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tbl th { font: 600 12px var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; background: var(--sunken); }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td.n { text-align: right; font-family: var(--font-mono); font-size: 13px; }
+.tbl td.hl { color: var(--accent); font-weight: 600; }
+.cap { font-size: 13.5px; color: var(--muted); margin: 8px 0 0; max-width: 80ch; }
+h3.t3 { font: 600 16px var(--font-display); margin: 0 0 8px; }
+
+/* use it */
+.use { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .use { grid-template-columns: minmax(0, 1fr); } }
+.use > div { min-width: 0; }
+pre { margin: 6px 0 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; overflow-x: auto; line-height: 1.5; }
+.links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 18px; }
+
+footer { border-top: 1px solid var(--line); padding-block: 24px 40px; color: var(--muted); font-size: 13px; }
+footer p { margin: 0 0 6px; max-width: 90ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="https://github.com/fhs1220888/Groundline">Groundline<small>v0.1.1</small></a>
+    <nav aria-label="Project links">
+      <a href="https://github.com/fhs1220888/Groundline">GitHub</a>
+      <a href="https://pypi.org/project/groundline/">PyPI</a>
+      <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.fhs1220888/groundline">MCP Registry</a>
+      <a href="report_hanaro.html">Sample report</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap intro">
+    <p class="eyebrow">Verifiable analysis of engine test data</p>
+    <h1>Every number in the report has to come from a computation.</h1>
+    <p>Groundline is an AI agent for rocket-engine test data. The language model never does arithmetic: deterministic tools compute every value and log it in an evidence ledger. A verifier then checks <strong>every number the model writes</strong>: it must appear in the evidence the claim cites, with a unit and a meaning that fit the field it came from.</p>
+    <p>Below is that verifier running in your browser on real evidence from a public solid-motor static fire. Try to get a wrong number past it.</p>
+    <div class="install"><code id="cmd">uvx groundline mcp</code><button class="btn" type="button" id="copy">Copy</button></div>
+  </div>
+
+  <section class="block" id="try">
+    <div class="wrap">
+      <p class="eyebrow">Live · runs in your browser</p>
+      <h2>Try the verifier</h2>
+      <p class="lede">Evidence: SNU Rocket Team HANARO, KNSB static fire, analysed by Groundline's tools (E1–E5 on the right). Pick an example or edit the claim; every number is re-checked as you type.</p>
+      <div class="presets" id="presets" role="group" aria-label="Example claims"></div>
+      <div class="bench">
+        <div class="pane">
+          <div class="pane-h"><h3>Claim</h3><span class="legend"><span><span class="num ok">1.0</span> found</span><span><span class="num mis">1.0</span> found, wrong meaning</span><span><span class="num bad">1.0</span> not in evidence</span></span></div>
+          <div class="pane-b">
+            <label class="f" for="title">Title<input type="text" id="title" autocomplete="off"></label>
+            <label class="f" for="stmt">Statement<textarea id="stmt" spellcheck="false"></textarea></label>
+            <div class="f"><span>Cites</span><div class="cites" id="cites"></div></div>
+          </div>
+          <div class="verdict" aria-live="polite">
+            <span class="status" id="status"></span>
+            <div class="rendered" id="rendered"></div>
+            <ul class="checks" id="checks"></ul>
+          </div>
+        </div>
+        <div class="pane">
+          <div class="pane-h"><h3>Evidence ledger</h3><span class="mono" style="color:var(--muted);font-size:12px">computed by the tools, not the model</span></div>
+          <div class="ledger" id="ledger"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="lede">One analysis, in the order it runs.</p>
+      <ol class="flow">
+        <li><b>Load the run</b>CSV or TDMS plus channel metadata, redlines and an optional simulation prediction.</li>
+        <li><b>Tools compute</b>Phase segmentation, sensor health, redlines, valve response, oscillation FFT, impulse. No model involved.</li>
+        <li><b>Ledger records</b>Each call becomes E1, E2, … with parameters, data SHA-256, tool source hash and result.</li>
+        <li><b>Model writes</b>The agent chooses tools and writes findings that may only cite ledger entries.</li>
+        <li><b>Verifier checks</b>Every number is traced to a field; failures go back to the model once, then get flagged in the report.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block" id="results">
+    <div class="wrap">
+      <h2>Results</h2>
+      <p class="lede">Raw results are in the repository under <code>docs/results/</code>.</p>
+      <div class="tables">
+        <div>
+          <h3 class="t3">Models on the same 14 synthetic hot-fires</h3>
+          <div class="tbl"><table>
+            <thead><tr><th>Model</th><th>Reports</th><th>Recall (strict / loose)</th><th>Precision</th><th>First-draft numbers with no source</th></tr></thead>
+            <tbody>
+              <tr><td>Rule agent (no LLM)</td><td class="n">14/14</td><td class="n">100% / 100%</td><td class="n">100%</td><td class="n">–</td></tr>
+              <tr><td>gpt-5.6-sol</td><td class="n">14/14</td><td class="n">100% / 100%</td><td class="n">95%</td><td class="n hl">0 / 376 (0%)</td></tr>
+              <tr><td>Qwen2.5 7B, local</td><td class="n">11/14</td><td class="n">5% / 50%</td><td class="n">5%</td><td class="n">23 / 98 (23%) + 4 wrong meaning</td></tr>
+              <tr><td>Qwen2.5 3B, local</td><td class="n">13/14</td><td class="n">0% / 0%</td><td class="n">–</td><td class="n">1 / 1</td></tr>
+            </tbody>
+          </table></div>
+          <p class="cap">Every number the verifier stopped in the 7B drafts was checked by hand against recomputed evidence: invented values and values cited from the wrong evidence, no false alarms. Small samples and large run-to-run variance: a rough guide, not a ranking.</p>
+        </div>
+        <div>
+          <h3 class="t3">The verifier's own test: errors planted in correct findings</h3>
+          <div class="tbl"><table>
+            <thead><tr><th>Planted error</th><th>Count</th><th>Grounding only</th><th>Grounding + meaning</th></tr></thead>
+            <tbody>
+              <tr><td>Invented value (−30% to +50%)</td><td class="n">1,364</td><td class="n">87%</td><td class="n hl">95%</td></tr>
+              <tr><td>Real value in the wrong place</td><td class="n">1,436</td><td class="n">0%</td><td class="n hl">45%</td></tr>
+              <tr><td>Wrong unit (s ↔ Hz, % → s)</td><td class="n">1,168</td><td class="n">0%</td><td class="n hl">92%</td></tr>
+              <tr><td>Unchanged correct findings (false alarms)</td><td class="n">268</td><td class="n">0%</td><td class="n hl">0%</td></tr>
+            </tbody>
+          </table></div>
+          <p class="cap">A value swapped for another field of the same kind (one time for another) is caught only 13% of the time, when a role word such as "peak" or "lasting" gives it away. That is the limit of checking text against field names.</p>
+        </div>
+        <div>
+          <h3 class="t3">Real data: HANARO static fire against the team's own processing</h3>
+          <div class="tbl"><table>
+            <thead><tr><th></th><th>Groundline</th><th>HANARO processed</th></tr></thead>
+            <tbody>
+              <tr><td>Peak thrust</td><td class="n">2222.2 N</td><td class="n">2221.7 N</td></tr>
+              <tr><td>Total impulse</td><td class="n">6391 N·s (2% threshold, 4.12 s)</td><td class="n">6411 N·s (4.35 s window)</td></tr>
+            </tbody>
+          </table></div>
+          <p class="cap">Thrust calibration was fitted to HANARO's curve, so matching peaks are expected; clock alignment, action time and impulse are the independent checks. <a href="report_hanaro.html">Open the full report</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="use">
+    <div class="wrap">
+      <h2>Use it</h2>
+      <p class="lede">Runs locally; test data never leaves the machine. The model only sees tool summaries.</p>
+      <div class="use">
+        <div><p class="eyebrow">Claude Code</p><pre><code>claude mcp add --scope user groundline -- uvx groundline mcp</code></pre></div>
+        <div><p class="eyebrow">Claude Desktop, Cursor, other MCP clients</p><pre><code>{"mcpServers": {"groundline": {
+  "command": "uvx", "args": ["groundline", "mcp"]}}}</code></pre></div>
+        <div><p class="eyebrow">Command line</p><pre><code>pip install groundline
+groundline demo
+groundline analyze run.csv --agent openai</code></pre></div>
+        <div><p class="eyebrow">Benchmarks</p><pre><code>groundline leaderboard examples/leaderboard.json
+groundline verifier-bench --n 50</code></pre></div>
+      </div>
+      <div class="links">
+        <a href="https://github.com/fhs1220888/Groundline">Source on GitHub</a>
+        <a href="https://pypi.org/project/groundline/">PyPI package</a>
+        <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.fhs1220888/groundline">io.github.fhs1220888/groundline in the MCP Registry</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>The in-browser verifier is a JavaScript port of the Python checks; on 12,547 numbers from 1,705 findings it returns the same verdict as the Python verifier for every one.</p>
+    <p>Validated on synthetic liquid-engine runs and one public solid-motor firing; not yet on real liquid-engine test data. HANARO data: <a href="https://github.com/snu-hanaro/static-fire-toolkit">snu-hanaro/static-fire-toolkit</a>, MIT License.</p>
+  </div>
+</footer>
+
+<script>
+/*{{VERIFIER}}*/
+</script>
+<script>
+/*{{LEDGER}}*/
+</script>
+<script>
+(function () {
+  "use strict";
+  const V = window.GroundlineVerifier;
+  const L = window.HANARO_LEDGER;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const PRESETS = [
+    { key: "errors", label: "Spot the errors", cites: ["E4"],
+      title: "Thrust: peak 2222.16 N, total impulse 6500 N·s",
+      stmt: "Thrust peaked at 2222.16 N at 160.48 s. The burn lasted 159.93 s at the 10% threshold, and the total impulse was 6500 N·s." },
+    { key: "correct", label: "Correct claim", cites: ["E4"],
+      title: "Thrust: peak 2222.16 N, total impulse 6361.95 N·s",
+      stmt: "Thrust peaked at 2222.16 N at 160.48 s. At the 10% threshold the action time ran from 159.93 to 163.84 s, lasting 3.91 s; the total impulse was 6361.95 N·s and the mean thrust 1627.1 N." },
+    { key: "invented", label: "Invented value", cites: ["E4"],
+      title: "Total impulse 6500 N·s",
+      stmt: "Over the 3.91 s action time the total impulse was 6500 N·s." },
+    { key: "place", label: "Real value, wrong place", cites: ["E4"],
+      title: "Thrust peak",
+      stmt: "Thrust reached a peak of 1627.1 N at 160.48 s." },
+    { key: "unit", label: "Wrong unit", cites: ["E4"],
+      title: "Thrust peak time",
+      stmt: "Thrust peaked at 2222.16 N at 160.48 Hz." },
+    { key: "cite", label: "Wrong citation", cites: ["E2"],
+      title: "Thrust: peak 2222.16 N",
+      stmt: "Thrust peaked at 2222.16 N and the total impulse was 6361.95 N·s." },
+    { key: "sensor", label: "Sensor finding", cites: ["E3"],
+      title: "Recurring thrust data gaps",
+      stmt: "F_thrust has 285 data gaps between 8.6 and 204.47 s, 15.86 s in total, the longest 0.12 s; 0 of them fall in the firing." },
+  ];
+
+  // ---------------------------------------------------------------- ledger pane
+  const ids = Object.keys(L);
+  function paramText(p) {
+    const parts = Object.entries(p || {}).map(([k, v]) => `${k}=${v}`);
+    return parts.length ? `(${parts.join(", ")})` : "()";
+  }
+  function fmt(v) {
+    if (Number.isInteger(v)) return String(v);
+    return String(Math.round(v * 1e6) / 1e6);
+  }
+  function renderLedger() {
+    $("ledger").innerHTML = ids.map((id) => {
+      const e = L[id];
+      const fields = V.evidenceFields(e.result, id).filter((f) => !f.key.startsWith("#len") || f.value > 0);
+      const rows = fields.map((f) =>
+        `<tr data-path="${esc(f.path)}"><td>${esc(f.path.slice(id.length + 1) || f.path)}</td><td>${esc(fmt(f.value))}${f.unit && f.kind === "physical" ? " " + esc(f.unit) : ""}</td></tr>`).join("");
+      const fig = e.figure ? `<img src="${e.figure}" alt="${esc(e.tool)} plot" loading="lazy">` : "";
+      return `<details class="ev" id="ev-${id}" ${id === "E4" ? "open" : ""}>
+        <summary><span class="id">${id}</span><span class="tool">${esc(e.tool)}</span><span class="par">${esc(paramText(e.params))}</span></summary>
+        <div class="body">${fig}<div class="fields"><table>${rows}</table></div></div></details>`;
+    }).join("");
+  }
+
+  function renderCites(selected) {
+    $("cites").innerHTML = ids.map((id) =>
+      `<label><input type="checkbox" value="${id}" ${selected.includes(id) ? "checked" : ""}> ${id} <span class="mono">${esc(L[id].tool)}</span></label>`).join("");
+  }
+  const cited = () => [...$("cites").querySelectorAll("input:checked")].map((i) => i.value);
+
+  // ---------------------------------------------------------------- verdict
+  function paint(text, nums) {
+    let out = "", pos = 0;
+    for (const n of nums) {
+      out += esc(text.slice(pos, n.start));
+      const cls = !n.grounded ? "bad" : n.consistent ? "ok" : "mis";
+      const tip = !n.grounded ? "not found in the cited evidence" : n.consistent
+        ? `= ${n.matched.field}${n.matched.scale !== 1 ? " × " + n.matched.scale : ""}` : n.semanticProblem;
+      const path = n.matched ? n.matched.field : "";
+      out += `<span class="num ${cls}" title="${esc(tip)}" data-path="${esc(path)}" tabindex="0">${esc(n.text)}</span>`;
+      pos = n.end;
+    }
+    return out + esc(text.slice(pos));
+  }
+
+  function run() {
+    const f = { title: $("title").value, statement: $("stmt").value, evidence: cited() };
+    const v = V.verifyFinding(f, L);
+    const tl = f.title.length + 1;
+    const titleNums = v.numbers.filter((n) => n.start < tl);
+    const stmtNums = v.numbers.filter((n) => n.start >= tl).map((n) => ({ ...n, start: n.start - tl, end: n.end - tl }));
+    $("rendered").innerHTML = `<span class="t">${paint(f.title, titleNums)}</span>${paint(f.statement, stmtNums)}`;
+
+    const st = $("status");
+    st.className = "status " + v.status;
+    const bad = v.ungrounded.length, mis = v.mismatched.length;
+    st.textContent = v.status === "verified" ? `Verified · ${v.numbers.length} numbers traced to evidence`
+      : v.status === "unsupported" ? "Unsupported · the claim cites no evidence"
+      : `Rejected · ${bad} not in evidence, ${mis} with the wrong meaning`;
+
+    $("checks").innerHTML = v.numbers.map((n) => {
+      const cls = !n.grounded ? "bad" : n.consistent ? "ok" : "mis";
+      const d = !n.grounded ? `not found in ${f.evidence.join(", ") || "any cited evidence"}`
+        : n.consistent ? `<b>${esc(n.matched.field)}</b>${n.unit ? ` · unit ${esc(n.unit)}` : ""}${n.role ? ` · read as ${esc(n.role)}` : ""}`
+        : esc(n.semanticProblem);
+      return `<li><span class="k ${cls}">${esc(n.text)}</span><span class="d">${d}</span></li>`;
+    }).join("") + v.problems.map((p) => `<li><span class="k bad">!</span><span class="d">${esc(p)}</span></li>`).join("");
+
+    document.querySelectorAll(".fields tr").forEach((r) => r.classList.remove("hit", "mis"));
+    for (const n of v.numbers) {
+      if (!n.matched) continue;
+      const row = document.querySelector(`.fields tr[data-path="${CSS.escape(n.matched.field)}"]`);
+      if (row) { row.classList.add("hit"); if (!n.consistent) row.classList.add("mis"); }
+    }
+  }
+
+  function load(p) {
+    $("title").value = p.title;
+    $("stmt").value = p.stmt;
+    renderCites(p.cites);
+    document.querySelectorAll("#presets .btn").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.key === p.key)));
+    for (const id of p.cites) { const d = $("ev-" + id); if (d) d.open = true; }
+    run();
+  }
+
+  $("presets").innerHTML = PRESETS.map((p) => `<button type="button" class="btn" data-key="${p.key}" aria-pressed="false">${esc(p.label)}</button>`).join("");
+  $("presets").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    load(PRESETS.find((p) => p.key === b.dataset.key));
+  });
+  const edited = () => { document.querySelectorAll("#presets .btn").forEach((b) => b.setAttribute("aria-pressed", "false")); run(); };
+  $("title").addEventListener("input", edited);
+  $("stmt").addEventListener("input", edited);
+  $("cites").addEventListener("change", edited);
+
+  $("copy").addEventListener("click", async () => {
+    const t = $("cmd").textContent;
+    try { await navigator.clipboard.writeText(t); $("copy").textContent = "Copied"; }
+    catch (err) {
+      const r = document.createRange(); r.selectNodeContents($("cmd"));
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r); $("copy").textContent = "Selected";
+    }
+    setTimeout(() => { $("copy").textContent = "Copy"; }, 1500);
+  });
+
+  renderLedger();
+  load(PRESETS[0]);
+})();
+</script>
+</body>
+</html>

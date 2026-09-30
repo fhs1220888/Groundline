@@ -167,6 +167,8 @@ def verify_finding(f: Finding, s: Session) -> dict:
         mant = norm.lower().split("e")[0]
         dec = len(mant.split(".")[1]) if "." in mant else 0
         cands = [(fl, sc) for fl in fields if (sc := _matches(val, dec, fl.value)) is not None]
+        # closest value first, so a message names the field the writer most likely meant
+        cands.sort(key=lambda c: abs(abs(val) - abs(c[0].value * c[1])))
         sem = check_number(text, m.start(), m.end(), cands) if cands else None
         best = None
         if cands:

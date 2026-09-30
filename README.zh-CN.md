@@ -4,6 +4,8 @@
 
 **可验证的试验数据分析 agent：报告里的每一个数字都能追溯到一次可复现的计算。**
 
+**[在线演示](https://fhs1220888.github.io/Groundline/demo/)**：在浏览器里用真实点火数据的证据，试试能不能让一个错误的数字骗过校验器。
+
 名字取自 *grounded*（每个数字都有依据）和 *redline*（红线判读）。
 
 ![report](docs/report_screenshot.png)
