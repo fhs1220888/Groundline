@@ -13,3 +13,8 @@ examples/**/report*.html
 examples/**/report*.json
 eval_*.json
 leaderboard/
+
+# public data without a license: downloaded by prepare.py, never committed
+examples/triton_lox/raw/
+examples/triton_lox/run.csv
+examples/triton_lox/meta.json
