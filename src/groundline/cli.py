@@ -170,7 +170,10 @@ def main(argv: list[str] | None = None) -> int:
     from .config import load_dotenv
 
     load_dotenv()  # .env in the current directory or a parent; shell variables win
+    from . import __version__
+
     p = argparse.ArgumentParser(prog="groundline", description="Verifiable test-data analysis agent")
+    p.add_argument("--version", action="version", version=f"groundline {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     d = sub.add_parser("demo", help="generate a synthetic hot-fire run and analyse it")
