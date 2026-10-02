@@ -145,43 +145,69 @@ def describe_data(s: Session):
 
 
 # ---------------------------------------------------------------------------- phases
-def compute_phases(s: Session, channel: str | None = None, on_frac: float = 0.1, steady_frac: float = 0.9) -> dict:
-    ch = channel or _primary_pressure(s)
-    t = s.time
+def _pulse(s: Session, ch: str) -> dict:
+    """Firing pulse on one channel: smoothed trace, pre-test baseline, steady level, and whether the pulse
+    stands clearly above the baseline (a saturated or dead sensor shows no clear pulse)."""
     x = _filled(s.require_channel(ch))
     w = max(int(0.02 * s.fs), 1)
     xs = pd.Series(x).rolling(w, center=True, min_periods=1).mean().to_numpy()
     # steady level: the plateau around the peak of a 0.2 s rolling median (a brief spike does not set the peak,
     # and a sensor that sticks high after shutdown does not get averaged into the level)
     xm = pd.Series(xs).rolling(max(int(0.2 * s.fs), 1), center=True, min_periods=1).median().to_numpy()
+    base = float(np.nanpercentile(xm, 5))  # quiet reading before / after the firing, offsets included
     k = int(np.nanargmax(xm))
     peak = float(xm[k])
-    above = xm > 0.5 * peak
+    above = xm > base + 0.5 * (peak - base)
     lo = k - int(np.argmin(above[k::-1])) + 1 if not above[k::-1].all() else 0
     hi = k + int(np.argmin(above[k:])) if not above[k:].all() else len(xm)
     plateau = xs[lo:hi]
-    level = float(np.nanmedian(plateau[plateau > 0.75 * peak])) if (plateau > 0.75 * peak).any() else peak
-    on = np.where(xs > on_frac * level)[0]
-    steady = np.where(xs > steady_frac * level)[0]
-    if on.size == 0 or steady.size == 0 or level <= 0:
+    top = plateau > base + 0.75 * (peak - base)
+    level = float(np.nanmedian(plateau[top])) if top.any() else peak
+    rise = level - base
+    return {"xs": xs, "base": base, "level": level, "rise": rise,
+            "clear": bool(rise > 0 and rise >= 0.25 * max(abs(level), abs(base)))}
+
+
+def compute_phases(s: Session, channel: str | None = None, on_frac: float = 0.1, steady_frac: float = 0.9) -> dict:
+    t = s.time
+    first = channel or _primary_pressure(s)
+    ch, pu, fallback_from = first, _pulse(s, first), None
+    if channel is None and not pu["clear"]:
+        # the chamber pressure shows no firing pulse (saturated, dead, unplugged): segment on thrust, or failing
+        # that on another pressure channel, and say so
+        others = s.channels_of_kind("force") + [c for c in s.channels_of_kind("pressure") if c != first]
+        for c in others:
+            pc = _pulse(s, c)
+            if pc["clear"]:
+                ch, pu, fallback_from = c, pc, first
+                break
+    xs, base, level, rise = pu["xs"], pu["base"], pu["level"], pu["rise"]
+    on_thr, steady_thr = base + on_frac * rise, base + steady_frac * rise
+    steady = np.where(xs > steady_thr)[0]
+    if not pu["clear"] or steady.size == 0:
         return {
             "channel": ch,
             "fired": False,
             "phases": [{"name": "no_firing", "t_start": float(t[0]), "t_end": float(t[-1])}],
         }
-    i_ign, i_ms0, i_ms1 = int(on[0]), int(steady[0]), int(steady[-1])
-    after = np.where(xs[i_ms1:] < on_frac * level)[0]
+    i_ms0, i_ms1 = int(steady[0]), int(steady[-1])
+    # ignition: where the rise into mainstage leaves the baseline (not the first noise blip above it)
+    below = np.where(xs[:i_ms0] < on_thr)[0]
+    i_ign = int(below[-1]) + 1 if below.size else 0
+    after = np.where(xs[i_ms1:] < on_thr)[0]
     tail_by = "below_on_frac"
     if after.size:
         i_tail = i_ms1 + int(after[0])
     else:
         # the trace never falls back (a sensor that sticks or shifts after shutdown): tail-off ends where it stops
-        # falling, i.e. the first 0.2 s window after mainstage whose range is within 2 % of the steady level
+        # falling, i.e. the first 0.2 s window after mainstage whose range is within 2 % of the pulse
         n_set = max(int(0.2 * s.fs), 2)
         rng = (pd.Series(xs[i_ms1:]).rolling(n_set).max() - pd.Series(xs[i_ms1:]).rolling(n_set).min()).to_numpy()
-        settled = np.where(rng < 0.02 * level)[0]
+        settled = np.where(rng < 0.02 * rise)[0]
         i_tail, tail_by = ((i_ms1 + int(settled[0]) - n_set + 1, "settled_above_threshold") if settled.size
                            else (len(t) - 1, "end_of_record"))
+    # the log stops while the engine is still firing (DAQ cut out, recording stopped early)
+    ends_firing = bool(xs[-1] > on_thr and (tail_by == "end_of_record" or i_ms1 >= len(t) - max(int(0.5 * s.fs), 2)))
     bounds = [
         ("pre_test", t[0], t[i_ign]),
         ("startup", t[i_ign], t[i_ms0]),
@@ -196,9 +222,15 @@ def compute_phases(s: Session, channel: str | None = None, on_frac: float = 0.1,
             cmd_events.append({"command": c, "edge": "open" if d[i] > 0 else "close", "t_s": float(t[i + 1])})
     return {
         "channel": ch,
+        **({"fallback_from": fallback_from, "fallback_reason": f"{fallback_from} shows no clear firing pulse"}
+           if fallback_from else {}),
         "fired": True,
         "steady_level": level,
+        "baseline": base,
         "unit": _unit(s, ch),
+        "record_ends_during_firing": ends_firing,
+        "record_end_s": float(t[-1]),
+        "value_at_record_end": float(xs[-1]),
         "ignition_s": float(t[i_ign]),
         "mainstage_start_s": float(t[i_ms0]),
         "mainstage_end_s": float(t[i_ms1]),
@@ -213,9 +245,11 @@ def compute_phases(s: Session, channel: str | None = None, on_frac: float = 0.1,
 @tool(
     "segment_phases",
     "Split the run into pre_test / startup / mainstage / shutdown / post_test from the chamber-pressure trace "
-    "(10 % and 90 % of steady level). Returns ignition, mainstage start/end and command edge times. If the trace "
-    "never falls back below 10 % after mainstage (a sensor that sticks after shutdown), tail-off ends where it "
-    "settles; tail_off_end_by says which rule applied.",
+    "(10 % and 90 % of the way from the pre-test baseline to the steady level). Returns ignition, mainstage "
+    "start/end and command edge times. If the chamber pressure shows no clear firing pulse (saturated or dead), "
+    "thrust or another pressure channel is used instead (fallback_from). If the trace never falls back below 10 % "
+    "(a sensor that sticks after shutdown), tail-off ends where it settles (tail_off_end_by); "
+    "record_ends_during_firing says the log stopped while the engine was still firing.",
     {"channel": {**_CH, "description": "pressure channel to segment on (default Pc)"}},
 )
 def segment_phases(s: Session, channel: str | None = None):
@@ -505,9 +539,10 @@ def detect_oscillation(
     f, (ax1, ax2) = plots.new_fig(2, height=2.4)
     i_a, i_b = i_lo, max(i_hi, i_lo + n)
     seg = x_all[i_a:i_b] - pd.Series(x_all[i_a:i_b]).rolling(n, center=True, min_periods=1).mean().to_numpy()
-    fr, tt, Sxx = signal.spectrogram(seg, fs=fs, nperseg=n, noverlap=hop, window="hann", mode="magnitude")
-    sel = (fr >= fmin) & (fr <= fmax)
-    ax1.pcolormesh(tt + t[i_a], fr[sel], 20 * np.log10(Sxx[sel] + 1e-12), shading="auto", cmap="Blues")
+    if len(seg) >= n:  # a span shorter than one window (a log cut off at ignition) has no spectrogram to draw
+        fr, tt, Sxx = signal.spectrogram(seg, fs=fs, nperseg=n, noverlap=hop, window="hann", mode="magnitude")
+        sel = (fr >= fmin) & (fr <= fmax)
+        ax1.pcolormesh(tt + t[i_a], fr[sel], 20 * np.log10(Sxx[sel] + 1e-12), shading="auto", cmap="Blues")
     ax1.set_ylabel("freq [Hz]")
     ax1.grid(False)
     ax1.set_title(f"{channel}: spectrogram and dominant-peak amplitude")
@@ -531,6 +566,16 @@ def detect_oscillation(
 
 # ---------------------------------------------------------------------------- sensor health
 COINCIDENT_S = 0.02  # spikes on different kinds of sensor this close together belong to one event
+# readings no pressure or temperature sensor can truly give: below vacuum (any gauge or absolute pressure is
+# above -1 atm) or below absolute zero; a small margin covers noise
+_PHYS_MIN = {"psi": -14.7, "bar": -1.013, "kpa": -101.3, "mpa": -0.1013, "pa": -101325.0,
+             "degc": -273.15, "c": -273.15, "k": 0.0, "degf": -459.67}
+
+
+def _impossible_below(unit: str) -> float | None:
+    u = (unit or "").strip().lower().replace("°", "deg").replace("℃", "degc")
+    lim = _PHYS_MIN.get(u)
+    return None if lim is None else lim + 0.01 * max(abs(lim), 1.0)
 
 
 def _gap_issue(t: np.ndarray, gaps: list[dict], firing) -> dict:
@@ -575,8 +620,10 @@ def _baseline_return(s: Session, frac: float = 0.25, settle_s: float = 2.0) -> d
     "reading while the engine is off is not a fault; short NaN gaps inside a flatline do not split it, and a value "
     "stuck at the channel's maximum or minimum is marked, as it suggests a saturated sensor), isolated spikes "
     "(>12 local robust sigmas, <= 5 samples wide; spikes that coincide within 20 ms on sensors of different kinds "
-    "are reported together as one event, since a single sensor cannot explain them), and a chamber pressure that "
-    "does not return to its pre-test baseline after shutdown.",
+    "are reported together as one event, since a single sensor cannot explain them), a chamber pressure that "
+    "does not return to its pre-test baseline after shutdown, channels that hold one value for the whole record "
+    "(not connected), physically impossible readings (pressure below vacuum, temperature below absolute zero) and "
+    "channels that carry exactly the same samples as another (wiring or configuration error).",
     {"channels": {"type": "array", "items": {"type": "string"}, "description": "channels to check (default all measurements)"}},
 )
 def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sigma: float = 12.0):
@@ -608,6 +655,22 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
         xb = pd.Series(x).interpolate(limit=max(int(0.1 * fs), 1), limit_area="inside").to_numpy()
         same = np.concatenate([[False], np.diff(xb) == 0])
         lo_all, hi_all = (float(np.nanmin(x)), float(np.nanmax(x))) if (~nan).any() else (np.nan, np.nan)
+        if (~nan).any() and lo_all == hi_all:
+            # one value for the whole record: the sensor is not connected or not working, nothing to judge
+            ch_issues.append({"channel": ch, "kind": "dead_channel", "t_start": float(t[0]), "t_end": float(t[-1]),
+                              "value": lo_all, "unit": _unit(s, ch),
+                              "physically_impossible": bool((lim := _impossible_below(_unit(s, ch))) is not None
+                                                            and lo_all < lim)})
+            issues.extend(ch_issues)
+            summary[ch] = {"nan_samples": int(nan.sum()), "flatline_s": float(t[-1] - t[0]), "spikes": 0, "ok": False}
+            continue
+        lim = _impossible_below(_unit(s, ch))
+        bad = (x < lim) if lim is not None else np.zeros(len(x), bool)
+        if bad.sum() >= 0.5 * fs:  # a few noisy samples past the limit are noise; 0.5 s of them is an offset
+            ch_issues.append({"channel": ch, "kind": "impossible_value", "t_start": float(t[np.argmax(bad)]),
+                              "t_end": float(t[len(bad) - 1 - np.argmax(bad[::-1])]), "min_value": lo_all,
+                              "unit": _unit(s, ch), "physical_limit": lim, "share_of_record_pct": 100 * float(bad.mean()),
+                              "median_value": float(np.nanmedian(x)), "min_duration_s": 0.5})
         for i0, i1 in _runs(same):
             i0 -= 1
             if firing and min(t[i1 - 1], firing[1]) - max(t[i0], firing[0]) < min_flat / fs:
@@ -697,6 +760,18 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
         issues.append({"channel": None, "channels": chs, "kind": "coincident_spikes", "t_start": cl[0][0],
                        "t_end": cl[-1][0], "n_channels": len(chs),
                        "spikes": [{"channel": c, "t": t_, "deviation": sp["deviation"]} for t_, c, sp in cl]})
+    # two channels carrying exactly the same samples: one is wired or configured to the other's input
+    seen: dict[bytes, list[str]] = {}
+    for ch in chans:
+        x = s.require_channel(ch)
+        if np.nanmax(x) > np.nanmin(x) if (~np.isnan(x)).any() else False:
+            seen.setdefault(np.nan_to_num(x, nan=np.inf).tobytes(), []).append(ch)
+    for group in seen.values():
+        if len(group) > 1:
+            issues.append({"channel": None, "channels": group, "kind": "duplicate_channels",
+                           "t_start": float(t[0]), "t_end": float(t[-1]), "n_channels": len(group)})
+            for ch in group:
+                summary[ch]["ok"] = False
     if shared_chans:
         gaps = [{"t_start": float(t[i0]), "t_end": float(t[i1 - 1]), "duration_s": float(t[i1 - 1] - t[i0]),
                  "n_samples": i1 - i0} for i0, i1 in _runs(shared)]
@@ -733,6 +808,77 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
         axes[-1].set_xlabel("time [s]")
         fig = plots.to_base64(f)
     return res, fig
+
+
+# ---------------------------------------------------------------------------- thrust vs chamber pressure
+@tool(
+    "check_thrust_pressure_ratio",
+    "Thrust divided by chamber pressure (both above their pre-test baselines) is proportional to the thrust "
+    "coefficient times the nozzle throat area, so it should hold roughly steady while the engine burns. Computed in "
+    "short quasi-steady windows (chamber pressure changing by less than 15 % within the window) while thrust is "
+    "above half its steady level and chamber pressure above a quarter of its rise; a change larger than "
+    "max_change_pct (default 50) points to a throat change (erosion, a broken insert) or to a "
+    "drifting or failing sensor.",
+    {"thrust": {**_CH, "description": "thrust channel (default the first force channel)"},
+     "pressure": {**_CH, "description": "chamber pressure channel (default Pc)"},
+     "max_change_pct": {"type": "number", "description": "largest accepted spread of the ratio, % (default 50)"}},
+)
+def check_thrust_pressure_ratio(s: Session, thrust: str | None = None, pressure: str | None = None,
+                                max_change_pct: float = 50.0, window_s: float = 0.25):
+    forces = s.channels_of_kind("force")
+    thrust = thrust or (forces[0] if forces else None)
+    pressure = pressure or (_primary_pressure(s) if s.channels_of_kind("pressure") or "Pc" in s.channels else None)
+    if thrust is None or pressure is None:
+        return {"applicable": False, "consistent": True,
+                "note": "needs a thrust (force) channel and a chamber pressure channel"}, None
+    fp, pp = _pulse(s, thrust), _pulse(s, pressure)
+    if not (fp["clear"] and pp["clear"]):
+        bad = [c for c, q in ((thrust, fp), (pressure, pp)) if not q["clear"]]
+        return {"applicable": False, "consistent": True, "thrust": thrust, "pressure": pressure,
+                "note": f"{', '.join(bad)} shows no clear firing pulse, so the ratio means nothing"}, None
+    t = s.time
+    f, p = fp["xs"] - fp["base"], pp["xs"] - pp["base"]
+    burning = (f > 0.5 * fp["rise"]) & (p > 0.25 * pp["rise"])
+    n = max(int(window_s * s.fs), 2)
+    rows = []
+    for i0 in range(0, len(t) - n + 1, n):
+        sl = slice(i0, i0 + n)
+        q = max(n // 4, 1)
+        pa, pb, pm = float(np.median(p[i0:i0 + q])), float(np.median(p[i0 + n - q:i0 + n])), float(np.median(p[sl]))
+        # quasi-steady windows only: while the chamber pressure is rising or collapsing (start-up, shutdown) the
+        # two signals lead and lag each other and the ratio says nothing about the nozzle
+        if burning[sl].mean() > 0.9 and abs(pb - pa) <= 0.15 * pm:
+            rows.append({"t_center": float(t[i0 + n // 2]), "ratio": float(np.median(f[sl] / p[sl]))})
+    if len(rows) < 3:
+        return {"applicable": False, "consistent": True, "thrust": thrust, "pressure": pressure,
+                "note": "fewer than 3 windows with both thrust and chamber pressure up"}, None
+    r = np.array([w["ratio"] for w in rows])
+    lo, hi = int(np.argmin(r)), int(np.argmax(r))
+    change = 100 * (r[hi] / r[lo] - 1) if r[lo] > 0 else float("inf")
+    res = {"applicable": True, "thrust": thrust, "pressure": pressure,
+           "ratio_unit": f"{_unit(s, thrust)}/{_unit(s, pressure)}",
+           "thrust_baseline": fp["base"], "pressure_baseline": pp["base"],
+           "t_start": rows[0]["t_center"] - window_s / 2, "t_end": rows[-1]["t_center"] + window_s / 2,
+           "n_windows": len(rows), "ratio_start": float(r[0]), "ratio_end": float(r[-1]),
+           "ratio_min": float(r[lo]), "t_ratio_min": rows[lo]["t_center"],
+           "ratio_max": float(r[hi]), "t_ratio_max": rows[hi]["t_center"],
+           "change_pct": float(change), "max_change_pct": max_change_pct,
+           "consistent": bool(change <= max_change_pct)}
+    # where it happens matters: a ratio that holds through mainstage and moves only once the chamber pressure has
+    # dropped (tail-off) reads differently from one that drifts while the engine is at full power
+    ms = [w["ratio"] for w in rows if s.phase_window("mainstage")[0] <= w["t_center"] <= s.phase_window("mainstage")[1]] \
+        if any(p_["name"] == "mainstage" for p_ in s.phases()) else []
+    if len(ms) >= 3:
+        res["mainstage_change_pct"] = float(100 * (max(ms) / min(ms) - 1))
+    res["t_ratio_max_after_mainstage"] = bool(any(p_["name"] == "mainstage" for p_ in s.phases())
+                                              and rows[hi]["t_center"] > s.phase_window("mainstage")[1])
+    fig, ax = plots.new_fig(1, height=2.4)
+    ax = ax[0]
+    ax.plot([w["t_center"] for w in rows], r, "o-", color=plots.SERIES[0], ms=3)
+    ax.set_ylabel(f"{thrust} / {pressure} [{res['ratio_unit']}]")
+    ax.set_xlabel("time [s]")
+    ax.set_title("Thrust over chamber pressure while burning (should stay roughly steady)")
+    return res, plots.to_base64(fig)
 
 
 # ---------------------------------------------------------------------------- valves
@@ -921,18 +1067,30 @@ def pulse_metrics(s: Session, channel: str | None = None, start_pct: float = 10.
     x = _filled(raw)
     w = max(int(0.02 * s.fs), 1)
     xs = pd.Series(x).rolling(w, center=True, min_periods=1).mean().to_numpy()
-    i_pk = int(np.nanargmax(xs))
-    pre = np.where(xs[:i_pk] < 0.5 * xs[i_pk])[0]
+    # locate the pulse on a 0.1 s rolling median, so a shock or spike of a few milliseconds (a valve slam at
+    # shutdown, load-cell ringing) cannot pass for the pulse itself
+    xm = pd.Series(xs).rolling(max(int(0.1 * s.fs), 1), center=True, min_periods=1).median().to_numpy()
+    i_ref = int(np.nanargmax(xm))
+    pre = np.where(xm[:i_ref] < 0.5 * xm[i_ref])[0]
     i_pre = int(pre[-1]) if pre.size else 0
     base_win = (t >= t[i_pre] - 1.5) & (t < t[i_pre] - 0.5)
     baseline = float(np.median(x[base_win])) if subtract_baseline and base_win.any() else 0.0
     y = x - baseline
     ys = xs - baseline
+    sustained = float(xm[i_ref] - baseline)
+
+    def window(ref: float, i_c: int) -> tuple[int, int]:
+        a = np.where(ys[: i_c + 1] < start_pct / 100 * ref)[0]
+        b = np.where(ys[i_c:] < end_pct / 100 * ref)[0]
+        return (int(a[-1]) + 1 if a.size else 0), (i_c + int(b[0]) - 1 if b.size else len(t) - 1)
+
+    i0, i1 = window(sustained, i_ref)
+    i_pk = i0 + int(np.nanargmax(xs[i0 : i1 + 1]))
+    spiky = ys[i_pk] > 1.5 * sustained  # the highest sample is a short spike, not the pulse
+    if not spiky:  # thresholds from the peak itself, as before
+        i0, i1 = window(float(ys[i_pk]), i_pk)
+        i_pk = i0 + int(np.nanargmax(xs[i0 : i1 + 1]))
     peak = float(y[i_pk])
-    above0 = np.where(ys[: i_pk + 1] < start_pct / 100 * ys[i_pk])[0]
-    i0 = int(above0[-1]) + 1 if above0.size else 0
-    below1 = np.where(ys[i_pk:] < end_pct / 100 * ys[i_pk])[0]
-    i1 = i_pk + int(below1[0]) - 1 if below1.size else len(t) - 1
     seg_t, seg_y = t[i0 : i1 + 1], y[i0 : i1 + 1]
     integral = float(_trapz(seg_y, seg_t))
     dur = float(t[i1] - t[i0])
@@ -942,6 +1100,8 @@ def pulse_metrics(s: Session, channel: str | None = None, start_pct: float = 10.
         "baseline": baseline,
         "peak": peak,
         "t_peak": float(t[i_pk]),
+        "peak_sustained": sustained,
+        "peak_is_short_spike": bool(spiky),
         "start_pct": start_pct,
         "end_pct": end_pct,
         "t_start": float(t[i0]),

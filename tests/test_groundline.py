@@ -393,7 +393,7 @@ def test_lessons_from_a_real_liquid_engine_log():
     pc[(t >= 7.0) & (t < 7.03)] += 80  # a 30 ms pressure spike: a transient, not an oscillation
     thrust = np.where(on, 900.0, 0.0) + rng.normal(0, 1.0, t.size)
     tc = 20 + rng.normal(0, 0.05, t.size)
-    bottle = np.full(t.size, 5180.25)  # saturated at full scale the whole time
+    bottle = np.where(t < 18, 5180.25, 5180.25 - 40 * (t - 18))  # at full scale until it starts to drop
     for x, k in ((pc, 0), (thrust, 1), (tc, 2)):
         x[int(8.3 * fs) + k] += 60 if x is not tc else 5  # one spike on three kinds of sensor within 2 ms
     cols = {"time": t, "Pc": pc, "F_thrust": thrust, "T_wall": tc, "P_bottle": bottle}
@@ -424,6 +424,51 @@ def test_lessons_from_a_real_liquid_engine_log():
     titles = [f.title for f in res.findings]
     assert sum("all 4 channels" in x for x in titles) == 1 and sum("saturated" in x for x in titles) == 1
     assert any("does not return to baseline" in x for x in titles) and any("different channels" in x for x in titles)
+    assert res.verification["verified"] == len(res.findings)
+
+
+def test_lessons_from_real_hybrid_motor_logs():
+    """Shapes seen in UVic's MULE-1 hot fires (examples/uvic_mule): a pressure that reads below vacuum, a dead
+    thermocouple at absolute zero, two channels carrying the same samples, a saturated chamber pressure (segment on
+    thrust instead), a thrust spike at shutdown, a log that stops at ignition, and thrust/Pc drifting apart."""
+    rng = np.random.default_rng(1)
+    fs = 500.0
+    t = np.arange(0, 12, 1 / fs)
+    on = (t >= 3) & (t < 8)
+    thrust = np.where(on, 300.0, 20.0) + rng.normal(0, 2, t.size)
+    thrust[int(7.99 * fs):int(8.0 * fs)] = 2300.0  # 10 ms slam at shutdown
+    pc_sat = np.where(on, 2020.6, 1988.0) + np.where(on, 0.0, rng.normal(0, 0.5, t.size))  # saturated during firing
+    tank = 700 - 20 * np.clip(t - 3, 0, 5) + rng.normal(0, 0.5, t.size)
+    cols = {"time": t, "Pc": pc_sat, "F_thrust": thrust, "P_tank": tank, "P_line": tank.copy(),
+            "T_cc": np.full(t.size, -273.1), "P_off": np.where(on, 200.0, -25.0) + rng.normal(0, 0.3, t.size)}
+    kinds = {"Pc": ("psi", "pressure"), "F_thrust": ("N", "force"), "P_tank": ("psi", "pressure"),
+             "P_line": ("psi", "pressure"), "T_cc": ("degC", "temperature"), "P_off": ("psi", "pressure")}
+    s = _toy_session(cols, fs, {c: {"unit": u, "kind": k} for c, (u, k) in kinds.items()})
+    seg = s.run("segment_phases").result
+    assert seg["fallback_from"] == "Pc" and seg["channel"] == "F_thrust" and abs(seg["ignition_s"] - 3) < 0.1
+    issues = s.run("check_sensor_health").result["issues"]
+    kinds_found = {(i["kind"], i.get("channel") or tuple(i.get("channels", []))) for i in issues}
+    assert ("dead_channel", "T_cc") in kinds_found and ("impossible_value", "P_off") in kinds_found
+    assert ("duplicate_channels", ("P_tank", "P_line")) in kinds_found
+    assert next(i for i in issues if i["kind"] == "dead_channel")["physically_impossible"]
+    pm = s.run("pulse_metrics").result
+    assert pm["peak_is_short_spike"] and abs(pm["peak_sustained"] - 280) < 15 and abs(pm["action_time_s"] - 5) < 0.1
+    # thrust holds while the chamber pressure falls: the ratio drifts (a throat that opens up)
+    pc = np.where(on, 300 - 30 * np.clip(t - 3, 0, 5), 0.0) + rng.normal(0, 0.5, t.size)
+    s2 = _toy_session({"time": t, "Pc": pc, "F_thrust": np.where(on, 600.0, 0.0) + rng.normal(0, 2, t.size)}, fs,
+                      {"Pc": {"unit": "psi", "kind": "pressure"}, "F_thrust": {"unit": "N", "kind": "force"}})
+    s2.run("segment_phases")
+    rat = s2.run("check_thrust_pressure_ratio").result
+    assert rat["applicable"] and not rat["consistent"] and rat["change_pct"] > 50
+    # a log that stops while the chamber pressure is still rising
+    cut = t < 3.05
+    s3 = _toy_session({"time": t[cut], "Pc": np.where(t[cut] >= 3, 40.0 * (t[cut] - 3) / 0.05, 0.0)
+                       + rng.normal(0, 0.2, cut.sum())}, fs, {"Pc": {"unit": "psi", "kind": "pressure"}})
+    assert s3.run("segment_phases").result["record_ends_during_firing"]
+    res = RuleAgent("en").run(s3)
+    titles = [f.title for f in res.findings]
+    assert "Recording stops during the firing" in titles  # and no phases or pulse metrics from a firing never logged
+    assert not any(x.startswith(("Test sequence", "F_thrust peak")) for x in titles)
     assert res.verification["verified"] == len(res.findings)
 
 
