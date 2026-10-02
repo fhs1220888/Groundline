@@ -166,8 +166,8 @@ def _flagged_channels(ev) -> list[str] | None:
         return [v.get("channel") for v in r.get("violations") or []]
     if ev.tool == "detect_oscillation":
         return [r.get("channel")] if r.get("detected") else []
-    if ev.tool == "check_sensor_health":
-        return [i.get("channel") for i in r.get("issues") or []]
+    if ev.tool == "check_sensor_health":  # an issue shared by every channel (DAQ dropouts) lists them all
+        return [c for i in r.get("issues") or [] for c in (i.get("channels") or [i.get("channel")])]
     if ev.tool == "measure_valve_response":
         return [c for e in r.get("events") or [] if e.get("exceeds_limit") for c in (e.get("response"), e.get("command"))]
     if ev.tool == "compare_reference":

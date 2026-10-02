@@ -58,6 +58,23 @@ _TXT = {
         "nan_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 出现 NaN 数据缺失，共 {n} 个采样点（{dur:.3f} s）。",
         "flat_t": "{ch} 信号冻结",
         "flat_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 数值恒定为 {v:.4g}（{dur:.3f} s），疑似传感器或采集通道故障。",
+        "sat_t": "{ch} 读数饱和",
+        "sat_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 数值恒定为 {v:.4g}（{dur:.3f} s），这也是它在整段记录中的最大值，"
+                 "最可能是超出了传感器量程（饱和），这段时间的读数不可用。",
+        "low_t": "{ch} 读数卡在最小值",
+        "low_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 数值恒定为 {v:.4g}（{dur:.3f} s），这也是它在整段记录中的最小值，"
+                 "可能低于量程下限或线路断开，这段时间的读数不可用。",
+        "rec_all_t": "全部 {nch} 个通道同时出现数据缺失",
+        "rec_all_s": "被检查的 {nch} 个通道在 {t0:.2f}–{t1:.2f} s 内同时出现 {n} 段数据缺失，合计 {tot:.2f} s，"
+                     "最长 {lg:.3f} s，相邻两段的间隔中位数 {iv:.2f} s；其中 {nf} 段落在点火到拖尾结束之间。"
+                     "所有通道同时缺失，说明是采集系统丢帧，而不是某个传感器的问题。",
+        "coin_t": "{n} 个不同类型的通道在 {t0:.3f} s 同时出现尖峰",
+        "coin_s": "{t0:.3f}–{t1:.3f} s 内，{chs} 同时出现快速尖峰（{n} 个通道，不同类型的传感器）。单个传感器解释不了这种"
+                  "同时出现的尖峰：可能是真实的快速瞬变，也可能是采集系统受到的电磁干扰，需要结合现场情况判断。",
+        "base_t": "{ch} 停车后未回到初始读数",
+        "base_s": "停车后，{ch} 从 {t0:.2f} s 到记录结束（{t1:.2f} s）一直读 {post:.1f} {unit}，而试验前基线为 "
+                  "{base:.1f} {unit}，相当于稳态水平 {lvl:.1f} {unit} 的 {pct:.0f}%。发动机已停车，这通常说明传感器"
+                  "零点漂移或受损，停车后的读数不可信。",
         "spk_t": "{ch} 出现 {n} 个孤立尖峰",
         "spk_s": "{ch} 在 {t0:.3f}–{t1:.3f} s 之间出现 {n} 个孤立尖峰（宽度不超过 {w} 个采样点），"
                  "持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
@@ -96,6 +113,28 @@ _TXT = {
         "nan_s": "{ch} returned NaN from {t0:.3f} to {t1:.3f} s ({n} samples, {dur:.3f} s).",
         "flat_t": "{ch} signal frozen",
         "flat_s": "{ch} was stuck at {v:.4g} from {t0:.3f} to {t1:.3f} s ({dur:.3f} s): likely a sensor or DAQ fault.",
+        "sat_t": "{ch} saturated",
+        "sat_s": "{ch} was stuck at {v:.4g} from {t0:.3f} to {t1:.3f} s ({dur:.3f} s), which is also its maximum over "
+                 "the whole record: most likely saturated at the top of the sensor range, so these readings are "
+                 "unusable.",
+        "low_t": "{ch} stuck at its minimum",
+        "low_s": "{ch} was stuck at {v:.4g} from {t0:.3f} to {t1:.3f} s ({dur:.3f} s), which is also its minimum over "
+                 "the whole record: possibly below the sensor range or an open circuit, so these readings are "
+                 "unusable.",
+        "rec_all_t": "Data gaps on all {nch} channels at once",
+        "rec_all_s": "All {nch} checked channels lose data at the same moments: {n} gaps between {t0:.2f} and "
+                     "{t1:.2f} s, {tot:.2f} s in total, the longest {lg:.3f} s, median spacing {iv:.2f} s; {nf} of them "
+                     "fall between ignition and the end of tail-off. Gaps shared by every channel are dropped DAQ "
+                     "frames, not a sensor problem.",
+        "coin_t": "Spikes on {n} different channels at {t0:.3f} s",
+        "coin_s": "Between {t0:.3f} and {t1:.3f} s, {chs} spike at the same moment ({n} channels, different kinds of "
+                  "sensor). No single sensor explains simultaneous spikes: either a fast physical transient or "
+                  "interference on the DAQ; check against the test conditions.",
+        "base_t": "{ch} does not return to baseline after shutdown",
+        "base_s": "After shutdown, from {t0:.2f} s to the end of the record ({t1:.2f} s), {ch} keeps reading {post:.1f} "
+                  "{unit} against a pre-test baseline of {base:.1f} {unit}: {pct:.0f}% of the steady level {lvl:.1f} "
+                  "{unit}. With the engine off this usually means a shifted or damaged sensor; its readings after the "
+                  "firing cannot be trusted.",
         "spk_t": "{n} isolated spikes on {ch}",
         "spk_s": "{ch} has {n} isolated spikes between {t0:.3f} and {t1:.3f} s (at most {w} samples wide, shorter than the "
                  "redline persistence): measurement glitches, not physical events.",
@@ -151,7 +190,12 @@ class RuleAgent:
         health = s.run("check_sensor_health")
         for i in health.result["issues"]:
             ch = i["channel"]
-            if i["kind"] == "recurring_nan_gaps":
+            if i["kind"] == "recurring_nan_gaps" and i.get("channels"):
+                t = T["rec_all_t"].format(nch=len(i["channels"]))
+                st = T["rec_all_s"].format(nch=len(i["channels"]), t0=i["t_start"], t1=i["t_end"], n=i["count"],
+                                           tot=i["total_s"], lg=i["longest_s"], iv=i["median_interval_s"],
+                                           nf=i["count_during_firing"])
+            elif i["kind"] == "recurring_nan_gaps":
                 t, st = T["rec_t"], T["rec_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], n=i["count"],
                                                      tot=i["total_s"], lg=i["longest_s"], iv=i["median_interval_s"],
                                                      nf=i["count_during_firing"])
@@ -159,14 +203,25 @@ class RuleAgent:
                 t, st = T["nan_t"], T["nan_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], n=i["n_samples"],
                                                      dur=i["duration_s"])
             elif i["kind"] == "flatline":
-                t, st = T["flat_t"], T["flat_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], v=i["stuck_value"],
-                                                       dur=i["duration_s"])
+                key = "sat" if i.get("at_channel_max") else "low" if i.get("at_channel_min") else "flat"
+                t, st = T[f"{key}_t"], T[f"{key}_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], v=i["stuck_value"],
+                                                           dur=i["duration_s"])
+            elif i["kind"] == "coincident_spikes":
+                kw = dict(n=i["n_channels"], t0=i["t_start"], t1=i["t_end"], chs=", ".join(i["channels"]))
+                t, st = T["coin_t"].format(**kw), T["coin_s"].format(**kw)
+            elif i["kind"] == "no_return_to_baseline":
+                t, st = T["base_t"], T["base_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], post=i["post_level"],
+                                                       base=i["baseline"], lvl=i["steady_level"], unit=i["unit"],
+                                                       pct=i["offset_of_steady_pct"])
             else:
                 t, st = T["spk_t"], T["spk_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], n=i["count"],
                                                      w=health.result["criteria"]["spike_max_width_samples"])
-            F.append(Finding(t.format(ch=ch, n=i.get("count", "")), st, "sensor_fault", "warning", ch,
+            # simultaneous spikes on several kinds of sensor may be physical: not filed as a sensor fault
+            cat = "observation" if i["kind"] == "coincident_spikes" else "sensor_fault"
+            F.append(Finding(t.format(ch=ch, n=i.get("count", "")), st, cat, "warning", ch,
                              i["t_start"], i["t_end"], [health.id]))
-            covered.add(ch)
+            if ch is not None:
+                covered.add(ch)
 
         red = s.run("check_redlines")
         for v in red.result.get("violations", []):

@@ -381,6 +381,52 @@ def _toy_session(cols, fs=100.0, meta_channels=None):
     return Session(df, meta, None, {})
 
 
+def test_lessons_from_a_real_liquid_engine_log():
+    """Shapes seen in the Triton LOX hot fire (examples/triton_lox): DAQ-wide dropouts, a sensor saturated at
+    full scale with short dropouts inside, Pc stuck high after shutdown, a one-window pressure transient, and
+    spikes that hit several kinds of sensor at once."""
+    rng = np.random.default_rng(0)
+    fs = 1000.0
+    t = np.arange(0, 20, 1 / fs)
+    on = (t >= 5) & (t < 10)
+    pc = np.where(on, 350.0, np.where(t >= 10, 220.0, 14.0)) + rng.normal(0, 0.3, t.size)  # sticks at 220 after
+    pc[(t >= 7.0) & (t < 7.03)] += 80  # a 30 ms pressure spike: a transient, not an oscillation
+    thrust = np.where(on, 900.0, 0.0) + rng.normal(0, 1.0, t.size)
+    tc = 20 + rng.normal(0, 0.05, t.size)
+    bottle = np.full(t.size, 5180.25)  # saturated at full scale the whole time
+    for x, k in ((pc, 0), (thrust, 1), (tc, 2)):
+        x[int(8.3 * fs) + k] += 60 if x is not tc else 5  # one spike on three kinds of sensor within 2 ms
+    cols = {"time": t, "Pc": pc, "F_thrust": thrust, "T_wall": tc, "P_bottle": bottle}
+    for g in np.arange(1.0, 19.0, 0.7):  # dropped frames: every channel at once
+        for c in ("Pc", "F_thrust", "T_wall", "P_bottle"):
+            cols[c][(t >= g) & (t < g + 0.01)] = np.nan
+    s = _toy_session(cols, fs, {"Pc": {"unit": "psi", "kind": "pressure"}, "F_thrust": {"unit": "lbf", "kind": "force"},
+                                "T_wall": {"unit": "degC", "kind": "temperature"},
+                                "P_bottle": {"unit": "psi", "kind": "pressure"}})
+    seg = s.run("segment_phases").result
+    assert seg["tail_off_end_by"] == "settled_above_threshold" and seg["tail_off_end_s"] < 11
+    issues = s.run("check_sensor_health").result["issues"]
+    by = lambda kind: [i for i in issues if i["kind"] == kind]  # noqa: E731
+    gaps = by("recurring_nan_gaps")
+    assert len(gaps) == 1 and gaps[0]["channel"] is None and len(gaps[0]["channels"]) == 4
+    flat = [i for i in by("flatline") if i["channel"] == "P_bottle"]
+    assert len(flat) == 1 and flat[0]["at_channel_max"] and flat[0]["duration_s"] > 15
+    base = by("no_return_to_baseline")
+    assert len(base) == 1 and base[0]["channel"] == "Pc" and 50 < base[0]["offset_of_steady_pct"] < 70
+    coin = by("coincident_spikes")
+    assert len(coin) == 1 and coin[0]["channels"] == ["F_thrust", "Pc", "T_wall"]
+    assert not any(i["channel"] in ("Pc", "F_thrust", "T_wall") and abs(i["t_start"] - 8.3) < 0.01
+                   for i in by("spike"))
+    osc = s.run("detect_oscillation", channel="Pc", fmin=50.0).result
+    assert not osc["detected"] and osc["min_windows"] == 3
+    # the rule agent reports each of them once, and its report still verifies
+    res = RuleAgent("en").run(s)
+    titles = [f.title for f in res.findings]
+    assert sum("all 4 channels" in x for x in titles) == 1 and sum("saturated" in x for x in titles) == 1
+    assert any("does not return to baseline" in x for x in titles) and any("different channels" in x for x in titles)
+    assert res.verification["verified"] == len(res.findings)
+
+
 def test_slow_channel_is_not_searched_above_its_nyquist():
     t = np.arange(0, 10, 0.01)
     pc = np.where((t > 3) & (t < 7), 40.0, 1.0)
