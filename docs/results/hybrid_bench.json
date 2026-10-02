@@ -1,0 +1,4337 @@
+{
+ "backgrounds": {
+  "Triton (LOX liquid)": "examples/triton_lox/run.csv",
+  "UVic MULE-1 2025-01-18 (hybrid)": "examples/uvic_mule/2025-01-18/run.csv"
+ },
+ "reps": 5,
+ "seed": 0,
+ "levels": {
+  "oscillation": [
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0
+  ],
+  "redline": [
+   0.005,
+   0.01,
+   0.02,
+   0.05,
+   0.2
+  ],
+  "deviation": [
+   1.0,
+   2.0,
+   3.0,
+   5.0,
+   8.0
+  ],
+  "spike": [
+   6.0,
+   12.0,
+   24.0,
+   48.0
+  ],
+  "dropout": [
+   0.01,
+   0.05,
+   0.2,
+   1.0
+  ],
+  "stuck": [
+   0.02,
+   0.05,
+   0.2,
+   1.0
+  ]
+ },
+ "units": {
+  "oscillation": "% of Pc",
+  "redline": "s above",
+  "deviation": "% of Pc",
+  "spike": "sigma",
+  "dropout": "s",
+  "stuck": "s"
+ },
+ "persistence_s": 0.01,
+ "tolerance_pct": 2.0,
+ "summary": {
+  "oscillation": {
+   "0.25": {
+    "n": 10,
+    "detected": 0,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.5": {
+    "n": 10,
+    "detected": 1,
+    "masked": 1,
+    "false_positives": 0
+   },
+   "1.0": {
+    "n": 10,
+    "detected": 5,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "2.0": {
+    "n": 10,
+    "detected": 6,
+    "masked": 1,
+    "false_positives": 0
+   },
+   "4.0": {
+    "n": 10,
+    "detected": 9,
+    "masked": 0,
+    "false_positives": 0
+   }
+  },
+  "redline": {
+   "0.005": {
+    "n": 10,
+    "detected": 0,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.01": {
+    "n": 10,
+    "detected": 0,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.02": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.05": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.2": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   }
+  },
+  "deviation": {
+   "1.0": {
+    "n": 10,
+    "detected": 0,
+    "masked": 5,
+    "false_positives": 0
+   },
+   "2.0": {
+    "n": 10,
+    "detected": 0,
+    "masked": 5,
+    "false_positives": 0
+   },
+   "3.0": {
+    "n": 10,
+    "detected": 5,
+    "masked": 5,
+    "false_positives": 0
+   },
+   "5.0": {
+    "n": 10,
+    "detected": 5,
+    "masked": 5,
+    "false_positives": 0
+   },
+   "8.0": {
+    "n": 10,
+    "detected": 5,
+    "masked": 5,
+    "false_positives": 0
+   }
+  },
+  "spike": {
+   "6.0": {
+    "n": 10,
+    "detected": 0,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "12.0": {
+    "n": 10,
+    "detected": 3,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "24.0": {
+    "n": 10,
+    "detected": 9,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "48.0": {
+    "n": 10,
+    "detected": 8,
+    "masked": 0,
+    "false_positives": 0
+   }
+  },
+  "dropout": {
+   "0.01": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.05": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.2": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "1.0": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   }
+  },
+  "stuck": {
+   "0.02": {
+    "n": 10,
+    "detected": 4,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.05": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "0.2": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   },
+   "1.0": {
+    "n": 10,
+    "detected": 10,
+    "masked": 0,
+    "false_positives": 0
+   }
+  }
+ },
+ "rows": [
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.66525000668387,
+    "t_end": 30.66525000668387,
+    "freq_hz": 268.8027610759252
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.147047957047675,
+    "t_end": 31.147047957047675,
+    "freq_hz": 330.9170064719357
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.87946004522825,
+    "t_end": 30.87946004522825,
+    "freq_hz": 218.15614256716378
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.973842344287377,
+    "t_end": 30.973842344287377,
+    "freq_hz": 330.9842437391595
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.07867900526836,
+    "t_end": 32.078679005268356,
+    "freq_hz": 386.41767487337347
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.767884404308468,
+    "t_end": 31.767884404308468,
+    "freq_hz": 675.7536110061959
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.660709382325535,
+    "t_end": 31.660709382325535,
+    "freq_hz": 128.22370028344045
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "127 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.510740571604117,
+    "t_end": 31.510740571604117,
+    "freq_hz": 362.23647524138147
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.360714848075556,
+    "t_end": 32.36071484807556,
+    "freq_hz": 170.5591385293604
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.93172929015072,
+    "t_end": 30.93172929015072,
+    "freq_hz": 337.1876949111387
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.65696624851226,
+    "t_end": 30.65696624851226,
+    "freq_hz": 483.0527772603925
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "483 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.31375908148516,
+    "t_end": 31.31375908148516,
+    "freq_hz": 165.1838445348964
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "165 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.754522484950172,
+    "t_end": 30.754522484950172,
+    "freq_hz": 525.4944347569369
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "525 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.136510178320556,
+    "t_end": 30.136510178320556,
+    "freq_hz": 583.9125464336405
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "584 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.835581497977923,
+    "t_end": 29.835581497977923,
+    "freq_hz": 489.63634904331326
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "490 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.878421537439312,
+    "t_end": 31.878421537439312,
+    "freq_hz": 687.8420273191799
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "688 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.758064799582932,
+    "t_end": 29.758064799582932,
+    "freq_hz": 310.5607063048063
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "311 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.776082676432317,
+    "t_end": 32.77608267643232,
+    "freq_hz": 284.160373490816
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.047225728280402,
+    "t_end": 31.047225728280402,
+    "freq_hz": 557.5710199095925
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "557 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.712590994876617,
+    "t_end": 31.712590994876617,
+    "freq_hz": 718.20874189225
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "718 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.960969333517355,
+    "t_end": 30.960969333517355,
+    "freq_hz": 153.04097028718246
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "153 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.05915475107539,
+    "t_end": 32.05915475107539,
+    "freq_hz": 717.4920559098316
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "717 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.813665692846463,
+    "t_end": 29.813665692846463,
+    "freq_hz": 233.22087936892888
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "233 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.80921179001985,
+    "t_end": 29.80921179001985,
+    "freq_hz": 228.2905407445746
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "228 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.149104405627597,
+    "t_end": 32.1491044056276,
+    "freq_hz": 380.64355777410105
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "381 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.14569623588053,
+    "t_end": 29.150696235880527
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.253578303544444,
+    "t_end": 31.258578303544443
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 32.62073232168163,
+    "t_end": 32.62573232168163
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.668043027348926,
+    "t_end": 29.673043027348925
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 32.16445820360978,
+    "t_end": 32.169458203609786
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.215402689569125,
+    "t_end": 30.225402689569126
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.67817497078656,
+    "t_end": 31.688174970786562
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.891342495424357,
+    "t_end": 31.90134249542436
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.1542447228,
+    "t_end": 31.164244722800003
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 32.835531929818,
+    "t_end": 32.845531929818
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.860081742015037,
+    "t_end": 29.880081742015037
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 32.03762136478345,
+    "t_end": 32.05762136478345
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.47970788953813,
+    "t_end": 29.49970788953813
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.75771006479717,
+    "t_end": 31.77771006479717
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 32.26551226302418,
+    "t_end": 32.28551226302418
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.03643584589764,
+    "t_end": 31.08643584589764
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.98564310499728,
+    "t_end": 31.03564310499728
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.919185979260565,
+    "t_end": 29.969185979260565
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.89260015151731,
+    "t_end": 31.94260015151731
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 32.468652895553944,
+    "t_end": 32.51865289555394
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.170423021945762,
+    "t_end": 29.37042302194576
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 31.345373286334258,
+    "t_end": 31.545373286334257
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.819179433561327,
+    "t_end": 31.019179433561327
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.97485384041139,
+    "t_end": 31.17485384041139
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.55364045612545,
+    "t_end": 28.75364045612545
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 490.587 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.428668461808414,
+    "t_end": 32.318468461808415
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.662779805508176,
+    "t_end": 31.552579805508177
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.009166749784594,
+    "t_end": 30.898966749784595
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.90062971073071,
+    "t_end": 30.79042971073071
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.188585878586796,
+    "t_end": 32.0783858785868
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.115608942962243,
+    "t_end": 31.005408942962244
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.061745950256956,
+    "t_end": 30.951545950256957
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.959776216605192,
+    "t_end": 30.849576216605193
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.833641189403675,
+    "t_end": 30.723441189403676
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.742630035263037,
+    "t_end": 32.63243003526304
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.803337418685697,
+    "t_end": 30.693137418685698
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 2.8% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.67836989005296,
+    "t_end": 30.56816989005296
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 2.8% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.555733344687102,
+    "t_end": 32.44553334468711
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 2.8% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.07240137749409,
+    "t_end": 30.96220137749409
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 2.8% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.196481646763772,
+    "t_end": 31.086281646763773
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 2.8% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.350561965225832,
+    "t_end": 32.24036196522583
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 4.6% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.962874313116437,
+    "t_end": 30.852674313116438
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 4.6% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.696755853831384,
+    "t_end": 30.586555853831385
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 4.5% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.185448686059953,
+    "t_end": 31.075248686059954
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 4.6% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.620751403853085,
+    "t_end": 32.510551403853086
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 4.6% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 30.545287093228918,
+    "t_end": 32.435087093228915
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 7.1% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.856306001227882,
+    "t_end": 31.746106001227883
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 7.1% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.18377811135218,
+    "t_end": 31.07357811135218
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 7.1% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 29.39183436945889,
+    "t_end": 31.281634369458892
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 7.1% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 28.948426278136644,
+    "t_end": 30.838226278136645
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc deviates 7.1% from prediction",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.476,
+    "t_end": 29.476
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 32.318,
+    "t_end": 32.318
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.525,
+    "t_end": 31.525
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.1025,
+    "t_end": 29.1025
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.312,
+    "t_end": 31.312
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.3145,
+    "t_end": 29.3145
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.1005,
+    "t_end": 30.1005
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.8475,
+    "t_end": 31.8475
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.2175,
+    "t_end": 31.2175
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.1325,
+    "t_end": 31.1325
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.1815,
+    "t_end": 31.1815
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.0075,
+    "t_end": 29.0075
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.932,
+    "t_end": 31.932
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.5255,
+    "t_end": 29.5255
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.639,
+    "t_end": 30.639
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.2145,
+    "t_end": 30.2145
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.2285,
+    "t_end": 30.2285
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.3795,
+    "t_end": 31.3795
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.6375,
+    "t_end": 29.6375
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 28.9675,
+    "t_end": 28.9675
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.84713550751982,
+    "t_end": 30.85713550751982
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 32.11549792356943,
+    "t_end": 32.12549792356943
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.74597468354153,
+    "t_end": 30.75597468354153
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 32.89090432264609,
+    "t_end": 32.900904322646085
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 32.01394962878795,
+    "t_end": 32.023949628787946
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 32.84178249125476,
+    "t_end": 32.89178249125476
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.530353362704457,
+    "t_end": 29.580353362704457
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.43938259479689,
+    "t_end": 29.48938259479689
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.64406965033806,
+    "t_end": 30.69406965033806
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.198711986505295,
+    "t_end": 31.248711986505295
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.410041542094028,
+    "t_end": 29.610041542094027
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.274126475763023,
+    "t_end": 31.474126475763022
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 28.623544534629737,
+    "t_end": 28.823544534629736
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.3477272294322,
+    "t_end": 29.547727229432198
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.77137450652363,
+    "t_end": 30.97137450652363
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.633433293823682,
+    "t_end": 32.633433293823686
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.92191803183331,
+    "t_end": 31.92191803183331
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 28.56183255756519,
+    "t_end": 29.56183255756519
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.830989338004855,
+    "t_end": 30.830989338004855
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 28.758029674605666,
+    "t_end": 29.758029674605666
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust has recurring data gaps",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 32.70179999904547,
+    "t_end": 32.72179999904547
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.27458109770564,
+    "t_end": 31.29458109770564
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.382250113810944,
+    "t_end": 31.402250113810943
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.54805453583186,
+    "t_end": 30.56805453583186
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.02097400118592,
+    "t_end": 30.04097400118592
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 32.58583083860785,
+    "t_end": 32.635830838607845
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.25055830548856,
+    "t_end": 29.30055830548856
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.06762306534432,
+    "t_end": 31.117623065344322
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 28.827557176019056,
+    "t_end": 28.877557176019057
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.206052819045738,
+    "t_end": 31.25605281904574
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.83971553461062,
+    "t_end": 31.039715534610618
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.788713949243853,
+    "t_end": 29.988713949243852
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.884828897538483,
+    "t_end": 30.084828897538483
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 32.7474048182213,
+    "t_end": 32.9474048182213
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 28.616979007532933,
+    "t_end": 28.816979007532932
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 28.797140431073124,
+    "t_end": 29.797140431073124
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 29.30943911421288,
+    "t_end": 30.30943911421288
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.844821090012417,
+    "t_end": 31.844821090012417
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 30.200175539666418,
+    "t_end": 31.200175539666418
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "Triton (LOX liquid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 31.10914673449957,
+    "t_end": 32.109146734499575
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.3365665283665,
+    "t_end": 404.3365665283665,
+    "freq_hz": 105.54108166961603
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.23157034580186,
+    "t_end": 404.23157034580186,
+    "freq_hz": 176.6028855946998
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.4721303982537,
+    "t_end": 405.4721303982537,
+    "freq_hz": 143.72061522660184
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.7905635725771,
+    "t_end": 403.7905635725771,
+    "freq_hz": 162.30844288074945
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.25,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.4269652613558,
+    "t_end": 405.4269652613558,
+    "freq_hz": 97.22713146186993
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.0892778327289,
+    "t_end": 404.0892778327289,
+    "freq_hz": 94.56601433073797
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.6656760701399,
+    "t_end": 403.6656760701399,
+    "freq_hz": 119.70795138094792
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.2429987292155,
+    "t_end": 405.2429987292155,
+    "freq_hz": 142.657667773596
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.66116877663245,
+    "t_end": 404.66116877663245,
+    "freq_hz": 166.53846961799306
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 0.5,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.6802734998487,
+    "t_end": 403.6802734998487,
+    "freq_hz": 100.09424775897479
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.79718272368825,
+    "t_end": 403.79718272368825,
+    "freq_hz": 132.84372964687864
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.5795181460529,
+    "t_end": 404.5795181460529,
+    "freq_hz": 176.0306850126811
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.22920026959895,
+    "t_end": 404.22920026959895,
+    "freq_hz": 144.04425480559186
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.4878908991356,
+    "t_end": 405.4878908991356,
+    "freq_hz": 159.40484386325102
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 1.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.13337743838787,
+    "t_end": 404.13337743838787,
+    "freq_hz": 125.17610340950313
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.69042299986006,
+    "t_end": 404.69042299986006,
+    "freq_hz": 125.1002358369234
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.59637503547566,
+    "t_end": 404.59637503547566,
+    "freq_hz": 94.3068425911718
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.28288598312616,
+    "t_end": 405.28288598312616,
+    "freq_hz": 162.85340060027409
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "163 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.62111947893146,
+    "t_end": 404.62111947893146,
+    "freq_hz": 160.80039379660346
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 2.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.0180602367442,
+    "t_end": 405.0180602367442,
+    "freq_hz": 171.2285989582342
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "171 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.9368500750642,
+    "t_end": 404.9368500750642,
+    "freq_hz": 142.0269345251837
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "142 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.63295741072034,
+    "t_end": 403.63295741072034,
+    "freq_hz": 130.48019777029495
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "130 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.21541945738403,
+    "t_end": 404.21541945738403,
+    "freq_hz": 171.47130198091298
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "171 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.6780317614569,
+    "t_end": 403.6780317614569,
+    "freq_hz": 127.8222331282951
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "oscillation",
+   "level": 4.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.8798525307227,
+    "t_end": 404.8798525307227,
+    "freq_hz": 161.88862607873114
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "162 Hz narrow-band oscillation on Pc",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.791055821446,
+    "t_end": 403.796055821446
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.4945015785129,
+    "t_end": 403.4995015785129
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.1864293175197,
+    "t_end": 403.1914293175197
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.63453898916083,
+    "t_end": 404.6395389891608
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.005,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.61404779796624,
+    "t_end": 403.61904779796623
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.64415500419034,
+    "t_end": 402.65415500419033
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.67360066318054,
+    "t_end": 402.6836006631805
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.4659333543764,
+    "t_end": 403.47593335437637
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.5635059120544,
+    "t_end": 403.5735059120544
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.01,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.352032558624,
+    "t_end": 404.362032558624
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.84131506283046,
+    "t_end": 402.86131506283044
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.8792411091532,
+    "t_end": 404.8992411091532
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.59355014899324,
+    "t_end": 404.6135501489932
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.0322312189269,
+    "t_end": 404.05223121892686
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.02,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.41584650665845,
+    "t_end": 403.43584650665844
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 405.18719472715946,
+    "t_end": 405.2371947271595
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.89922402451674,
+    "t_end": 403.94922402451675
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.411358478209,
+    "t_end": 403.46135847820904
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.63803361808317,
+    "t_end": 403.6880336180832
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.05,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.0777125091987,
+    "t_end": 404.1277125091987
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 405.2941566612807,
+    "t_end": 405.49415666128067
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.50421936742174,
+    "t_end": 403.70421936742173
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.2445415821284,
+    "t_end": 404.4445415821284
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.8955103326205,
+    "t_end": 404.0955103326205
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "redline",
+   "level": 0.2,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.68544025334654,
+    "t_end": 403.88544025334653
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "Pc exceeded its redline (max 362.179 psi)",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.58794665366105,
+    "t_end": 404.8287466536611
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.0016162814122,
+    "t_end": 404.24241628141226
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.6562294679031,
+    "t_end": 403.8970294679031
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.4205243044422,
+    "t_end": 404.66132430444225
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 1.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.13258939526935,
+    "t_end": 404.3733893952694
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.83247400474914,
+    "t_end": 405.0732740047492
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.8196131463889,
+    "t_end": 405.06041314638895
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.9884529657086,
+    "t_end": 405.2292529657086
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.4759066896856,
+    "t_end": 404.7167066896856
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 2.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.08168363795994,
+    "t_end": 405.32248363796
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.2150425405551,
+    "t_end": 404.4558425405551
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.8659071737097,
+    "t_end": 404.1067071737097
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.73701882795024,
+    "t_end": 404.9778188279503
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.0102158181027,
+    "t_end": 404.25101581810276
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 3.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.08928490498806,
+    "t_end": 405.3300849049881
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 404.19348316827,
+    "t_end": 405.43428316827004
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.33104140742785,
+    "t_end": 404.5718414074279
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.8817400429384,
+    "t_end": 405.12254004293845
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.6170668486592,
+    "t_end": 404.8578668486592
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 5.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.9642097941159,
+    "t_end": 405.20500979411594
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 0,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.69177512088135,
+    "t_end": 404.9325751208814
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 1,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.44005400884106,
+    "t_end": 404.6808540088411
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 2,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.94986664930593,
+    "t_end": 405.19066664930597
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 3,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 403.8076727287668,
+    "t_end": 405.04847272876685
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "deviation",
+   "level": 8.0,
+   "rep": 4,
+   "truth": {
+    "channel": "Pc",
+    "t_start": 402.95776848222897,
+    "t_end": 404.198568482229
+   },
+   "detected": false,
+   "masked": true,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.136,
+    "t_end": 403.136
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.024,
+    "t_end": 405.024
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.944,
+    "t_end": 403.944
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.992,
+    "t_end": 404.992
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 6.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.462,
+    "t_end": 404.462
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.796,
+    "t_end": 403.796
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.106,
+    "t_end": 405.106
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.334,
+    "t_end": 403.334
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.096,
+    "t_end": 404.096
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 12.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.056,
+    "t_end": 403.056
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 402.834,
+    "t_end": 402.834
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.134,
+    "t_end": 404.134
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.798,
+    "t_end": 403.798
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.238,
+    "t_end": 404.238
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 24.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.326,
+    "t_end": 404.326
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.618,
+    "t_end": 404.618
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.642,
+    "t_end": 403.642
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.51,
+    "t_end": 403.51
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.404,
+    "t_end": 404.404
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "spike",
+   "level": 48.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.834,
+    "t_end": 404.834
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.0681041993542,
+    "t_end": 405.0781041993542
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.0612751912313,
+    "t_end": 403.0712751912313
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.02576552103403,
+    "t_end": 405.035765521034
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 402.73291474982227,
+    "t_end": 402.74291474982226
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.01,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.35741634086986,
+    "t_end": 403.36741634086985
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.4596721360104,
+    "t_end": 403.5096721360104
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.91387342983415,
+    "t_end": 403.96387342983417
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.26965353159346,
+    "t_end": 403.3196535315935
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.0252229182419,
+    "t_end": 405.07522291824193
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.05,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.18386820898354,
+    "t_end": 405.23386820898355
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.09897035947046,
+    "t_end": 404.29897035947045
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 402.7508546096846,
+    "t_end": 402.9508546096846
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.4566443388258,
+    "t_end": 403.6566443388258
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 402.6797223439591,
+    "t_end": 402.8797223439591
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 0.2,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.932225026771,
+    "t_end": 404.132225026771
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.3490608099274,
+    "t_end": 405.3490608099274
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.8226824886005,
+    "t_end": 404.8226824886005
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.81462184794384,
+    "t_end": 404.81462184794384
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 402.6519058042279,
+    "t_end": 403.6519058042279
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "dropout",
+   "level": 1.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.58862263020603,
+    "t_end": 404.58862263020603
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust data gap",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.60642394431744,
+    "t_end": 403.6264239443174
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.6644669475965,
+    "t_end": 403.6844669475965
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.93554447226455,
+    "t_end": 403.95554447226453
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.95973799123163,
+    "t_end": 404.9797379912316
+   },
+   "detected": false,
+   "masked": false,
+   "hit_title": null,
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.02,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.47432517537396,
+    "t_end": 405.49432517537394
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.12673657527137,
+    "t_end": 403.1767365752714
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.25662643695614,
+    "t_end": 404.30662643695615
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.0152959003349,
+    "t_end": 404.0652959003349
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.8126389357876,
+    "t_end": 404.86263893578763
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "1 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.05,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.6812500834541,
+    "t_end": 403.7312500834541
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 402.7390796752394,
+    "t_end": 402.9390796752394
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.13896309062443,
+    "t_end": 405.3389630906244
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 405.15304132975007,
+    "t_end": 405.35304132975006
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 404.20787770573247,
+    "t_end": 404.40787770573246
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 0.2,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.8919915626042,
+    "t_end": 404.09199156260416
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 0,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 402.78892792481207,
+    "t_end": 403.78892792481207
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 1,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.5819012019188,
+    "t_end": 404.5819012019188
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 2,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.50420154023533,
+    "t_end": 404.50420154023533
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 3,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 403.44761997132844,
+    "t_end": 404.44761997132844
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "F_thrust signal frozen",
+   "false_positives": []
+  },
+  {
+   "background": "UVic MULE-1 2025-01-18 (hybrid)",
+   "kind": "stuck",
+   "level": 1.0,
+   "rep": 4,
+   "truth": {
+    "channel": "F_thrust",
+    "t_start": 402.8146234767666,
+    "t_end": 403.8146234767666
+   },
+   "detected": true,
+   "masked": false,
+   "hit_title": "2 isolated spikes on F_thrust",
+   "false_positives": []
+  }
+ ]
+}

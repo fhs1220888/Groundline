@@ -1,0 +1,4556 @@
+{
+ "n_runs": 100,
+ "seed": 2000,
+ "tol_s": 0.25,
+ "suite": "realistic",
+ "summary": {
+  "runs_total": 100,
+  "source_tags": {
+   "numbers_cited": "0/1729",
+   "first_draft_numbers_cited": null,
+   "wrong_tags_first_draft": 0,
+   "wrong_tags_final": 0
+  },
+  "reports_submitted": 100,
+  "recall_all_runs": 1.0,
+  "recall_loose_all_runs": 1.0,
+  "unsupported_claims": 0,
+  "ungrounded_numbers": 0,
+  "semantic_mismatches": 0,
+  "first_draft_ungrounded_rate": null,
+  "fix_rounds_used": 0,
+  "recall": 1.0,
+  "precision": 1.0,
+  "category_accuracy": 1.0,
+  "false_positives": 0,
+  "nominal_runs": 15,
+  "false_positives_on_nominal_runs": 0,
+  "claims_verified": "257/257",
+  "numbers_grounded": "1729/1729",
+  "mean_elapsed_s": 1.4315714695397765,
+  "first_submission": null,
+  "usage": null,
+  "failed_runs": 0,
+  "per_type": {
+   "oscillation": {
+    "n": 10,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.00780999315771691
+   },
+   "overtemp": {
+    "n": 14,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.00020000000000042206
+   },
+   "sensor_dropout": {
+    "n": 10,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.00030699292679159385
+   },
+   "sensor_spike": {
+    "n": 9,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 8.040896307903722e-05
+   },
+   "valve_delay": {
+    "n": 7,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.0
+   },
+   "pc_deficit": {
+    "n": 11,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.10534252891845775
+   },
+   "sensor_saturation": {
+    "n": 10,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.006599999999999939
+   },
+   "mains_hum": {
+    "n": 19,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 1.2928
+   },
+   "zero_offset": {
+    "n": 13,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.0
+   },
+   "daq_dropout": {
+    "n": 15,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.4484
+   },
+   "duplicate_channel": {
+    "n": 9,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.0
+   },
+   "pc_stuck_after_shutdown": {
+    "n": 10,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.7736000000000001
+   },
+   "dead_channel": {
+    "n": 12,
+    "recall": 1.0,
+    "category_accuracy": 1.0,
+    "median_t_start_error_s": 0.0
+   }
+  }
+ },
+ "runs": [
+  {
+   "seed": 2000,
+   "anomalies": [
+    "sensor_saturation"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_saturation",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.006599999999999939
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 12,
+    "numbers_grounded": 12,
+    "numbers_consistent": 12,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.44363620900549,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2001,
+   "anomalies": [],
+   "nuisances": [],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.8642179579474032,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2002,
+   "anomalies": [
+    "overtemp",
+    "mains_hum",
+    "zero_offset"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "zero_offset",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 27,
+    "numbers_grounded": 27,
+    "numbers_consistent": 27,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4679301669821143,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2003,
+   "anomalies": [
+    "sensor_spike",
+    "mains_hum"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 2.5683007097043742e-05
+     },
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2922
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 19,
+    "numbers_grounded": 19,
+    "numbers_consistent": 19,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4101082918932661,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2004,
+   "anomalies": [
+    "sensor_saturation",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_saturation",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0005999999999999339
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.4118
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 21,
+    "numbers_grounded": 21,
+    "numbers_consistent": 21,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4004081659950316,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2005,
+   "anomalies": [
+    "zero_offset"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "zero_offset",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4213951249839738,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2006,
+   "anomalies": [],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3205722080310807,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2007,
+   "anomalies": [
+    "zero_offset"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "zero_offset",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4721249169670045,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2008,
+   "anomalies": [
+    "zero_offset",
+    "duplicate_channel"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "zero_offset",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 16,
+    "numbers_grounded": 16,
+    "numbers_consistent": 16,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.6424007079331204,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2009,
+   "anomalies": [
+    "valve_delay",
+    "sensor_dropout",
+    "sensor_saturation"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "valve_delay",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "sensor_dropout",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00012592791049481633
+     },
+     {
+      "type": "sensor_saturation",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.005199999999999871
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 20,
+    "numbers_grounded": 20,
+    "numbers_consistent": 20,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5191132080508396,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2010,
+   "anomalies": [
+    "sensor_dropout",
+    "zero_offset"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_dropout",
+      "channel": "vib_axial",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00033496521843234817
+     },
+     {
+      "type": "zero_offset",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 18,
+    "numbers_grounded": 18,
+    "numbers_consistent": 18,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.536406458937563,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2011,
+   "anomalies": [
+    "mains_hum",
+    "pc_stuck_after_shutdown"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2928
+     },
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 20,
+    "numbers_grounded": 20,
+    "numbers_consistent": 20,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4511848340043798,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2012,
+   "anomalies": [
+    "pc_deficit",
+    "oscillation",
+    "sensor_dropout"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.11855813127035741
+     },
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00780999315771691
+     },
+     {
+      "type": "sensor_dropout",
+      "channel": "mdot_fu",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 7.532903538143287e-05
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 28,
+    "numbers_grounded": 28,
+    "numbers_consistent": 28,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.626514833071269,
+   "n_evidence": 13
+  },
+  {
+   "seed": 2013,
+   "anomalies": [
+    "sensor_spike"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 3.332294225222299e-05
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 13,
+    "numbers_grounded": 13,
+    "numbers_consistent": 13,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5157731249928474,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2014,
+   "anomalies": [
+    "dead_channel"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "dead_channel",
+      "channel": "vib_axial",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 11,
+    "numbers_grounded": 11,
+    "numbers_consistent": 11,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4803297499893233,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2015,
+   "anomalies": [
+    "pc_deficit",
+    "daq_dropout"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0919857196168663
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.3372
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 26,
+    "numbers_grounded": 26,
+    "numbers_consistent": 26,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.354089834028855,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2016,
+   "anomalies": [
+    "mains_hum"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2922
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3007335829315707,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2017,
+   "anomalies": [
+    "mains_hum"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2922
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3254290830809623,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2018,
+   "anomalies": [
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.269
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3762075830018148,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2019,
+   "anomalies": [
+    "overtemp"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00039999999999995595
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 15,
+    "numbers_grounded": 15,
+    "numbers_consistent": 15,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3987324580084532,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2020,
+   "anomalies": [],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.2807680419646204,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2021,
+   "anomalies": [
+    "zero_offset",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "zero_offset",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.4484
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 23,
+    "numbers_grounded": 23,
+    "numbers_consistent": 23,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4003570419736207,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2022,
+   "anomalies": [
+    "sensor_dropout",
+    "zero_offset"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_dropout",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0003969553456855124
+     },
+     {
+      "type": "zero_offset",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 18,
+    "numbers_grounded": 18,
+    "numbers_consistent": 18,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4491547499783337,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2023,
+   "anomalies": [
+    "overtemp"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.004400000000000404
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 15,
+    "numbers_grounded": 15,
+    "numbers_consistent": 15,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4425517920171842,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2024,
+   "anomalies": [
+    "pc_stuck_after_shutdown"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3893816670170054,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2025,
+   "anomalies": [
+    "mains_hum"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2928
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.332909542019479,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2026,
+   "anomalies": [
+    "oscillation",
+    "overtemp",
+    "pc_stuck_after_shutdown"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.006779207962510192
+     },
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 28,
+    "numbers_grounded": 28,
+    "numbers_consistent": 28,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.604867583955638,
+   "n_evidence": 13
+  },
+  {
+   "seed": 2027,
+   "anomalies": [
+    "oscillation",
+    "overtemp"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0035047242816013124
+     },
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 22,
+    "numbers_grounded": 22,
+    "numbers_consistent": 22,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5380930000683293,
+   "n_evidence": 13
+  },
+  {
+   "seed": 2028,
+   "anomalies": [
+    "valve_delay",
+    "mains_hum"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "valve_delay",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.3912
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 21,
+    "numbers_grounded": 21,
+    "numbers_consistent": 21,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3686257910449058,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2029,
+   "anomalies": [
+    "duplicate_channel"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 10,
+    "numbers_grounded": 10,
+    "numbers_consistent": 10,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.430071625043638,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2030,
+   "anomalies": [],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3304965840652585,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2031,
+   "anomalies": [
+    "valve_delay",
+    "mains_hum"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "valve_delay",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.4066
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 21,
+    "numbers_grounded": 21,
+    "numbers_consistent": 21,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.2988385829376057,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2032,
+   "anomalies": [
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.2944
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3176110000349581,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2033,
+   "anomalies": [
+    "oscillation",
+    "overtemp",
+    "pc_stuck_after_shutdown"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.027922579452526186
+     },
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0038000000000000256
+     },
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 28,
+    "numbers_grounded": 28,
+    "numbers_consistent": 28,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5535864590201527,
+   "n_evidence": 13
+  },
+  {
+   "seed": 2034,
+   "anomalies": [
+    "oscillation"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0005550353382366424
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 15,
+    "numbers_grounded": 15,
+    "numbers_consistent": 15,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3593959169229493,
+   "n_evidence": 13
+  },
+  {
+   "seed": 2035,
+   "anomalies": [
+    "sensor_dropout"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_dropout",
+      "channel": "mdot_fu",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00012373469595772235
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 12,
+    "numbers_grounded": 12,
+    "numbers_consistent": 12,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.378867916064337,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2036,
+   "anomalies": [
+    "mains_hum"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.293
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.304091583006084,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2037,
+   "anomalies": [
+    "valve_delay",
+    "zero_offset",
+    "dead_channel"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "valve_delay",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "zero_offset",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "dead_channel",
+      "channel": "mdot_fu",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 21,
+    "numbers_grounded": 21,
+    "numbers_consistent": 21,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3950472089927644,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2038,
+   "anomalies": [
+    "sensor_spike",
+    "mains_hum",
+    "sensor_saturation"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00013139333811995613
+     },
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2922
+     },
+     {
+      "type": "sensor_saturation",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0007999999999999119
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 23,
+    "numbers_grounded": 23,
+    "numbers_consistent": 23,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3693677500123158,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2039,
+   "anomalies": [
+    "sensor_dropout",
+    "dead_channel",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_dropout",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 4.058196388633433
+     },
+     {
+      "type": "dead_channel",
+      "channel": "vib_axial",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.416
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 27,
+    "numbers_grounded": 27,
+    "numbers_consistent": 27,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4668403749819845,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2040,
+   "anomalies": [
+    "mains_hum",
+    "pc_stuck_after_shutdown"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2924
+     },
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 20,
+    "numbers_grounded": 20,
+    "numbers_consistent": 20,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3843157910741866,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2041,
+   "anomalies": [
+    "duplicate_channel",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 19,
+    "numbers_grounded": 19,
+    "numbers_consistent": 19,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4576699999161065,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2042,
+   "anomalies": [
+    "zero_offset",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "zero_offset",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.5594
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 23,
+    "numbers_grounded": 23,
+    "numbers_consistent": 23,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.426659790915437,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2043,
+   "anomalies": [
+    "duplicate_channel"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 10,
+    "numbers_grounded": 10,
+    "numbers_consistent": 10,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4322196249850094,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2044,
+   "anomalies": [
+    "pc_deficit"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.08320071642323024
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4119599170517176,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2045,
+   "anomalies": [],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.350542000029236,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2046,
+   "anomalies": [
+    "pc_deficit"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.14621577409810005
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3418318750336766,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2047,
+   "anomalies": [
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.5298
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.309906458016485,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2048,
+   "anomalies": [
+    "sensor_spike",
+    "pc_stuck_after_shutdown",
+    "dead_channel"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 5.762782975127223e-05
+     },
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     },
+     {
+      "type": "dead_channel",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 22,
+    "numbers_grounded": 22,
+    "numbers_consistent": 22,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4316507080802694,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2049,
+   "anomalies": [],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3296893329825252,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2050,
+   "anomalies": [
+    "dead_channel"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "dead_channel",
+      "channel": "vib_axial",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 11,
+    "numbers_grounded": 11,
+    "numbers_consistent": 11,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3598966249264777,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2051,
+   "anomalies": [
+    "zero_offset",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "zero_offset",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.2844
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 23,
+    "numbers_grounded": 23,
+    "numbers_consistent": 23,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4231250840239227,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2052,
+   "anomalies": [
+    "valve_delay"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "valve_delay",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 15,
+    "numbers_grounded": 15,
+    "numbers_consistent": 15,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.299288499983959,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2053,
+   "anomalies": [],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.340866000042297,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2054,
+   "anomalies": [
+    "pc_deficit",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.11730289787774462
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.5068
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 26,
+    "numbers_grounded": 26,
+    "numbers_consistent": 26,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3509430839912966,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2055,
+   "anomalies": [],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.333597082993947,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2056,
+   "anomalies": [
+    "mains_hum",
+    "duplicate_channel"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.293
+     },
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 16,
+    "numbers_grounded": 16,
+    "numbers_consistent": 16,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.421074707992375,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2057,
+   "anomalies": [
+    "pc_stuck_after_shutdown",
+    "dead_channel"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     },
+     {
+      "type": "dead_channel",
+      "channel": "mdot_fu",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3819848749553785,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2058,
+   "anomalies": [
+    "pc_deficit",
+    "sensor_saturation"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.10534252891845775
+     },
+     {
+      "type": "sensor_saturation",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.006199999999999983
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 20,
+    "numbers_grounded": 20,
+    "numbers_consistent": 20,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3929800830082968,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2059,
+   "anomalies": [
+    "sensor_spike"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 8.040896307903722e-05
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 13,
+    "numbers_grounded": 13,
+    "numbers_consistent": 13,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3960724159842357,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2060,
+   "anomalies": [],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3156680000247434,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2061,
+   "anomalies": [
+    "overtemp"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 15,
+    "numbers_grounded": 15,
+    "numbers_consistent": 15,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4248379589989781,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2062,
+   "anomalies": [
+    "sensor_dropout",
+    "sensor_saturation",
+    "zero_offset"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_dropout",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 7.465988965771331e-05
+     },
+     {
+      "type": "sensor_saturation",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.007000000000000117
+     },
+     {
+      "type": "zero_offset",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 22,
+    "numbers_grounded": 22,
+    "numbers_consistent": 22,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4964325410546735,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2063,
+   "anomalies": [],
+   "nuisances": [],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.355797249940224,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2064,
+   "anomalies": [
+    "pc_stuck_after_shutdown"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3579603750258684,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2065,
+   "anomalies": [],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4015551249030977,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2066,
+   "anomalies": [
+    "oscillation",
+    "mains_hum",
+    "dead_channel"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00267457705607832
+     },
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2928
+     },
+     {
+      "type": "dead_channel",
+      "channel": "mdot_fu",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 4,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 5,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 5,
+    "numbers_total": 30,
+    "numbers_grounded": 30,
+    "numbers_consistent": 30,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.577124291099608,
+   "n_evidence": 13
+  },
+  {
+   "seed": 2067,
+   "anomalies": [
+    "zero_offset",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "zero_offset",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.521
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 23,
+    "numbers_grounded": 23,
+    "numbers_consistent": 23,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4765181669499725,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2068,
+   "anomalies": [
+    "overtemp",
+    "zero_offset"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0007999999999999119
+     },
+     {
+      "type": "zero_offset",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 21,
+    "numbers_grounded": 21,
+    "numbers_consistent": 21,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5365885409992188,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2069,
+   "anomalies": [
+    "valve_delay"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "valve_delay",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 15,
+    "numbers_grounded": 15,
+    "numbers_consistent": 15,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3449445409933105,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2070,
+   "anomalies": [
+    "oscillation",
+    "sensor_spike"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.017930457976010672
+     },
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.7613862866916463e-05
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 20,
+    "numbers_grounded": 20,
+    "numbers_consistent": 20,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5753586669452488,
+   "n_evidence": 13
+  },
+  {
+   "seed": 2071,
+   "anomalies": [
+    "dead_channel"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "dead_channel",
+      "channel": "mdot_fu",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 11,
+    "numbers_grounded": 11,
+    "numbers_consistent": 11,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4542500829556957,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2072,
+   "anomalies": [
+    "oscillation",
+    "sensor_spike"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.020975832623793877
+     },
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00019941700040337906
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 20,
+    "numbers_grounded": 20,
+    "numbers_consistent": 20,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.659052542061545,
+   "n_evidence": 13
+  },
+  {
+   "seed": 2073,
+   "anomalies": [
+    "mains_hum"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.293
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3957917080260813,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2074,
+   "anomalies": [
+    "sensor_dropout"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_dropout",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0003790967809189638
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 12,
+    "numbers_grounded": 12,
+    "numbers_consistent": 12,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5445652910275385,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2075,
+   "anomalies": [
+    "mains_hum",
+    "sensor_saturation"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.293
+     },
+     {
+      "type": "sensor_saturation",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.012599999999999945
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 18,
+    "numbers_grounded": 18,
+    "numbers_consistent": 18,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5001329999649897,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2076,
+   "anomalies": [
+    "overtemp",
+    "sensor_spike"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00017695084643953862
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 20,
+    "numbers_grounded": 20,
+    "numbers_consistent": 20,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5468331660376862,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2077,
+   "anomalies": [
+    "sensor_saturation",
+    "pc_stuck_after_shutdown",
+    "duplicate_channel"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_saturation",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.007200000000000095
+     },
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     },
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 20,
+    "numbers_grounded": 20,
+    "numbers_consistent": 20,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.657107957988046,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2078,
+   "anomalies": [
+    "pc_deficit",
+    "sensor_dropout"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.07960534248863782
+     },
+     {
+      "type": "sensor_dropout",
+      "channel": "vib_axial",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00030699292679159385
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 21,
+    "numbers_grounded": 21,
+    "numbers_consistent": 21,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4621868339600042,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2079,
+   "anomalies": [],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3184961669612676,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2080,
+   "anomalies": [
+    "oscillation",
+    "overtemp",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.022696142603266356
+     },
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00020000000000042206
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.4562
+     }
+    ],
+    "n_claims": 7,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 8,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 8,
+    "numbers_total": 59,
+    "numbers_grounded": 59,
+    "numbers_consistent": 59,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.8198767920257524,
+   "n_evidence": 15
+  },
+  {
+   "seed": 2081,
+   "anomalies": [
+    "valve_delay",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "valve_delay",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.5452
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 24,
+    "numbers_grounded": 24,
+    "numbers_consistent": 24,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4460974999237806,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2082,
+   "anomalies": [],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.386576083023101,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2083,
+   "anomalies": [
+    "mains_hum"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2922
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3052960829809308,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2084,
+   "anomalies": [
+    "mains_hum",
+    "duplicate_channel"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2924
+     },
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 16,
+    "numbers_grounded": 16,
+    "numbers_consistent": 16,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4864446250721812,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2085,
+   "anomalies": [
+    "overtemp",
+    "sensor_saturation"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     },
+     {
+      "type": "sensor_saturation",
+      "channel": "P_fu_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.006799999999999917
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 19,
+    "numbers_grounded": 19,
+    "numbers_consistent": 19,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5647743330337107,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2086,
+   "anomalies": [
+    "overtemp"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00020000000000042206
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 15,
+    "numbers_grounded": 15,
+    "numbers_consistent": 15,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3812702080467716,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2087,
+   "anomalies": [
+    "pc_deficit",
+    "duplicate_channel"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.14794499772044434
+     },
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4751080829882994,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2088,
+   "anomalies": [
+    "sensor_spike"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_spike",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 8.125869747788173e-05
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 13,
+    "numbers_grounded": 13,
+    "numbers_consistent": 13,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.386210334021598,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2089,
+   "anomalies": [
+    "overtemp",
+    "sensor_dropout",
+    "dead_channel"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0005999999999994898
+     },
+     {
+      "type": "sensor_dropout",
+      "channel": "mdot_fu",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.00027630099743447545
+     },
+     {
+      "type": "dead_channel",
+      "channel": "vib_axial",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 22,
+    "numbers_grounded": 22,
+    "numbers_consistent": 22,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.5315769159933552,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2090,
+   "anomalies": [
+    "pc_deficit",
+    "duplicate_channel"
+   ],
+   "nuisances": [
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.09742161943617589
+     },
+     {
+      "type": "duplicate_channel",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 2,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 3,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 3,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4756400829646736,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2091,
+   "anomalies": [],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.326063874992542,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2092,
+   "anomalies": [
+    "pc_deficit",
+    "pc_stuck_after_shutdown",
+    "dead_channel"
+   ],
+   "nuisances": [
+    "quantization",
+    "shutdown_slam",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.13008039071536937
+     },
+     {
+      "type": "pc_stuck_after_shutdown",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.7736000000000001
+     },
+     {
+      "type": "dead_channel",
+      "channel": "vib_axial",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 26,
+    "numbers_grounded": 26,
+    "numbers_consistent": 26,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3693433749722317,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2093,
+   "anomalies": [
+    "mains_hum"
+   ],
+   "nuisances": [
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2932
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 14,
+    "numbers_grounded": 14,
+    "numbers_consistent": 14,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.279308959026821,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2094,
+   "anomalies": [
+    "oscillation",
+    "daq_dropout"
+   ],
+   "nuisances": [
+    "quantization",
+    "startup_spike"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "oscillation",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0008675373630939731
+     },
+     {
+      "type": "daq_dropout",
+      "channel": "*",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.4814
+     }
+    ],
+    "n_claims": 5,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 6,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 6,
+    "numbers_total": 45,
+    "numbers_grounded": 45,
+    "numbers_consistent": 45,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.7354082909878343,
+   "n_evidence": 16
+  },
+  {
+   "seed": 2095,
+   "anomalies": [
+    "dead_channel"
+   ],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "dead_channel",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 11,
+    "numbers_grounded": 11,
+    "numbers_consistent": 11,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.3757945420220494,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2096,
+   "anomalies": [
+    "overtemp",
+    "mains_hum",
+    "dead_channel"
+   ],
+   "nuisances": [],
+   "match": {
+    "truth": [
+     {
+      "type": "overtemp",
+      "channel": "T_cool_out",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0019999999999997797
+     },
+     {
+      "type": "mains_hum",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 1.2926
+     },
+     {
+      "type": "dead_channel",
+      "channel": "vib_axial",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0
+     }
+    ],
+    "n_claims": 3,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 4,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 4,
+    "numbers_total": 24,
+    "numbers_grounded": 24,
+    "numbers_consistent": 24,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4362729160347953,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2097,
+   "anomalies": [],
+   "nuisances": [
+    "shutdown_slam"
+   ],
+   "match": {
+    "truth": [],
+    "n_claims": 0,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 1,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 1,
+    "numbers_total": 8,
+    "numbers_grounded": 8,
+    "numbers_consistent": 8,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.343764542019926,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2098,
+   "anomalies": [
+    "pc_deficit"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "pc_deficit",
+      "channel": "Pc",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.08044062466454349
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 17,
+    "numbers_grounded": 17,
+    "numbers_consistent": 17,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.300484957988374,
+   "n_evidence": 12
+  },
+  {
+   "seed": 2099,
+   "anomalies": [
+    "sensor_saturation"
+   ],
+   "nuisances": [
+    "quantization"
+   ],
+   "match": {
+    "truth": [
+     {
+      "type": "sensor_saturation",
+      "channel": "P_ox_inj",
+      "detected": true,
+      "detected_loose": true,
+      "category_ok": true,
+      "t_start_error_s": 0.0046000000000001595
+     }
+    ],
+    "n_claims": 1,
+    "false_positives": []
+   },
+   "verification": {
+    "verified": 2,
+    "partial": 0,
+    "unsupported": 0,
+    "n_findings": 2,
+    "numbers_total": 12,
+    "numbers_grounded": 12,
+    "numbers_consistent": 12,
+    "numbers_cited": 0,
+    "grounding_rate": 1.0
+   },
+   "first_submission": null,
+   "submitted": true,
+   "fix_rounds_used": 0,
+   "usage": null,
+   "elapsed_s": 1.4161255829967558,
+   "n_evidence": 12
+  }
+ ]
+}
