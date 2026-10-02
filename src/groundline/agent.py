@@ -409,7 +409,10 @@ class LLMAgent:
                 break
             reply = self.backend.complete(system, messages, tools)
             calls = reply.get("tool_calls") or []
-            messages.append({"role": "assistant", "content": reply.get("content") or "", "tool_calls": calls})
+            msg = {"role": "assistant", "content": reply.get("content") or "", "tool_calls": calls}
+            if "raw" in reply:  # provider-native turn (e.g. Anthropic thinking blocks), sent back unchanged
+                msg["raw"] = reply["raw"]
+            messages.append(msg)
             transcript.append({"role": "assistant", "content": reply.get("content"),
                                "tool_calls": [{"name": c["name"], "arguments": c["arguments"]} for c in calls]})
             if not calls:
@@ -508,7 +511,7 @@ def _post(url: str, body: dict, headers: dict, timeout: float, retries: int = 3)
 
     for attempt in range(retries + 1):
         r = httpx.post(url, json=body, headers=headers, timeout=timeout)
-        if r.status_code in (429, 500, 502, 503, 504) and attempt < retries:
+        if r.status_code in (429, 500, 502, 503, 504, 529) and attempt < retries:  # 529: Anthropic overloaded
             time.sleep(min(2 ** attempt * 2, 20))
             continue
         _check(r)
@@ -642,27 +645,35 @@ class OpenAICompatible:
 
 
 class AnthropicBackend:
+    """Anthropic Messages API.
+
+    Assistant turns are sent back exactly as the API returned them (``raw``), so thinking blocks stay attached
+    to their tool calls. The prompt prefix (tools, system, earlier turns) is cached between agent steps.
+    """
+
     name = "anthropic"
 
-    def __init__(self, model: str | None = None, api_key: str | None = None, max_tokens: int = 4096,
-                 timeout: float = 180.0):
-        self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "claude-sonnet-5")
+    def __init__(self, model: str | None = None, api_key: str | None = None, max_tokens: int = 16000,
+                 reasoning_effort: str | None = None, timeout: float = 300.0):
+        self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "claude-sonnet-5-5")
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-        self.max_tokens = max_tokens
+        self.max_tokens = max_tokens  # thinking counts against it, so leave room beyond the visible reply
+        effort = reasoning_effort or os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT") or None
+        self.effort = None if effort == "none" else effort  # low | medium | high | xhigh | max
         self.timeout = timeout
-        self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
+        self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0, "cache_read_input_tokens": 0}
 
-    def complete(self, system: str, messages: list[dict], tools: list[dict]) -> dict:
-        import httpx
-
+    @staticmethod
+    def _to_messages(messages: list[dict]) -> list[dict]:
         out: list[dict] = []
         for m in messages:
             if m["role"] == "assistant":
-                blocks: list[dict] = []
-                if m.get("content"):
-                    blocks.append({"type": "text", "text": m["content"]})
-                for c in m.get("tool_calls") or []:
-                    blocks.append({"type": "tool_use", "id": c["id"], "name": c["name"], "input": c["arguments"]})
+                blocks: list[dict] = list(m.get("raw") or [])
+                if not blocks:
+                    if m.get("content"):
+                        blocks.append({"type": "text", "text": m["content"]})
+                    for c in m.get("tool_calls") or []:
+                        blocks.append({"type": "tool_use", "id": c["id"], "name": c["name"], "input": c["arguments"]})
                 out.append({"role": "assistant", "content": blocks or [{"type": "text", "text": "..."}]})
             elif m["role"] == "tool":
                 block = {"type": "tool_result", "tool_use_id": m["tool_call_id"], "content": m["content"]}
@@ -673,26 +684,42 @@ class AnthropicBackend:
                     out.append({"role": "user", "content": [block]})
             else:
                 out.append({"role": "user", "content": m["content"]})
-        body = {
+        return out
+
+    def complete(self, system: str, messages: list[dict], tools: list[dict]) -> dict:
+        body: dict[str, Any] = {
             "model": self.model,
             "max_tokens": self.max_tokens,
             "system": system,
-            "messages": out,
+            "messages": self._to_messages(messages),
             "tools": [{"name": t["name"], "description": t["description"], "input_schema": t["parameters"]}
                       for t in tools],
+            "cache_control": {"type": "ephemeral"},  # each step re-reads the previous step's prefix from cache
         }
-        r = httpx.post("https://api.anthropic.com/v1/messages", json=body, timeout=self.timeout,
-                       headers={"x-api-key": self.api_key, "anthropic-version": "2023-06-01"})
-        _check(r)
+        if self.effort:
+            body["output_config"] = {"effort": self.effort}
+        headers = {"x-api-key": self.api_key, "anthropic-version": "2023-06-01"}
+        r = _post("https://api.anthropic.com/v1/messages", body, headers, self.timeout)
         data = r.json()
         u = data.get("usage") or {}
-        self.usage["input_tokens"] += u.get("input_tokens", 0)
-        self.usage["output_tokens"] += u.get("output_tokens", 0)
+        cached = u.get("cache_read_input_tokens") or 0
+        # input_tokens excludes cached tokens; count the whole prompt so totals compare with other backends
+        self.usage["input_tokens"] += (u.get("input_tokens") or 0) + cached + (u.get("cache_creation_input_tokens") or 0)
+        self.usage["output_tokens"] += u.get("output_tokens") or 0
+        self.usage["cache_read_input_tokens"] += cached
         self.usage["requests"] += 1
-        text = "".join(b.get("text", "") for b in data["content"] if b["type"] == "text")
+        stop = data.get("stop_reason")
+        if stop == "refusal":
+            cat = (data.get("stop_details") or {}).get("category")
+            raise RuntimeError(f"{self.model} declined the request (stop_reason=refusal, category={cat})")
+        if stop == "max_tokens":  # a cut-off reply may hold a truncated tool call; nudging would only loop
+            raise RuntimeError(f"{self.model} reply hit max_tokens={self.max_tokens} before finishing; "
+                               "raise max_tokens or lower GROUNDLINE_LLM_REASONING_EFFORT")
+        content = data.get("content") or []
+        text = "".join(b.get("text", "") for b in content if b["type"] == "text")
         calls = [{"id": b["id"], "name": b["name"], "arguments": b.get("input") or {}}
-                 for b in data["content"] if b["type"] == "tool_use"]
-        return {"content": text, "tool_calls": calls}
+                 for b in content if b["type"] == "tool_use"]
+        return {"content": text, "tool_calls": calls, "raw": content}
 
 
 class ScriptedBackend:

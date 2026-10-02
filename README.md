@@ -65,7 +65,7 @@ groundline analyze run.csv --agent openai
 
 # Anthropic
 export ANTHROPIC_API_KEY=...
-groundline analyze run.csv --agent anthropic --model claude-sonnet-5
+groundline analyze run.csv --agent anthropic --model claude-sonnet-5-5
 ```
 
 When benchmarking an LLM agent, besides detection rates Groundline also counts **the invented numbers the verifier caught in the first draft**, the result after the fix round, and token usage:
@@ -74,7 +74,7 @@ When benchmarking an LLM agent, besides detection rates Groundline also counts *
 groundline eval --agent openai --model gpt-4o-mini --n 10 --lang en --out eval_openai.json
 ```
 
-With the official OpenAI endpoint the Responses API is used automatically (reasoning models such as `gpt-5.6-sol` can only reason and call tools together there); set the reasoning effort with `GROUNDLINE_LLM_REASONING_EFFORT`. Other OpenAI-compatible services use Chat Completions; force either with `GROUNDLINE_OPENAI_API=responses|chat`. No temperature is sent by default; set one with `GROUNDLINE_LLM_TEMPERATURE`.
+With the official OpenAI endpoint the Responses API is used automatically (reasoning models such as `gpt-5.6-sol` can only reason and call tools together there); set the reasoning effort with `GROUNDLINE_LLM_REASONING_EFFORT`. Other OpenAI-compatible services use Chat Completions; force either with `GROUNDLINE_OPENAI_API=responses|chat`. No temperature is sent by default; set one with `GROUNDLINE_LLM_TEMPERATURE`. With `--agent anthropic` the same variable sets the effort level (`low` … `max`); the prompt prefix is cached between agent steps.
 
 Test data is usually sensitive, so the interface is built for on-premise deployment: the model only sees summaries of tool outputs, never the raw data.
 

@@ -11,7 +11,7 @@ Recognised keys (see ``.env.example``)::
     GROUNDLINE_LLM_MODEL    model name
     GROUNDLINE_LLM_BASE_URL OpenAI-compatible endpoint (Qwen, DeepSeek, vLLM, Ollama ...)
     GROUNDLINE_LLM_TEMPERATURE
-    GROUNDLINE_LLM_REASONING_EFFORT  none | low | medium | high (reasoning models)
+    GROUNDLINE_LLM_REASONING_EFFORT  none | low | medium | high (reasoning models; Anthropic also xhigh | max)
     GROUNDLINE_LANG         zh | en
 """
 
