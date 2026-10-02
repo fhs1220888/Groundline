@@ -679,7 +679,9 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
                 v = float(xb[i0])
                 ch_issues.append({"channel": ch, "kind": "flatline", "t_start": float(t[i0]), "t_end": float(t[i1 - 1]),
                                   "duration_s": float(t[i1 - 1] - t[i0]), "stuck_value": v,
-                                  "at_channel_max": v == hi_all, "at_channel_min": v == lo_all})
+                                  "at_channel_max": v == hi_all, "at_channel_min": v == lo_all,
+                                  **({"channel_max": hi_all} if v == hi_all else {}),
+                                  **({"channel_min": lo_all} if v == lo_all else {})})
         flats = [i for i in ch_issues if i["kind"] == "flatline"]
         for a, b in zip(flats, flats[1:]):  # a stuck value broken by a blip of a sample or two is one flatline
             if b["stuck_value"] == a["stuck_value"] and b["t_start"] - a["t_end"] < 0.1:

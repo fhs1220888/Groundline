@@ -405,12 +405,20 @@ def test_lessons_from_a_real_liquid_engine_log():
                                 "P_bottle": {"unit": "psi", "kind": "pressure"}})
     seg = s.run("segment_phases").result
     assert seg["tail_off_end_by"] == "settled_above_threshold" and seg["tail_off_end_s"] < 11
-    issues = s.run("check_sensor_health").result["issues"]
+    health = s.run("check_sensor_health")
+    issues = health.result["issues"]
     by = lambda kind: [i for i in issues if i["kind"] == kind]  # noqa: E731
     gaps = by("recurring_nan_gaps")
     assert len(gaps) == 1 and gaps[0]["channel"] is None and len(gaps[0]["channels"]) == 4
     flat = [i for i in by("flatline") if i["channel"] == "P_bottle"]
     assert len(flat) == 1 and flat[0]["at_channel_max"] and flat[0]["duration_s"] > 15
+    # "its maximum" for a tagged stuck value: the same object holds that value as channel_max too
+    from groundline.findings import verify_finding
+    k = issues.index(flat[0])
+    v = verify_finding(Finding("t", f"stuck at its maximum {flat[0]['stuck_value']:.2f} psi "
+                                    f"[{health.id}.issues[{k}].stuck_value]", "sensor_fault", "warning", "P_bottle",
+                               None, None, [health.id]), s)
+    assert v["status"] == "verified", v
     base = by("no_return_to_baseline")
     assert len(base) == 1 and base[0]["channel"] == "Pc" and 50 < base[0]["offset_of_steady_pct"] < 70
     coin = by("coincident_spikes")

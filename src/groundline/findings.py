@@ -242,6 +242,10 @@ def verify_finding(f: Finding, s: Session) -> dict:
             fl = by_path.get(cite)
             sc = None if fl is None else _matches(val, dec, fl.value, fl.kind)
             cands = [] if sc is None else [(fl, sc)]
+            if cands:  # a sibling in the same object holding the very same value shares its meaning
+                parent = cite.rsplit(".", 1)[0]  # (stuck_value == channel_max: "its maximum, 5180.25")
+                cands += [(g, k) for g in fields if g.path != cite and g.path.rsplit(".", 1)[0] == parent
+                          and g.value == fl.value and (k := _matches(val, dec, g.value, g.kind)) is not None]
             if fl is None or sc is None:
                 eid = re.search(r"E\d+", cite).group(0)
                 if fl is None:
