@@ -212,8 +212,21 @@ def summarize(rows: list[dict]) -> dict:
         first_rate = (ft - sum(f["numbers_grounded"] for f in firsts)) / ft if ft else 0.0
         first["semantic_mismatches"] = sum(f["numbers_grounded"] - f.get("numbers_consistent", f["numbers_grounded"])
                                            for f in firsts)
+    # source tags ([E4.peak]): how many numbers carried one, and how many tags named the wrong field
+    def cites(vs):
+        return sum(v.get("numbers_cited", 0) for v in vs), sum(v.get("numbers_total", 0) for v in vs)
+
+    def bad_tags(findings):
+        return sum(1 for f in findings for p in (f.get("problems") or []) if "' cites " in p)
+
+    c_fin, t_fin = cites([r["verification"] for r in rows])
+    c_first, t_first = cites(firsts)
+    tags = {"numbers_cited": f"{c_fin}/{t_fin}", "first_draft_numbers_cited": f"{c_first}/{t_first}" if firsts else None,
+            "wrong_tags_first_draft": sum(bad_tags(r.get("first_draft_flagged") or []) for r in rows),
+            "wrong_tags_final": sum(bad_tags(r.get("findings") or []) for r in rows)}
     return {
         "runs_total": len(rows) + len(errors),
+        "source_tags": tags,
         "reports_submitted": submitted,
         "recall_all_runs": n_det / n_truth_all if n_truth_all else None,
         "recall_loose_all_runs": n_loose / n_truth_all if n_truth_all else None,
@@ -254,6 +267,10 @@ def format_summary(summary: dict) -> str:
         f = summary["first_submission"]
         lines.append(f"first draft (before verifier feedback): claims verified {f['claims_verified']} · numbers "
                      f"grounded {f['numbers_grounded']} · invented numbers caught {f['ungrounded_numbers_caught']}")
+    tg = summary.get("source_tags")
+    if tg and (tg["numbers_cited"].split("/")[0] != "0" or tg.get("wrong_tags_first_draft")):
+        lines.append(f"source tags: {tg['numbers_cited']} final numbers tagged (first draft {tg['first_draft_numbers_cited']}) "
+                     f"· wrong tags: {tg['wrong_tags_first_draft']} in first drafts, {tg['wrong_tags_final']} after fixes")
     if summary.get("usage"):
         u = summary["usage"]
         lines.append(f"LLM usage: {u['requests']} requests · {u['input_tokens']:,} input / "
