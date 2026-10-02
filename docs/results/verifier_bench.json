@@ -14,18 +14,18 @@
   "mutations": {
     "fabricated": {
       "n": 1364,
-      "caught_grounding": 1246,
-      "caught_full": 1339
+      "caught_grounding": 1234,
+      "caught_full": 1335
     },
     "swapped": {
       "n": 1436,
       "caught_grounding": 0,
-      "caught_full": 986
+      "caught_full": 980
     },
     "wrong_unit": {
       "n": 1168,
       "caught_grounding": 0,
-      "caught_full": 1154
+      "caught_full": 1153
     }
   },
   "mutations_tagged": {
@@ -35,7 +35,7 @@
     },
     "swapped": {
       "n": 1436,
-      "caught": 1436
+      "caught": 1435
     },
     "wrong_unit": {
       "n": 1168,
@@ -57,7 +57,7 @@
       {
         "change": "3 -> 2 (E3.issues[0].spikes[1].deviation)",
         "statement": "P_ox_inj 在 2.658–3.682 s 之间出现 2 个孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
-        "why": "'2 个' matches only E3.issues[0].spikes[2].deviation (plain)"
+        "why": "'2 个' matches only E3.criteria.baseline_settle_s (time)"
       }
     ],
     "wrong_unit": [
@@ -99,41 +99,47 @@
       },
       {
         "change": "5.000 -> 4.000",
-        "statement": "基于 Pc 分段：点火 1.154 s，主级段 1.368–9.024 s（持续 7.66 s），稳态水平 4.000 MPa。",
+        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 4.000 MPa。",
         "why": "'4.000 MPa' matches only len(E2.command_events) (count)"
       },
       {
-        "change": "5.000 -> 4.000",
-        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 4.000 MPa。",
-        "why": "'4.000 MPa' matches only len(E2.command_events) (count)"
+        "change": "-2.80 -> -4.20",
+        "statement": "cmd_fu 在 0.900 s 发出开启指令后，P_fu_inj 在 128.8 ms 后才开始响应，超过允许的 40 ms。 点火随之推迟，T_cool_out 在 1.38–2.35 s 相对预测偏差 -4.20%，为该延迟的后果而非独立问题。",
+        "why": "'-4.20 %' matches only E13.mean_dev (unit K)"
       }
     ],
     "swapped_missed": [
       {
-        "change": "1.054 -> 0.900 (E2.command_events[1].t_s)",
-        "statement": "基于 Pc 分段：点火 0.900 s，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 5.000 MPa。"
+        "change": "1.054 -> 0.800 (E2.command_events[0].t_s)",
+        "statement": "基于 Pc 分段：点火 0.800 s，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 5.000 MPa。"
       },
       {
-        "change": "1.268 -> 1.054 (E2.phases[0].t_end)",
-        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.054–9.024 s（持续 7.76 s），稳态水平 5.000 MPa。"
+        "change": "1.268 -> 9.000 (E2.command_events[3].t_s)",
+        "statement": "基于 Pc 分段：点火 1.054 s，主级段 9.000–9.024 s（持续 7.76 s），稳态水平 5.000 MPa。"
       },
       {
-        "change": "2.45 -> 3.78 (E6.max_window.t_center)",
-        "statement": "Pc 在 3.78–4.40 s 检测到约 230 Hz 的窄带振荡，峰值幅值为均值的 2.84%（判据 0.5%）。 vib_axial 在 230 Hz 同步检出振荡，佐证其为物理现象而非单个传感器问题。"
+        "change": "9.024 -> 1.268 (E2.phases[1].t_end)",
+        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–1.268 s（持续 7.76 s），稳态水平 5.000 MPa。"
       }
     ],
     "fabricated_missed": [
       {
-        "change": "2.45 -> 1.96",
-        "statement": "Pc 在 1.96–4.40 s 检测到约 230 Hz 的窄带振荡，峰值幅值为均值的 2.84%（判据 0.5%）。 vib_axial 在 230 Hz 同步检出振荡，佐证其为物理现象而非单个传感器问题。"
+        "change": "1.38 -> 0.97",
+        "statement": "cmd_fu 在 0.900 s 发出开启指令后，P_fu_inj 在 128.8 ms 后才开始响应，超过允许的 40 ms。 点火随之推迟，T_cool_out 在 0.97–2.35 s 相对预测偏差 -2.80%，为该延迟的后果而非独立问题。"
       },
       {
-        "change": "-4.66 -> -3.26",
-        "statement": "Pc 在 2.77–9.02 s 持续偏离仿真预测，平均偏差 -3.26%（容差 2.0%）。 喷前压力同步偏低（P_ox_inj -4.02%, P_fu_inj -3.89%），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 -0.00%, -0.00%），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
+        "change": "9.02 -> 6.31",
+        "statement": "Pc 在 2.77–6.31 s 持续偏离仿真预测，平均偏差 -4.66%（容差 2.0%）。 喷前压力同步偏低（P_ox_inj -4.02%, P_fu_inj -3.89%），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 -0.00%, -0.00%），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
       },
       {
-        "change": "-4.02 -> -3.22",
-        "statement": "Pc 在 2.77–9.02 s 持续偏离仿真预测，平均偏差 -4.66%（容差 2.0%）。 喷前压力同步偏低（P_ox_inj -3.22%, P_fu_inj -3.89%），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 -0.00%, -0.00%），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
+        "change": "5.320 -> 4.256",
+        "statement": "T_cool_out 在 4.280–5.500 s 持续超出红线 700 K，持续 1.220 s，峰值 758.61 K（4.256 s）。"
+      }
+    ],
+    "swapped_missed_tagged": [
+      {
+        "change": "-5.96 -> 6.00 (E9.mean_reference)",
+        "statement": "Pc 在 2.10 [E7.sustained_deviation_intervals[0].t_start]–9.02 s [E7.t_end] 持续偏离仿真预测，平均偏差 -7.14% [E7.sustained_deviation_intervals[0].mean_dev_pct]（容差 2.0% [E7.tolerance_pct]）。 喷前压力同步偏低（P_ox_inj -6.16% [E8.sustained_deviation_intervals[0].mean_dev_pct], P_fu_inj 6.00% [E9.sustained_deviation_intervals[0].mean_dev_pct]），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 0.00% [E11.mean_dev_pct], -0.00% [E11.mean_dev_pct]），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
       }
     ]
   }
