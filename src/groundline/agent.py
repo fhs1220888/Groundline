@@ -479,7 +479,10 @@ with an ID (E1, E2, ...). Your report is checked by a verifier:
 
 Method:
 1. Start from the overview and phase segmentation you are given.
-2. Check sensor health first, so you do not mistake instrumentation faults for engine behaviour.
+2. Check sensor health first, so you do not mistake instrumentation faults for engine behaviour. Every issue it
+   reports must reach the report: as a finding, folded into the finding it explains, or named in the summary. An
+   instrument that cannot be trusted (stuck, saturated, offset, not returning to baseline) changes what the other
+   findings can claim.
 3. Check redlines, valve response, oscillations (on the chamber pressure and then on other channels to corroborate),
    and compare with the simulation prediction for each channel that has one.
 4. When something is found, drill down (other channels, narrower windows) to explain it; when a symptom is explained
@@ -490,7 +493,8 @@ Method:
    total impulse).
 6. Include one 'observation' finding describing the test sequence.
 7. Call submit_report once. Categories: {categories}. Severities: critical (safety/redline/instability),
-   warning (needs engineering attention), info.
+   warning (needs engineering attention), info. An oscillation is critical only at twice its criterion or more;
+   just above the criterion it is a warning.
    A category other than 'observation' means "this anomaly was found". A check that passed or found nothing
    ("no redline exceeded", "valve response within limit", "no oscillation detected", "matches the simulation")
    is NOT an anomaly: use category 'observation' and severity 'info' for it, or fold it into the summary.
