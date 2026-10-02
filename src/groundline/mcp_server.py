@@ -68,7 +68,8 @@ def build_server():
     def verify(findings: list[dict], run_id: str | None = None) -> dict:
         """Check findings (title, statement, category, severity, channel, t_start, t_end, evidence[]) against the
         ledger. Every number in a statement must be present in the cited evidence, with a unit and role that fit
-        the evidence field it came from (e.g. a number after "peak" must come from a peak field)."""
+        the evidence field it came from (e.g. a number after "peak" must come from a peak field). A finding in an
+        anomaly category must cite the tool result that reports that anomaly; passed checks are 'observation'."""
         s = _get(run_id)
         fs = [Finding.from_dict(d) for d in findings]
         summary = verify_findings(fs, s)

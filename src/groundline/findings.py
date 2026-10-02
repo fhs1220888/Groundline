@@ -10,7 +10,9 @@ session ledger.  :func:`verify_findings` then checks, mechanically:
    with the data and the evidence;
 4. each number is used with the meaning of the field it came from: the unit written after it and a
    role word right before it (peak, duration, mean, impulse ...) must fit that field (see
-   :mod:`groundline.semantics`).
+   :mod:`groundline.semantics`);
+5. a finding filed under an anomaly category cites evidence in which the matching tool actually
+   reported that anomaly, on the finding's channel (a passed check cannot be filed as a fault).
 
 The LLM can phrase things however it likes, but it cannot introduce a number
 that no tool produced without the report flagging it.
@@ -110,6 +112,49 @@ def _matches(value: float, decimals: int, v: float) -> float | None:
     return None
 
 
+def _flagged_channels(ev) -> list[str] | None:
+    """Channels on which this evidence entry reports an anomaly, or None if its tool reports none of the
+    kind (the list may be empty: the tool ran and found nothing)."""
+    r = ev.result
+    if ev.tool == "check_redlines":
+        return [v.get("channel") for v in r.get("violations") or []]
+    if ev.tool == "detect_oscillation":
+        return [r.get("channel")] if r.get("detected") else []
+    if ev.tool == "check_sensor_health":
+        return [i.get("channel") for i in r.get("issues") or []]
+    if ev.tool == "measure_valve_response":
+        return [c for e in r.get("events") or [] if e.get("exceeds_limit") for c in (e.get("response"), e.get("command"))]
+    if ev.tool == "compare_reference":
+        return [r.get("channel")] if r.get("within_tolerance") is False or r.get("sustained_deviation_intervals") else []
+    return None
+
+
+# the tool whose result must report the anomaly a category claims
+_CATEGORY_TOOL = {
+    "redline_violation": "check_redlines",
+    "combustion_oscillation": "detect_oscillation",
+    "sensor_fault": "check_sensor_health",
+    "valve_response": "measure_valve_response",
+    "performance_deviation": "compare_reference",
+}
+
+
+def category_problem(f: Finding, cited: list) -> str | None:
+    """Why the cited evidence does not support the anomaly the finding's category claims, if it does not."""
+    tool = _CATEGORY_TOOL.get(f.category)
+    if tool is None or not cited:
+        return None
+    flagged = [c for ev in cited if ev.tool == tool for c in (_flagged_channels(ev) or [])]
+    if not any(ev.tool == tool for ev in cited):
+        return f"category {f.category!r} needs cited {tool} evidence that reports it; none is cited"
+    if not flagged:
+        return (f"category {f.category!r}: the cited {tool} evidence reports no anomaly "
+                "(a check that passed is category 'observation')")
+    if f.channel and f.channel not in flagged:
+        return f"category {f.category!r}: the cited {tool} evidence reports it for {sorted(set(flagged))}, not {f.channel!r}"
+    return None
+
+
 def verify_finding(f: Finding, s: Session) -> dict:
     problems: list[str] = []
     cited = [s.evidence(e) for e in f.evidence]
@@ -161,6 +206,8 @@ def verify_finding(f: Finding, s: Session) -> dict:
                 problems.append(f"{key}={v} matches only non-time fields ({cands[0].path})")
     if f.channel and cited and f.channel not in text_blob:
         problems.append(f"channel {f.channel!r} does not appear in the cited evidence")
+    if (cp := category_problem(f, cited)) is not None:
+        problems.append(cp)
 
     ungrounded = [n["text"] for n in numbers if not n["grounded"]]
     mismatched = [n["text"] for n in numbers if n["grounded"] and not n["consistent"]]
