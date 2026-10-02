@@ -347,7 +347,7 @@ groundline verifier-bench --n 50</code></pre></div>
       const m = prev[prev.length - 1];
       const gap = masked.slice(m.end, c.start);
       if (gap.length <= 24 && !/[\d，,;；。:：\n（()）]/.test(gap))
-        out.set(m.start, c.path.replace(/\.(\d+)(?=\.|\)|$)/g, "[$1]"));
+        out.set(m.start, c.path.replace(/\.(\d+)(?=\.|\)|$)/g, "[$1]").replace(/^(len\()?(E\d+)\.result(?=[.[])/, "$1$2"));
     }
     return out;
   }
@@ -594,12 +594,16 @@ groundline verifier-bench --n 50</code></pre></div>
         const fl = byPath.get(cite);
         const sc = fl === undefined ? null : matches(val, dec, fl.value, fl.kind);
         if (sc !== null) cands = [[fl, sc]];
-        if (fl === undefined) {
+        if (fl === undefined || sc === null) {
           const eid = cite.match(/E\d+/)[0];
-          problems.push((finding.evidence || []).includes(eid)
-            ? `'${m.text}' cites ${cite}, which is not a numeric field`
-            : `'${m.text}' cites ${cite}, but ${eid} is not among the finding's evidence`);
-        } else if (sc === null) problems.push(`'${m.text}' cites ${cite} = ${fl.value}, which does not match`);
+          let msg = fl !== undefined ? `'${m.text}' cites ${cite} = ${fl.value}, which does not match`
+            : (finding.evidence || []).includes(eid) ? `'${m.text}' cites ${cite}, which is not a numeric field`
+            : `'${m.text}' cites ${cite}, but ${eid} is not among the finding's evidence`;
+          const alt = fields.map((g) => [g, matches(val, dec, g.value, g.kind)]).filter(([, k]) => k !== null)
+            .sort((a, b) => Math.abs(Math.abs(val) - Math.abs(a[0].value * a[1])) - Math.abs(Math.abs(val) - Math.abs(b[0].value * b[1])));
+          if (alt.length) msg += ` (the value matches ${alt[0][0].path})`;
+          problems.push(msg);
+        }
       } else {
         for (const fl of fields) { const sc = matches(val, dec, fl.value, fl.kind); if (sc !== null) cands.push([fl, sc]); }
         // closest value first, so a message names the field the writer most likely meant (stable, as in Python)
