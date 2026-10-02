@@ -593,7 +593,15 @@ groundline verifier-bench --n 50</code></pre></div>
       if (cite !== null) { // the writer named the field: check against that one only
         const fl = byPath.get(cite);
         const sc = fl === undefined ? null : matches(val, dec, fl.value, fl.kind);
-        if (sc !== null) cands = [[fl, sc]];
+        if (sc !== null) {
+          cands = [[fl, sc]];
+          const parent = cite.slice(0, cite.lastIndexOf("."));  // a sibling holding the very same value shares its meaning
+          for (const g of fields) {
+            if (g.path === cite || g.path.slice(0, g.path.lastIndexOf(".")) !== parent || g.value !== fl.value) continue;
+            const k = matches(val, dec, g.value, g.kind);
+            if (k !== null) cands.push([g, k]);
+          }
+        }
         if (fl === undefined || sc === null) {
           const eid = cite.match(/E\d+/)[0];
           let msg = fl !== undefined ? `'${m.text}' cites ${cite} = ${fl.value}, which does not match`
