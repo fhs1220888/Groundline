@@ -239,8 +239,8 @@ Checking only that "the number appears in the cited evidence" has two loopholes,
 
 So the verifier now remembers which field every evidence number came from (`peak`, `duration_s`, `freq_hz`, ...) and its unit, and reads each number in the sentence together with:
 
-- **its unit**: a number written with s / ms may only match a time field; Hz only a frequency field; % only a percentage field; a physical unit such as bar, K or N·s must match the unit the tool reported. Compound units are read whole and cancelled (kg/s·s = kg).
-- **its role word**: a number directly introduced by "peak / duration / mean / impulse / frequency / deviation / latency" (or the Chinese equivalents) must come from a field whose name fits that role. The word only counts when it leads straight into the number: in "continuously above the 700 K redline" the word describes the exceedance, and "10% of the peak" is a fraction of the peak; neither triggers the check. Range endpoints (1.27–9.02 s) get no role check either.
+- **its unit**: a number written with s / ms may only match a time field; Hz only a frequency field; % only a percentage field; a physical unit such as bar, K or N·s must match the unit the tool reported. Compound units are read whole and cancelled (kg/s·s = kg). The written unit also fixes the scale: a field of 0.8 s may be written as 800 ms, not as 0.8 ms. A count word ("3 spikes", "3 个") must come from a count field or a list length.
+- **its role word**: a number directly introduced by "peak / duration / mean / impulse / frequency / deviation / latency" (or the Chinese equivalents) must come from a field whose name fits that role. The word only counts when it leads straight into the number: in "continuously above the 700 K redline" the word describes the exceedance, and "10% of the peak" is a fraction of the peak; neither triggers the check. Range endpoints (1.27–9.02 s) get no role check either; instead the start of a range takes the unit written after its end (so 1.27 must be a time too), and a time range may not end before it starts.
 
 This is still deterministic string and field matching; no second LLM is asked to judge.
 
@@ -248,14 +248,14 @@ This is still deterministic string and field matching; no second LLM is asked to
 
 | Planted error | Count | Grounding only (old verifier) | Grounding + semantics (new verifier) |
 |---|---|---|---|
-| Invented value (changed by −30% to +50%) | 1364 | 87% | **95%** |
-| Real value in the wrong place (another field of the same evidence) | 1436 | 0% | **45%** |
-| Wrong unit (s ↔ Hz, % → s, ...) | 1168 | 0% | **92%** |
+| Invented value (changed by −30% to +50%) | 1364 | 87% | **98%** |
+| Real value in the wrong place (another field of the same evidence) | 1436 | 0% | **66%** |
+| Wrong unit (s ↔ Hz, % → s, ...) | 1168 | 0% | **99%** |
 | Unchanged correct findings (false alarms) | 268 | 0% | **0%** |
 
-The 45% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 69% of the time; swapping in a field of the same kind (one time replaced by another time) only 13%, and only when the sentence has a role word. That is the limit of this approach: two numbers that are both "a time" cannot be told apart from the text alone.
+The 66% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 90% of the time; swapping in a field of the same kind (one time replaced by another time) 34%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale and count rules were added these were 45% overall, 69% and 13%.) That is the limit of this approach: two numbers that are both "a time" cannot be told apart from the text alone.
 
-Also note that the role-word rules were written against the rule agent's sentence templates, so the false-alarm rate above, measured on those same templates, is optimistic. On independent text, the two reports written by gpt-5.6-sol (9 findings, 60 numbers, including the HANARO real-data report), the new verifier also raised no false alarms. A more reliable false-alarm estimate needs more real reports from different models.
+Also note that the role-word rules were written against the rule agent's sentence templates, so the false-alarm rate above, measured on those same templates, is optimistic. On independent text, the two reports written by gpt-5.6-sol (9 findings, 60 numbers, including the HANARO real-data report), the new verifier also raised no false alarms, and re-verifying the stored gpt-5.6-sol and Qwen benchmark runs after the range, scale and count rules were added (123 gpt-5.6-sol claims, 798 numbers) changed no verdict. A more reliable false-alarm estimate needs more real reports from different models.
 
 LLM benchmark runs store every run's findings together with its evidence ledger. When the verifier improves, `groundline reverify <results.json>` re-scores them without re-running the model; the last 7B run above (`docs/results/leaderboard/`) was re-scored this way.
 

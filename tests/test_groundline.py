@@ -562,6 +562,30 @@ def test_semantic_flags_real_value_in_wrong_role_or_unit():
     assert v["mismatched_numbers"]
 
 
+def test_semantic_ranges_time_scale_and_counts():
+    from groundline.semantics import EvField, check_number
+
+    s, ev = _pc_session_with_pulse()
+    r = ev.result
+    assert _check(s, f"{r['t_start']:.2f}–{r['t_end']:.2f} s, {r['action_time_s'] * 1000:.0f} ms", ev)["status"] \
+        == "verified"
+    # a time range that ends before it starts
+    v = _check(s, f"{r['t_end']:.2f}–{r['t_start']:.2f} s", ev)
+    assert v["mismatched_numbers"] == [f"{r['t_start']:.2f}"] and "before it starts" in v["semantic_problems"][0]
+    # the start of "a–b s" is a time too, so the peak force cannot open the range
+    v = _check(s, f"{r['peak']:.1f}–{r['t_end']:.2f} s", ev)
+    assert f"{r['peak']:.1f}" in v["mismatched_numbers"]
+    # a duration in seconds written as milliseconds
+    assert _check(s, f"lasting {r['action_time_s']:.2f} ms", ev)["mismatched_numbers"]
+    # "3 个" must come from a count, not from any field that happens to equal 3
+    text = "出现 3 个孤立尖峰"
+    i = text.index("3")
+    plain = (EvField(3.0, "deviation", "E1.deviation", None, "plain"), 1.0)
+    count = (EvField(3.0, "#len(spikes)", "len(E1.spikes)", None, "count"), 1.0)
+    assert not check_number(text, i, i + 1, [plain])["ok"]
+    assert check_number(text, i, i + 1, [plain, count])["ok"]
+
+
 def test_role_word_must_lead_into_the_number():
     from groundline.semantics import role_before
 

@@ -173,6 +173,30 @@ def role_before(text: str, start: int) -> tuple[str, str] | None:
     return best[1], best[2]
 
 
+_NUM_TAIL = r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?"
+_RANGE_END_RE = re.compile(r"\s*(?:[–—~\-]|至|到|to)\s*" + _NUM_TAIL)
+_RANGE_START_RE = re.compile(r"(?<![\d.])([-+−]?\d+(?:\.\d+)?)\s*(" + _BASE_U + r"|毫秒|秒)?\s*(?:[–—~\-]|至|到|\bto)\s*$")
+
+
+def range_end_unit(text: str, end: int) -> str | None:
+    """Unit written after the other end of a range that starts here: "3.0–3.7 s" gives 3.0 the unit s."""
+    m = _RANGE_END_RE.match(text, end)
+    return unit_after(text, m.end()) if m else None
+
+
+def range_start_value(text: str, start: int) -> float | None:
+    """Value of the number that opens a range ending at ``start`` ("2.6–" before "3.7 s"), if any."""
+    m = _RANGE_START_RE.search(text[:start])
+    return float(m.group(1).replace("−", "-")) if m else None
+
+
+def _time_scale(tu: str | None, f: EvField) -> float:
+    """The scale that turns field ``f`` into the time unit written in the text (s <-> ms)."""
+    text_ms = tu in ("ms", "毫秒")
+    field_ms = f.key.lower().endswith("_ms") or (f.unit or "").strip() == "ms"
+    return 1.0 if text_ms == field_ms else (1000.0 if text_ms else 0.001)
+
+
 def is_range_endpoint(text: str, start: int, end: int) -> bool:
     after = text[end:]
     u = _UNIT_RE.match(after)
@@ -188,14 +212,14 @@ def is_range_endpoint(text: str, start: int, end: int) -> bool:
 def _unit_ok(tk: str | None, tu: str | None, f: EvField, scale: float) -> bool:
     if tk is None:
         return True
-    if tk == "time":
-        return f.kind == "time"
+    if tk == "time":  # and in the unit written: a field in seconds read as "0.8 ms" is a different number
+        return f.kind == "time" and scale == _time_scale(tu, f)
     if tk == "freq":
         return f.kind == "freq"
     if tk == "percent":
         return f.kind == "percent" or (scale == 100.0 and f.kind == "plain")
-    if tk == "count":
-        return f.kind in ("count", "plain")
+    if tk == "count":  # "3 个" / "3 spikes" must come from a count or a list length, not any field equal to 3
+        return f.kind == "count"
     # physical unit written in the text
     if f.kind == "plain":
         return True
@@ -209,12 +233,18 @@ def check_number(text: str, start: int, end: int, candidates: list[tuple[EvField
 
     Returns {"ok": bool, "unit": ..., "role": ..., "field": path of the accepted/closest field, "problem": str|None}.
     """
-    tu = unit_after(text, end)
+    tu = unit_after(text, end) or range_end_unit(text, end)
     tk = unit_kind(tu)
     rb = role_before(text, start)
     role = None if rb is None or is_range_endpoint(text, start, end) else rb
     by_unit = [(f, sc) for f, sc in candidates if _unit_ok(tk, tu, f, sc)]
     tok = text[start:end]
+    if tk == "time":  # a time range cannot end before it starts
+        lo = range_start_value(text, start)
+        if lo is not None and float(tok.replace("−", "-")) < lo:
+            f = (by_unit or candidates)[0][0]
+            return {"ok": False, "unit": tu, "role": rb and rb[0], "field": f.path,
+                    "problem": f"time range ends at {tok} {tu}, before it starts ({lo:g})"}
     if candidates and not by_unit:
         f = candidates[0][0]
         what = f.kind if f.kind != "physical" else f"unit {f.unit}"

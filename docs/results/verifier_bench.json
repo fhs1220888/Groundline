@@ -14,49 +14,52 @@
     "fabricated": {
       "n": 1364,
       "caught_grounding": 1191,
-      "caught_full": 1299
+      "caught_full": 1334
     },
     "swapped": {
       "n": 1436,
       "caught_grounding": 0,
-      "caught_full": 645
+      "caught_full": 950
     },
     "wrong_unit": {
       "n": 1168,
       "caught_grounding": 0,
-      "caught_full": 1072
+      "caught_full": 1154
     }
   },
   "examples": {
-    "swapped_missed": [
+    "swapped": [
       {
         "change": "2.658 -> 3.000 (E3.criteria.flatline_min_native_samples)",
-        "statement": "P_ox_inj 在 3.000–3.682 s 之间出现 3 个孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。"
+        "statement": "P_ox_inj 在 3.000–3.682 s 之间出现 3 个孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
+        "why": "'3.000 s' matches only E3.issues[0].count (count)"
       },
       {
         "change": "3.682 -> 1.000 (len(E3.issues))",
-        "statement": "P_ox_inj 在 2.658–1.000 s 之间出现 3 个孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。"
+        "statement": "P_ox_inj 在 2.658–1.000 s 之间出现 3 个孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
+        "why": "time range ends at 1.000 s, before it starts (2.658)"
       },
       {
         "change": "3 -> 2 (E3.issues[0].spikes[1].deviation)",
-        "statement": "P_ox_inj 在 2.658–3.682 s 之间出现 2 个孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。"
+        "statement": "P_ox_inj 在 2.658–3.682 s 之间出现 2 个孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
+        "why": "'2 个' matches only E3.issues[0].spikes[2].deviation (plain)"
       }
     ],
     "wrong_unit": [
       {
         "change": "3.682 s -> 3.682 Hz",
         "statement": "P_ox_inj 在 2.658–3.682 Hz 之间出现 3 个孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
-        "why": "'3.682 Hz' matches only E3.issues[0].t_end (time)"
+        "why": "'2.658 Hz' matches only E3.issues[0].t_start (time)"
+      },
+      {
+        "change": "5 个采样点 -> 5 s",
+        "statement": "P_ox_inj 在 2.658–3.682 s 之间出现 3 个孤立尖峰（宽度不超过 5 s），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
+        "why": "'5 s' matches only E3.criteria.spike_max_width_samples (count)"
       },
       {
         "change": "1.054 s -> 1.054 Hz",
         "statement": "基于 Pc 分段：点火 1.054 Hz，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 5.000 MPa。",
         "why": "'1.054 Hz' matches only E2.ignition_s (time)"
-      },
-      {
-        "change": "9.024 s -> 9.024 Hz",
-        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–9.024 Hz（持续 7.76 s），稳态水平 5.000 MPa。",
-        "why": "'9.024 Hz' matches only E2.mainstage_end_s (time)"
       }
     ],
     "wrong_unit_missed": [
@@ -65,46 +68,20 @@
         "statement": "P_ox_inj 在 2.658–3.682 s 之间出现 3 s孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。"
       },
       {
-        "change": "5 个采样点 -> 5 s",
-        "statement": "P_ox_inj 在 2.658–3.682 s 之间出现 3 个孤立尖峰（宽度不超过 5 s），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。"
+        "change": "-4.77 % -> -4.77 s",
+        "statement": "Pc 在 3.19–9.02 s 持续偏离仿真预测，平均偏差 -5.72%（容差 2.0%）。 喷前压力同步偏低（P_ox_inj -4.93%, P_fu_inj -4.77s），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 -0.00%, -0.00%），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
       },
       {
-        "change": "-0.00 % -> -0.00 s",
-        "statement": "Pc 在 2.77–9.02 s 持续偏离仿真预测，平均偏差 -4.66%（容差 2.0%）。 喷前压力同步偏低（P_ox_inj -4.02%, P_fu_inj -3.89%），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 -0.00s, -0.00%），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
-      }
-    ],
-    "fabricated_missed": [
-      {
-        "change": "5 -> 8",
-        "statement": "P_ox_inj 在 2.658–3.682 s 之间出现 3 个孤立尖峰（宽度不超过 8 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。"
-      },
-      {
-        "change": "2.45 -> 1.96",
-        "statement": "Pc 在 1.96–4.40 s 检测到约 230 Hz 的窄带振荡，峰值幅值为均值的 2.84%（判据 0.5%）。 vib_axial 在 230 Hz 同步检出振荡，佐证其为物理现象而非单个传感器问题。"
-      },
-      {
-        "change": "-4.66 -> -3.26",
-        "statement": "Pc 在 2.77–9.02 s 持续偏离仿真预测，平均偏差 -3.26%（容差 2.0%）。 喷前压力同步偏低（P_ox_inj -4.02%, P_fu_inj -3.89%），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 -0.00%, -0.00%），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
-      }
-    ],
-    "swapped": [
-      {
-        "change": "9.024 -> 5.000 (len(E2.phases))",
-        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–5.000 s（持续 7.76 s），稳态水平 5.000 MPa。",
-        "why": "'5.000 s' matches only E2.steady_level (unit MPa)"
-      },
-      {
-        "change": "7.76 -> 9.02 (E2.mainstage_end_s)",
-        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–9.024 s（持续 9.02 s），稳态水平 5.000 MPa。",
-        "why": "'持续 9.02' is read as duration, but the value comes from E2.mainstage_end_s"
-      },
-      {
-        "change": "5.000 -> 9.000 (E2.command_events[2].t_s)",
-        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 9.000 MPa。",
-        "why": "'9.000 MPa' matches only E2.mainstage_end_s (time)"
+        "change": "1 个 -> 1 s",
+        "statement": "P_ox_inj 在 5.853–5.853 s 之间出现 1 s孤立尖峰（宽度不超过 5 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。"
       }
     ],
     "fabricated": [
+      {
+        "change": "5 -> 8",
+        "statement": "P_ox_inj 在 2.658–3.682 s 之间出现 3 个孤立尖峰（宽度不超过 8 个采样点），持续时间短于红线判据，判断为测量毛刺，而非真实的物理变化。",
+        "why": "'8 个采样点' matches only E3.issues[0].spikes[2].value (plain)"
+      },
       {
         "change": "2.84 -> 1.99",
         "statement": "Pc 在 2.45–4.40 s 检测到约 230 Hz 的窄带振荡，峰值幅值为均值的 1.99%（判据 0.5%）。 vib_axial 在 230 Hz 同步检出振荡，佐证其为物理现象而非单个传感器问题。",
@@ -114,11 +91,34 @@
         "change": "5.000 -> 4.000",
         "statement": "基于 Pc 分段：点火 1.154 s，主级段 1.368–9.024 s（持续 7.66 s），稳态水平 4.000 MPa。",
         "why": "'4.000 MPa' matches only len(E2.command_events) (count)"
+      }
+    ],
+    "swapped_missed": [
+      {
+        "change": "1.054 -> 0.900 (E2.command_events[1].t_s)",
+        "statement": "基于 Pc 分段：点火 0.900 s，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 5.000 MPa。"
       },
       {
-        "change": "5.000 -> 4.000",
-        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 4.000 MPa。",
-        "why": "'4.000 MPa' matches only len(E2.command_events) (count)"
+        "change": "1.268 -> 1.054 (E2.phases[0].t_end)",
+        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.054–9.024 s（持续 7.76 s），稳态水平 5.000 MPa。"
+      },
+      {
+        "change": "2.45 -> 3.78 (E6.max_window.t_center)",
+        "statement": "Pc 在 3.78–4.40 s 检测到约 230 Hz 的窄带振荡，峰值幅值为均值的 2.84%（判据 0.5%）。 vib_axial 在 230 Hz 同步检出振荡，佐证其为物理现象而非单个传感器问题。"
+      }
+    ],
+    "fabricated_missed": [
+      {
+        "change": "2.45 -> 1.96",
+        "statement": "Pc 在 1.96–4.40 s 检测到约 230 Hz 的窄带振荡，峰值幅值为均值的 2.84%（判据 0.5%）。 vib_axial 在 230 Hz 同步检出振荡，佐证其为物理现象而非单个传感器问题。"
+      },
+      {
+        "change": "-4.66 -> -3.26",
+        "statement": "Pc 在 2.77–9.02 s 持续偏离仿真预测，平均偏差 -3.26%（容差 2.0%）。 喷前压力同步偏低（P_ox_inj -4.02%, P_fu_inj -3.89%），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 -0.00%, -0.00%），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
+      },
+      {
+        "change": "-4.02 -> -3.22",
+        "statement": "Pc 在 2.77–9.02 s 持续偏离仿真预测，平均偏差 -4.66%（容差 2.0%）。 喷前压力同步偏低（P_ox_inj -3.22%, P_fu_inj -3.89%），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 -0.00%, -0.00%），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
       }
     ]
   }
