@@ -151,8 +151,16 @@ def compute_phases(s: Session, channel: str | None = None, on_frac: float = 0.1,
     x = _filled(s.require_channel(ch))
     w = max(int(0.02 * s.fs), 1)
     xs = pd.Series(x).rolling(w, center=True, min_periods=1).mean().to_numpy()
-    peak = float(np.nanmax(xs))
-    level = float(np.nanmedian(xs[xs > 0.5 * peak]))
+    # steady level: the plateau around the peak of a 0.2 s rolling median (a brief spike does not set the peak,
+    # and a sensor that sticks high after shutdown does not get averaged into the level)
+    xm = pd.Series(xs).rolling(max(int(0.2 * s.fs), 1), center=True, min_periods=1).median().to_numpy()
+    k = int(np.nanargmax(xm))
+    peak = float(xm[k])
+    above = xm > 0.5 * peak
+    lo = k - int(np.argmin(above[k::-1])) + 1 if not above[k::-1].all() else 0
+    hi = k + int(np.argmin(above[k:])) if not above[k:].all() else len(xm)
+    plateau = xs[lo:hi]
+    level = float(np.nanmedian(plateau[plateau > 0.75 * peak])) if (plateau > 0.75 * peak).any() else peak
     on = np.where(xs > on_frac * level)[0]
     steady = np.where(xs > steady_frac * level)[0]
     if on.size == 0 or steady.size == 0 or level <= 0:
@@ -163,7 +171,17 @@ def compute_phases(s: Session, channel: str | None = None, on_frac: float = 0.1,
         }
     i_ign, i_ms0, i_ms1 = int(on[0]), int(steady[0]), int(steady[-1])
     after = np.where(xs[i_ms1:] < on_frac * level)[0]
-    i_tail = i_ms1 + int(after[0]) if after.size else len(t) - 1
+    tail_by = "below_on_frac"
+    if after.size:
+        i_tail = i_ms1 + int(after[0])
+    else:
+        # the trace never falls back (a sensor that sticks or shifts after shutdown): tail-off ends where it stops
+        # falling, i.e. the first 0.2 s window after mainstage whose range is within 2 % of the steady level
+        n_set = max(int(0.2 * s.fs), 2)
+        rng = (pd.Series(xs[i_ms1:]).rolling(n_set).max() - pd.Series(xs[i_ms1:]).rolling(n_set).min()).to_numpy()
+        settled = np.where(rng < 0.02 * level)[0]
+        i_tail, tail_by = ((i_ms1 + int(settled[0]) - n_set + 1, "settled_above_threshold") if settled.size
+                           else (len(t) - 1, "end_of_record"))
     bounds = [
         ("pre_test", t[0], t[i_ign]),
         ("startup", t[i_ign], t[i_ms0]),
@@ -185,6 +203,7 @@ def compute_phases(s: Session, channel: str | None = None, on_frac: float = 0.1,
         "mainstage_start_s": float(t[i_ms0]),
         "mainstage_end_s": float(t[i_ms1]),
         "tail_off_end_s": float(t[i_tail]),
+        "tail_off_end_by": tail_by,
         "mainstage_duration_s": float(t[i_ms1] - t[i_ms0]),
         "phases": [{"name": n, "t_start": float(a), "t_end": float(b)} for n, a, b in bounds],
         "command_events": sorted(cmd_events, key=lambda e: e["t_s"]),
@@ -194,7 +213,9 @@ def compute_phases(s: Session, channel: str | None = None, on_frac: float = 0.1,
 @tool(
     "segment_phases",
     "Split the run into pre_test / startup / mainstage / shutdown / post_test from the chamber-pressure trace "
-    "(10 % and 90 % of steady level). Returns ignition, mainstage start/end and command edge times.",
+    "(10 % and 90 % of steady level). Returns ignition, mainstage start/end and command edge times. If the trace "
+    "never falls back below 10 % after mainstage (a sensor that sticks after shutdown), tail-off ends where it "
+    "settles; tail_off_end_by says which rule applied.",
     {"channel": {**_CH, "description": "pressure channel to segment on (default Pc)"}},
 )
 def segment_phases(s: Session, channel: str | None = None):
@@ -317,7 +338,9 @@ def _peak_interp(mag: np.ndarray, k: int) -> float:
     "Sliding-window FFT search for narrow-band oscillations (e.g. combustion instability) on one channel. "
     "A window is flagged when the dominant peak in [fmin, fmax] exceeds threshold_pct of the channel mean "
     "(zero-mean channels such as accelerometers use only the prominence test). Consecutive flagged windows "
-    "with the same frequency are merged into events with frequency and amplitude.",
+    "with the same frequency are merged into events with frequency and amplitude. An oscillation has to last "
+    "min_windows overlapping windows (default 3); shorter narrow-band peaks are listed as short_events: usually "
+    "a transient such as a pressure spike, not a sustained oscillation.",
     {
         "channel": {**_CH, "description": "channel to analyse (default Pc)"},
         "t_start": _T,
@@ -326,6 +349,7 @@ def _peak_interp(mag: np.ndarray, k: int) -> float:
         "fmax": {"type": "number", "description": "upper frequency bound in Hz"},
         "threshold_pct": {"type": "number", "description": "zero-to-peak amplitude threshold in % of mean"},
         "window_s": {"type": "number", "description": "FFT window length in seconds (default 0.1)"},
+        "min_windows": {"type": "integer", "description": "flagged windows in a row needed for an event (default 3)"},
     },
 )
 def detect_oscillation(
@@ -338,8 +362,10 @@ def detect_oscillation(
     threshold_pct: float | None = None,
     window_s: float = 0.1,
     prominence: float = 8.0,
+    min_windows: int | None = None,
 ):
     cfg = s.limits.get("oscillation", {})
+    min_windows = int(min_windows if min_windows is not None else cfg.get("min_windows", 3))
     channel = channel or _primary_pressure(s)
     fmin = float(fmin if fmin is not None else cfg.get("fmin_hz", 50.0))
     fmax = float(fmax if fmax is not None else cfg.get("fmax_hz", 2000.0))
@@ -423,6 +449,12 @@ def detect_oscillation(
             cur = {"_rows": [r], "_f": [r["freq_hz"]]}
     if cur:
         events.append(cur)
+    # a sustained oscillation spans several windows; a lone flagged window is a transient (a pressure spike,
+    # a step) whose broadband energy happens to peak somewhere in the band. A short analysis span (drilling
+    # into one event) cannot hold min_windows windows, so the requirement shrinks to what fits.
+    need = max(1, min(min_windows, sum(1 for r in rows if not r.get("skipped"))))
+    short = [e for e in events if len(e["_rows"]) < need]
+    events = [e for e in events if len(e["_rows"]) >= need]
     out_events = []
     for e in events:
         rs = e["_rows"]
@@ -457,8 +489,14 @@ def detect_oscillation(
         "freq_resolution_hz": df,
         "n_windows": len(rows),
         "n_skipped_windows": sum(1 for r in rows if r.get("skipped")),
+        "min_windows": need,
         "detected": bool(out_events),
         "events": out_events,
+        "short_events": [{"t_start": e["_rows"][0]["t_center"] - hop_s / 2, "t_end": e["_rows"][-1]["t_center"] + hop_s / 2,
+                          "freq_hz": float(np.median(e["_f"])), "n_windows": len(e["_rows"]),
+                          **({"peak_amp_pct": max(r["amp_pct"] for r in e["_rows"])}
+                             if all(r["amp_pct"] is not None for r in e["_rows"]) else {})}
+                         for e in short][:10],
         "max_window": None
         if worst is None
         else {k: worst[k] for k in ("t_center", "freq_hz", "amp", "amp_pct", "prominence")},
@@ -492,12 +530,53 @@ def detect_oscillation(
 
 
 # ---------------------------------------------------------------------------- sensor health
+COINCIDENT_S = 0.02  # spikes on different kinds of sensor this close together belong to one event
+
+
+def _gap_issue(t: np.ndarray, gaps: list[dict], firing) -> dict:
+    starts = np.array([g["t_start"] for g in gaps])
+    in_fire = [g for g in gaps if firing and g["t_start"] <= firing[1] and firing[0] <= g["t_end"]]
+    return {"kind": "recurring_nan_gaps", "t_start": gaps[0]["t_start"], "t_end": gaps[-1]["t_end"],
+            "count": len(gaps), "total_s": float(sum(g["duration_s"] for g in gaps)),
+            "longest_s": float(max(g["duration_s"] for g in gaps)),
+            "median_interval_s": float(np.median(np.diff(starts))),
+            "count_during_firing": len(in_fire), "gaps_during_firing": in_fire[:10]}
+
+
+def _baseline_return(s: Session, frac: float = 0.25, settle_s: float = 2.0) -> dict | None:
+    """The segmentation channel (chamber pressure) should fall back to its pre-test reading once the engine is
+    off. Returns an issue when, from ``settle_s`` after mainstage end, it stays above baseline by more than
+    ``frac`` of the steady level."""
+    seg = s._cache.get("phases") or {}
+    ch = seg.get("channel")
+    if not seg.get("fired") or ch is None:
+        return None
+    t = s.time
+    x = s.require_channel(ch)
+    pre = x[(t >= s.phase_window("pre_test")[0]) & (t < seg["ignition_s"])]
+    t_after = seg["mainstage_end_s"] + settle_s
+    post = x[t >= t_after]
+    pre, post = pre[~np.isnan(pre)], post[~np.isnan(post)]
+    if pre.size < 0.5 * s.fs or post.size < 1.0 * s.fs:
+        return None
+    base, after, level = float(np.median(pre)), float(np.median(post)), float(seg["steady_level"])
+    if level <= base or after - base <= frac * (level - base):
+        return None
+    return {"channel": ch, "kind": "no_return_to_baseline", "t_start": float(t_after), "t_end": float(t[-1]),
+            "baseline": base, "post_level": after, "steady_level": level, "unit": _unit(s, ch),
+            "offset_of_steady_pct": 100 * (after - base) / (level - base)}
+
+
 @tool(
     "check_sensor_health",
     "Look for instrumentation problems on measurement channels: NaN gaps (more than 3 gaps on one channel are "
-    "reported together as recurring gaps), flatlines (value exactly stuck for >= 50 ms and >= 3 native samples, "
-    "overlapping the firing — a steady reading while the engine is off is not a fault) and isolated spikes "
-    "(>12 local robust sigmas, <= 5 samples wide).",
+    "reported together as recurring gaps; gaps shared by every checked channel are reported once, as dropped DAQ "
+    "frames), flatlines (value exactly stuck for >= 50 ms and >= 3 native samples, overlapping the firing — a steady "
+    "reading while the engine is off is not a fault; short NaN gaps inside a flatline do not split it, and a value "
+    "stuck at the channel's maximum or minimum is marked, as it suggests a saturated sensor), isolated spikes "
+    "(>12 local robust sigmas, <= 5 samples wide; spikes that coincide within 20 ms on sensors of different kinds "
+    "are reported together as one event, since a single sensor cannot explain them), and a chamber pressure that "
+    "does not return to its pre-test baseline after shutdown.",
     {"channels": {"type": "array", "items": {"type": "string"}, "description": "channels to check (default all measurements)"}},
 )
 def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sigma: float = 12.0):
@@ -508,32 +587,41 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
     chans = channels or [c for c in s.channels if s.channel_info(c).get("kind") not in ("command", "housekeeping")]
     issues, summary = [], {}
     firing = _firing_window(s)
+    masks = {ch: np.isnan(s.require_channel(ch)) for ch in chans}
+    # NaNs present on every checked channel at once come from the DAQ (dropped frames), not from one sensor
+    shared = np.logical_and.reduce(list(masks.values())) if len(chans) >= 2 else np.zeros(len(t), bool)
+    shared_chans = []
     for ch in chans:
         x = s.require_channel(ch)
-        nan = np.isnan(x)
+        nan = masks[ch]
         ch_issues = []
         gaps = [{"t_start": float(t[i0]), "t_end": float(t[i1 - 1]), "duration_s": float(t[i1 - 1] - t[i0]),
                  "n_samples": i1 - i0} for i0, i1 in _runs(nan)]
-        if len(gaps) > 3:
-            starts = np.array([g["t_start"] for g in gaps])
-            in_fire = [g for g in gaps if firing and g["t_start"] <= firing[1] and firing[0] <= g["t_end"]]
-            ch_issues.append({"channel": ch, "kind": "recurring_nan_gaps", "t_start": gaps[0]["t_start"],
-                              "t_end": gaps[-1]["t_end"], "count": len(gaps),
-                              "total_s": float(sum(g["duration_s"] for g in gaps)),
-                              "longest_s": float(max(g["duration_s"] for g in gaps)),
-                              "median_interval_s": float(np.median(np.diff(starts))),
-                              "count_during_firing": len(in_fire), "gaps_during_firing": in_fire[:10]})
+        if len(gaps) > 3 and shared.any() and not (nan & ~shared).any():
+            shared_chans.append(ch)  # reported once for all channels below
+        elif len(gaps) > 3:
+            ch_issues.append({"channel": ch, **_gap_issue(t, gaps, firing)})
         else:
             ch_issues += [{"channel": ch, "kind": "nan_gap", **g} for g in gaps]
         min_flat = max(int(0.05 * fs), int(np.ceil(3 * fs / _native_rate(s, ch))), 3)
-        same = np.concatenate([[False], np.diff(x) == 0])
+        # a stuck value interrupted by short dropouts is one flatline, not one per piece between the gaps
+        xb = pd.Series(x).interpolate(limit=max(int(0.1 * fs), 1), limit_area="inside").to_numpy()
+        same = np.concatenate([[False], np.diff(xb) == 0])
+        lo_all, hi_all = (float(np.nanmin(x)), float(np.nanmax(x))) if (~nan).any() else (np.nan, np.nan)
         for i0, i1 in _runs(same):
             i0 -= 1
             if firing and min(t[i1 - 1], firing[1]) - max(t[i0], firing[0]) < min_flat / fs:
                 continue  # stuck only while the engine was off: indistinguishable from a quiet reading
             if i1 - i0 >= min_flat:
+                v = float(xb[i0])
                 ch_issues.append({"channel": ch, "kind": "flatline", "t_start": float(t[i0]), "t_end": float(t[i1 - 1]),
-                                  "duration_s": float(t[i1 - 1] - t[i0]), "stuck_value": float(x[i0])})
+                                  "duration_s": float(t[i1 - 1] - t[i0]), "stuck_value": v,
+                                  "at_channel_max": v == hi_all, "at_channel_min": v == lo_all})
+        flats = [i for i in ch_issues if i["kind"] == "flatline"]
+        for a, b in zip(flats, flats[1:]):  # a stuck value broken by a blip of a sample or two is one flatline
+            if b["stuck_value"] == a["stuck_value"] and b["t_start"] - a["t_end"] < 0.1:
+                b["t_start"], b["duration_s"] = a["t_start"], b["t_end"] - a["t_start"]
+                ch_issues.remove(a)
         # spikes are judged at the rate the channel was recorded at: on a signal interpolated from a slow
         # logger, one real sample becomes a 10-point triangle and the fast-grid test would flag every peak
         k = max(int(round(fs / _native_rate(s, ch))), 1)
@@ -574,7 +662,7 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
                            "deviation": float(xk[jj] - med[jj]), "sigmas": float(res[jj] / sigma[jj])})
         if spikes:
             ch_issues.append({"channel": ch, "kind": "spike", "t_start": spikes[0]["t"], "t_end": spikes[-1]["t"],
-                              "count": len(spikes), "spikes": spikes[:20]})
+                              "count": len(spikes), "spikes": spikes})  # trimmed to 20 after the coincidence check
         issues.extend(ch_issues)
         summary[ch] = {
             "nan_samples": int(nan.sum()),
@@ -582,11 +670,47 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
             "spikes": len(spikes),
             "ok": not ch_issues,
         }
+    # spikes on sensors of different kinds within COINCIDENT_S of each other are one event hitting several
+    # sensors (a fast physical transient, or interference on the DAQ), not single-sensor glitches
+    fam = {ch: (s.channel_info(ch).get("kind") or "other").split("_")[0] for ch in chans}
+    allsp = sorted((sp["t"], i["channel"], sp) for i in issues if i["kind"] == "spike" for sp in i["spikes"])
+    for tk_, ch, sp in allsp:
+        near = {c for t2, c, _ in allsp if abs(t2 - tk_) <= COINCIDENT_S and fam[c] != fam[ch]}
+        if near:
+            sp["coincident_with"] = sorted(near)
+    clusters: list[list] = []
+    for tk_, ch, sp in allsp:
+        if "coincident_with" in sp:
+            if clusters and tk_ - clusters[-1][-1][0] <= COINCIDENT_S:
+                clusters[-1].append((tk_, ch, sp))
+            else:
+                clusters.append([(tk_, ch, sp)])
+    for i in [i for i in issues if i["kind"] == "spike"]:
+        i["spikes"] = [sp for sp in i["spikes"] if "coincident_with" not in sp]
+        if not i["spikes"]:
+            issues.remove(i)
+        else:
+            i.update(t_start=i["spikes"][0]["t"], t_end=i["spikes"][-1]["t"], count=len(i["spikes"]))
+            i["spikes"] = i["spikes"][:20]
+    for cl in clusters:
+        chs = sorted({c for _, c, _ in cl})
+        issues.append({"channel": None, "channels": chs, "kind": "coincident_spikes", "t_start": cl[0][0],
+                       "t_end": cl[-1][0], "n_channels": len(chs),
+                       "spikes": [{"channel": c, "t": t_, "deviation": sp["deviation"]} for t_, c, sp in cl]})
+    if shared_chans:
+        gaps = [{"t_start": float(t[i0]), "t_end": float(t[i1 - 1]), "duration_s": float(t[i1 - 1] - t[i0]),
+                 "n_samples": i1 - i0} for i0, i1 in _runs(shared)]
+        issues.insert(0, {"channel": None, "channels": shared_chans, "shared_by_all_checked": True,
+                          **_gap_issue(t, gaps, firing)})
+    if (b := _baseline_return(s)) is not None and b["channel"] in chans:
+        issues.append(b)
+        summary[b["channel"]]["ok"] = False
     res = {"checked": chans, "issues": issues, "n_issues": len(issues), "summary": summary,
            "criteria": {"spike_sigma": spike_sigma, "spike_max_width_samples": 5,
                         "flatline_min_s": max(int(0.05 * fs), 3) / fs, "flatline_min_native_samples": 3,
-                        "flatline_only_during_firing": firing is not None,
-                        "recurring_gap_threshold": 3, "nan_margin_s": 0.01}}
+                        "flatline_only_during_firing": firing is not None, "flatline_bridges_gaps_up_to_s": 0.1,
+                        "recurring_gap_threshold": 3, "nan_margin_s": 0.01, "coincident_spike_s": COINCIDENT_S,
+                        "baseline_return_frac": 0.25, "baseline_settle_s": 2.0}}
     fig = None
     bad = [c for c in chans if not summary[c]["ok"]][:4]
     if bad:
