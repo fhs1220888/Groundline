@@ -301,6 +301,74 @@ def test_openai_responses_backend(monkeypatch):
     assert "Verifier rejected" in seen[2]["input"][0]["output"]
 
 
+def test_anthropic_backend(monkeypatch):
+    """Anthropic: cached prefix, effort, thinking blocks echoed unchanged, 529 retried, cache-aware usage."""
+    import json as J
+
+    import httpx
+
+    from groundline import agent as agent_mod
+    from groundline.agent import AnthropicBackend, make_agent
+
+    monkeypatch.setattr(agent_mod.time, "sleep", lambda _s: None)
+    monkeypatch.delenv("GROUNDLINE_LLM_MODEL", raising=False)
+    monkeypatch.setenv("GROUNDLINE_LLM_REASONING_EFFORT", "medium")
+    seen = []
+    state = {"n": 0, "overloaded": False}
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        assert url == "https://api.anthropic.com/v1/messages"
+        req = httpx.Request("POST", url)
+        if not state["overloaded"]:  # first attempt: overloaded, must be retried
+            state["overloaded"] = True
+            return httpx.Response(529, json={"type": "error"}, request=req)
+        assert json["model"] == "claude-sonnet-5-5" and json["max_tokens"] >= 16000
+        assert json["cache_control"] == {"type": "ephemeral"}
+        assert json["output_config"] == {"effort": "medium"}
+        assert "temperature" not in json and "thinking" not in json
+        seen.append(J.loads(J.dumps(json)))
+        state["n"] += 1
+        n = state["n"]
+        thinking = {"type": "thinking", "thinking": "", "signature": f"sig{n}"}
+        if n == 1:
+            content = [thinking, {"type": "tool_use", "id": "t1", "name": "check_redlines", "input": {}}]
+        else:
+            ev = next(J.loads(b["content"]) for m in reversed(json["messages"]) if m["role"] == "user"
+                      and isinstance(m["content"], list) for b in m["content"]
+                      if b.get("type") == "tool_result" and "evidence_id" in b["content"])
+            num = "123.45" if n == 2 else str(ev["result"]["persistence_s"])
+            args = {"summary": "s", "findings": [{"title": "t", "statement": f"persistence {num} s",
+                                                  "category": "observation", "severity": "info",
+                                                  "evidence": [ev["evidence_id"]]}]}
+            content = [thinking, {"type": "tool_use", "id": f"s{n}", "name": "submit_report", "input": args}]
+        body = {"content": content, "stop_reason": "tool_use",
+                "usage": {"input_tokens": 50, "cache_read_input_tokens": 40, "cache_creation_input_tokens": 10,
+                          "output_tokens": 20}}
+        return httpx.Response(200, json=body, request=req)
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    agent = make_agent("anthropic", "en", None, None, "k")
+    assert isinstance(agent.backend, AnthropicBackend)
+    _, s = session_for(["overtemp"], seed=2)
+    res = agent.run(s)
+    assert res.verification["verified"] == 1
+    assert res.agent["fix_rounds_used"] == 1
+    assert res.agent["usage"] == {"input_tokens": 300, "output_tokens": 60, "requests": 3,
+                                  "cache_read_input_tokens": 120}
+    # earlier assistant turns go back exactly as returned, thinking block first
+    first_turn = seen[2]["messages"][1]
+    assert first_turn["role"] == "assistant" and first_turn["content"][0] == {
+        "type": "thinking", "thinking": "", "signature": "sig1"}
+
+    # a refusal or a cut-off reply stops the run instead of nudging the model in a loop
+    for stop in ("refusal", "max_tokens"):
+        monkeypatch.setattr(httpx, "post", lambda url, json=None, headers=None, timeout=None, stop=stop: httpx.Response(
+            200, json={"content": [], "stop_reason": stop, "stop_details": {"category": "cyber"}, "usage": {}},
+            request=httpx.Request("POST", url)))
+        with pytest.raises(RuntimeError, match=stop):
+            AnthropicBackend(api_key="k").complete("sys", [{"role": "user", "content": "hi"}], [])
+
+
 # ---------------------------------------------------------------------------- real data: HANARO solid motor
 HANARO = __import__("pathlib").Path(__file__).resolve().parents[1] / "examples" / "hanaro_knsb" / "run.csv"
 
