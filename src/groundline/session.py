@@ -212,8 +212,10 @@ class Session:
 
 
 def source_hash(fn) -> str:
+    """Version of a tool: its own source plus the module it lives in, so a change to a shared helper
+    (phase segmentation, run detection, peak interpolation ...) also shows up in ``groundline reproduce``."""
     try:
-        src = inspect.getsource(fn)
+        src = inspect.getsource(fn) + inspect.getsource(inspect.getmodule(fn))
     except (OSError, TypeError):  # pragma: no cover
         src = fn.__name__
     return f"{__version__}+{hashlib.sha256(src.encode()).hexdigest()[:10]}"
