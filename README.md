@@ -19,7 +19,7 @@ Give Groundline the data from an engine hot-fire (or any bench test) and it segm
 - **A verifier checks every number in every finding.** Each number in a title or statement must be found in the evidence it cites (rounding and s↔ms, fraction↔% conversions allowed). Numbers that are not found get a red squiggle in the report, and an LLM agent gets the rejection back with one chance to fix it. The verifier also checks what a number *means*: the unit written after it (s, Hz, %, bar, N·s, ...) must match the unit of the evidence field, and a number introduced by a word such as "peak", "duration", "mean" or "impulse" must come from a field with that role (see [Semantic verification](#semantic-verification)).
 - **Every finding can be reproduced.** `groundline reproduce report.json` re-runs every ledger entry on the raw data and compares the results one by one.
 
-> Status: v0.1 prototype. Benchmarks use data from the built-in synthetic generator, plus one public real static fire of a solid motor as an example (see [Real-data example](#real-data-example-hanaro-solid-motor-static-fire)). Not yet validated on real liquid-engine test data.
+> Status: v0.1 prototype. Benchmarks use data from the built-in synthetic generator. Two public real tests are worked examples: a solid-motor static fire ([HANARO](#real-data-example-hanaro-solid-motor-static-fire)) and a liquid-engine hot fire ([Triton](#real-data-example-triton-liquid-engine-hot-fire)). Neither comes with redlines, valve commands or a simulation prediction, so those checks are still validated on synthetic data only.
 
 ## Quick start
 
@@ -233,6 +233,34 @@ The data exposed several assumptions built only on the synthetic liquid engine; 
 
 After the changes, the rule agent still scores 100% recall and precision with 0 false positives on the synthetic benchmark.
 
+## Real-data example: Triton liquid-engine hot fire
+
+`examples/triton_lox/` turns a public hot fire of Triton, a pressure-fed LOX / fuel liquid engine (11 April 2025, data from [aidenmccollum/Triton-Hotfire-Analysis](https://github.com/aidenmccollum/Triton-Hotfire-Analysis)), into Groundline input. That repository has no license, so the data is not copied into Groundline: `prepare.py` downloads it (pinned to a commit) and writes `run.csv` locally, both git-ignored. It is one DAQ log at about 1.94 kHz with 25 channels: three thrust load cells, chamber, manifold, tank and regulator pressures, tank weights and thermocouples. No redlines, valve commands or simulation prediction come with it.
+
+```bash
+python examples/triton_lox/prepare.py        # downloads the log, keeps 120-180 s, 2 kHz grid, dropouts left as NaN
+groundline analyze examples/triton_lox/run.csv
+```
+
+The segmentation agrees with the team's own analysis window (148.35–153.35 s in the log): ignition at 148.41 s, mainstage 148.43–153.16 s, thrust action time 148.41–153.54 s. Peak thrust 1144 lbf, 846 lbf mean over the action time, total impulse 4344 lbf·s (sum of the three load cells, baseline removed); there is no published reference for these values for this run.
+
+It also found measurement problems in the data:
+
+- chamber pressure does not return to baseline after shutdown: it reads about 223 psi to the end of the log, against 13.8 psi before the test (63% of the steady level), while thrust and both manifold pressures are back at ambient;
+- the fuel regulator's upstream pressure sits at 5180.25 psi, its maximum, for the whole minute: most likely saturated at full scale;
+- all 24 channels drop data at the same moments, 192 gaps of up to 42 ms: dropped DAQ frames;
+- spikes on five kinds of sensor within 20 ms at ignition, and a chamber-pressure spike to 467 psi (+20%) lasting about 30 ms half a second later. Groundline reports the coincident spikes as one event without deciding whether they are physical or interference.
+
+This was the first liquid-engine data Groundline saw, and the first rule-agent run produced 131 findings, 87 of them for one stuck sensor. What it exposed, and what changed:
+
+- a stuck value split by every short dropout counted as a new flatline → short gaps inside a flatline no longer split it, and a value stuck at a channel's maximum or minimum is marked as likely saturation;
+- gaps shared by every channel were reported once per channel → reported once, as DAQ dropouts;
+- a chamber-pressure sensor that sticks high after shutdown went unnoticed and stretched "shutdown" to the end of the log (and, stuck above half the peak, it would be averaged into the steady level) → a no-return-to-baseline check; tail-off ends where the trace settles; the steady level comes from the plateau around the peak;
+- the start transient produced "critical" 59 Hz and 134 Hz "oscillations" from single 50 ms windows → an oscillation has to persist over 3 windows; shorter peaks are listed as short events;
+- spikes on several kinds of sensor at once were called "measurement glitches, not physical events" → reported as one event that no single sensor explains.
+
+After the changes there are 18 findings, all verified (105 numbers), and the synthetic benchmark and the HANARO results are unchanged (the HANARO mainstage window moved by 20 ms at the start and 130 ms at the end with the new steady-level estimate). A ~126 Hz component shows in Pc, the LOX manifold and thrust throughout the burn; it is real but small (about 0.1% of Pc on average), and Groundline flags the one 0.15 s stretch where it exceeds the default 0.5% criterion, as a warning.
+
 ## Semantic verification
 
 Checking only that "the number appears in the cited evidence" has two loopholes, and both showed up in the 7B results above: a real number put in the wrong place (every cited number is real, but the meaning is wrong), and a made-up number that happens to match an unrelated number in the evidence within rounding.
@@ -293,7 +321,7 @@ src/groundline/
 
 ## Roadmap
 
-- [ ] Validate criteria and calibrate thresholds on real (anonymised) liquid-engine test data (a public solid-motor example is already included)
+- [ ] Validate criteria and calibrate thresholds on more real liquid-engine test data, ideally with redlines, valve commands and a simulation prediction (one public solid-motor and one public liquid-engine example are included)
 - [ ] Deviation attribution: when simulation and measurement disagree, list candidate causes (physics, mesh, boundary conditions, manufacturing, sensors) and design checks
 - [ ] Cross-run comparison and trend analysis
 - [x] LLM agent leaderboard and verifier benchmark
