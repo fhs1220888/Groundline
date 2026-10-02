@@ -133,6 +133,28 @@ def cmd_verifier_bench(a) -> int:
     return 0
 
 
+def cmd_ingest(a) -> int:
+    from .ingest import ingest, suggest_map
+
+    raw = Path(a.raw)
+    out = Path(a.out) if a.out else raw.with_name(raw.stem)
+    if a.suggest or not a.map:
+        m = suggest_map(raw)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "map.json").write_text(json.dumps(m, indent=2, ensure_ascii=False) + "\n")
+        print(f"time column: {m['time']['column']!r}" + (f" · skipping {m['skip_rows']} units row" if m["skip_rows"] else ""))
+        for name, c in m["channels"].items():
+            print(f"  {name:20s} {c['unit'] or '-':6s} {c['kind']:15s} <- {c['column']}")
+        for name, d in (m.get("derived") or {}).items():
+            print(f"  {name:20s} {d['unit'] or '-':6s} {d['kind']:15s} = {' + '.join(d['sum'])}")
+        print(f"draft mapping: {out / 'map.json'}\nread and edit it (names, kinds, window_s, grid_hz, max_gap_s), "
+              f"then: groundline ingest {raw} --map {out / 'map.json'}")
+        return 0
+    paths = ingest(raw, json.loads(Path(a.map).read_text()), out)
+    print(f"wrote {paths['run']} and {paths['meta']}\nnext: groundline analyze {paths['run']}")
+    return 0
+
+
 def cmd_hybrid_bench(a) -> int:
     from pathlib import Path as _P
 
@@ -247,6 +269,13 @@ def main(argv: list[str] | None = None) -> int:
     vb.add_argument("--seed", type=int, default=1000)
     vb.add_argument("--out", help="write details JSON here")
     vb.set_defaults(fn=cmd_verifier_bench)
+
+    ig = sub.add_parser("ingest", help="turn a raw CSV log into a run (run.csv + meta.json) from a mapping")
+    ig.add_argument("raw", help="raw CSV log")
+    ig.add_argument("--map", help="mapping JSON; without it a draft mapping is written for you to edit")
+    ig.add_argument("--suggest", action="store_true", help="only write a draft mapping (map.json)")
+    ig.add_argument("--out", help="output directory (default: a folder named after the raw file)")
+    ig.set_defaults(fn=cmd_ingest)
 
     hb = sub.add_parser("hybrid-bench", help="inject known anomalies into real test logs and count what is caught")
     hb.add_argument("backgrounds", nargs="*", help="run.csv files (default: the real-data examples present locally)")

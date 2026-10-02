@@ -36,13 +36,9 @@ Run from the repository root::
 
 from __future__ import annotations
 
-import json
 import sys
 import urllib.request
 from pathlib import Path
-
-import numpy as np
-import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 RAW = HERE / "raw"
@@ -88,40 +84,33 @@ def download(path: str) -> Path:
     return dst
 
 
-def prepare(name: str) -> Path:
+def mapping(name: str) -> dict:
+    """The conversion as a groundline.ingest mapping (``groundline ingest raw.csv --map map.json`` does the same).
+    Units come from the channel names here, not from the units row, which is misaligned in some files."""
     path, _note = TESTS[name]  # the team's account, for people reading this script, not for agents
-    df = pd.read_csv(download(path), skiprows=1)  # row 0: units (misaligned in some files)
-    t = df["seconds"].to_numpy(dtype=float)
-    grid = np.arange(0.0, t[-1] - t[0], 1.0 / FS)
-    tt = t - t[0]
-    j = np.clip(np.searchsorted(tt, grid), 1, len(tt) - 1)
-    gap = np.minimum(np.abs(grid - tt[j - 1]), np.abs(tt[j] - grid)) > MAX_GAP_S
-    out = {"time": np.round(grid, 6)}
-    for col, (ch, *_rest) in CHANNELS.items():
-        out[ch] = np.interp(grid, tt, df[col].to_numpy(dtype=float))
-    run = pd.DataFrame(out)
-    run.loc[gap, run.columns != "time"] = np.nan
-    rate = float(1.0 / np.median(np.diff(t)))
-    meta = {
+    return {
+        "source": BASE + path,
+        "skip_rows": 1,  # row 0: units
+        "time": {"column": "seconds"},
+        "channels": {ch: {"column": col, "unit": unit, "kind": kind, "desc": desc}
+                     for col, (ch, unit, kind, desc) in CHANNELS.items()},
+        "grid_hz": FS, "max_gap_s": MAX_GAP_S,
         "test_id": f"UVic MULE-1 {name}",
-        # the team's account of the test (``note``) stays out of the metadata: describe_data hands the description
-        # to LLM agents, and the point of these logs is to check what an agent finds against what the team saw
+        # the team's account of the test stays out of the metadata: describe_data hands the description to LLM
+        # agents, and the point of these logs is to check what an agent finds against what the team saw
         "description": "N2O / paraffin hybrid motor hot fire, UVic Rocketry MULE-1. Public data from "
                        "github.com/UVicRocketry/Propulsion-Test-Data (no license; not redistributed).",
         "engine_type": "hybrid (N2O / paraffin), pressure-fed oxidiser; no valve states, redlines or prediction",
-        "time_base": f"seconds from the first logged sample ({df['timestamp'].iloc[0]})",
-        "sample_rate_hz": FS,
-        "channels": {ch: {"unit": unit, "kind": kind, "desc": desc, "native_rate_hz": round(rate, 1)}
-                     for ch, unit, kind, desc in CHANNELS.values()},
-        "preparation": {"source": BASE + path, "grid_hz": FS, "max_gap_s": MAX_GAP_S,
-                        "grid_points_blanked": int(gap.sum())},
+        "time_base": "seconds from the first logged sample",
     }
-    out_dir = HERE / name
-    out_dir.mkdir(exist_ok=True)
-    run.to_csv(out_dir / "run.csv", index=False, float_format="%.6g")
-    (out_dir / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
-    print(f"wrote {out_dir / 'run.csv'} ({len(run)} rows, {grid[-1]:.1f} s)")
-    return out_dir
+
+
+def prepare(name: str) -> Path:
+    from groundline.ingest import ingest
+
+    paths = ingest(download(TESTS[name][0]), mapping(name), HERE / name)
+    print(f"wrote {paths['run']}")
+    return paths["run"].parent
 
 
 if __name__ == "__main__":
