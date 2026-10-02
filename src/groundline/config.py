@@ -13,6 +13,7 @@ Recognised keys (see ``.env.example``)::
     GROUNDLINE_LLM_TEMPERATURE
     GROUNDLINE_LLM_REASONING_EFFORT  none | low | medium | high (reasoning models; Anthropic also xhigh | max)
     GROUNDLINE_LANG         zh | en
+    GROUNDLINE_CITE_NUMBERS 1 (default) asks LLM agents to tag numbers with their source field, 0 does not
 """
 
 from __future__ import annotations
@@ -73,6 +74,7 @@ def describe() -> dict:
         "base_url": os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1 (default)"),
         "reasoning_effort": os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT", "(model default)"),
         "lang": os.environ.get("GROUNDLINE_LANG", "zh"),
+        "cite_numbers": os.environ.get("GROUNDLINE_CITE_NUMBERS", "1"),
         "OPENAI_API_KEY": mask(os.environ.get("OPENAI_API_KEY")),
         "GROUNDLINE_LLM_API_KEY": mask(os.environ.get("GROUNDLINE_LLM_API_KEY")),
         "ANTHROPIC_API_KEY": mask(os.environ.get("ANTHROPIC_API_KEY")),

@@ -329,7 +329,7 @@ with an ID (E1, E2, ...). Your report is checked by a verifier:
 - every number you write must appear in the cited evidence results (rounding is fine; you may convert s<->ms or
   fraction<->%). Do not compute new numbers yourself (no subtraction, ratios or averages of your own) — if you need
   a number, call a tool that produces it;
-- t_start/t_end of a finding must come from the evidence as well.
+- t_start/t_end of a finding must come from the evidence as well.{cite_rule}
 
 Method:
 1. Start from the overview and phase segmentation you are given.
@@ -353,6 +353,13 @@ Method:
 Write titles and statements in {language}. Be concise and specific; engineers will read this.
 """
 
+CITE_RULE = """
+- after every number in a statement, name the evidence field it comes from in square brackets:
+  "742.3 K [E4.violations[0].peak_value]", "761 Hz [E6.events[0].freq_hz]", "3 spikes [len(E3.issues[0].spikes)]",
+  "3.86 [E6.events[0].t_start]–6.01 s [E6.events[0].t_end]". The path is the evidence ID, then the keys of the tool
+  result joined by '.', list items as [i], a list's length as len(...). Each number is checked against exactly that
+  field and the tag becomes a link in the report; copy the path from the tool result, a wrong tag is flagged."""
+
 
 def _tool_specs() -> list[dict]:
     specs = [{"name": t.name, "description": t.description, "parameters": t.json_schema()}
@@ -374,8 +381,11 @@ def _compact(result: dict, limit: int = 6000) -> str:
 
 class LLMAgent:
     def __init__(self, backend: Backend, lang: str = "zh", max_steps: int = 24, fix_rounds: int = 1,
-                 prefetch: bool = True, max_seconds: float | None = None):
+                 prefetch: bool = True, max_seconds: float | None = None, cite_numbers: bool | None = None):
         self.backend = backend
+        # ask the model to tag each number with its source field (GROUNDLINE_CITE_NUMBERS=0 turns it off)
+        self.cite_numbers = (os.environ.get("GROUNDLINE_CITE_NUMBERS", "1") != "0") if cite_numbers is None \
+            else cite_numbers
         self.lang = lang
         self.max_steps = max_steps
         self.max_seconds = max_seconds  # wall-clock budget for one analysis; None = unlimited
@@ -385,7 +395,8 @@ class LLMAgent:
     def run(self, s: Session) -> AnalysisResult:
         t0 = time.perf_counter()
         system = SYSTEM_PROMPT.format(categories=", ".join(CATEGORIES),
-                                      language="Simplified Chinese" if self.lang == "zh" else "English")
+                                      language="Simplified Chinese" if self.lang == "zh" else "English",
+                                      cite_rule=CITE_RULE if self.cite_numbers else "")
         tools = _tool_specs()
         intro = ["Analyse this test run and submit a report."]
         if self.prefetch:

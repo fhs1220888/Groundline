@@ -9,11 +9,46 @@
 
   const NUM_RE = /(?<![A-Za-z_\d.])[-+−]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?/g;
   const SCALES = [1.0, 1000.0, 0.001, 100.0, 0.01, 60.0];
+  const KIND_SCALES = { time: [1.0, 1000.0, 0.001, 60.0], percent: [1.0],
+    count: [1.0], freq: [1.0], physical: [1.0] };
   const isAlpha = (ch) => /\p{L}/u.test(ch || "");
+
+  // a source tag after a number: [E4.peak], [E6.events[0].freq_hz], [len(E3.issues)] (a bare [E4] is a reference)
+  const SEG = "(?:\\.[^\\s.\\[\\]()]+|\\[\\d+\\])+";
+  const CITE_SRC = "\\[\\s*(len\\(E\\d+" + SEG + "\\)|E\\d+" + SEG + ")\\s*\\]";
+
+  function citations(text) {
+    const re = new RegExp(CITE_SRC, "g");
+    const out = [];
+    let m;
+    while ((m = re.exec(text || "")) !== null) out.push({ path: m[1], start: m.index, end: m.index + m[0].length });
+    return out;
+  }
+
+  function maskCitations(text) {
+    text = text || "";
+    for (const c of citations(text)) text = text.slice(0, c.start) + " ".repeat(c.end - c.start) + text.slice(c.end);
+    return text;
+  }
+
+  function citedNumbers(text) {
+    const masked = maskCitations(text);
+    const nums = numberMatches(text);
+    const out = new Map();
+    for (const c of citations(text)) {
+      const prev = nums.filter((m) => m.end <= c.start);
+      if (!prev.length) continue;
+      const m = prev[prev.length - 1];
+      const gap = masked.slice(m.end, c.start);
+      if (gap.length <= 24 && !/[\d，,;；。:：\n（()）]/.test(gap))
+        out.set(m.start, c.path.replace(/\.(\d+)(?=\.|\)|$)/g, "[$1]"));
+    }
+    return out;
+  }
 
   function numberMatches(text) {
     const out = [];
-    text = text || "";
+    text = maskCitations(text);
     NUM_RE.lastIndex = 0;
     let m;
     while ((m = NUM_RE.exec(text)) !== null) {
@@ -24,9 +59,9 @@
     return out;
   }
 
-  function matches(value, decimals, v) {
+  function matches(value, decimals, v, kind) {
     const a = Math.abs(value);
-    for (const sc of SCALES) {
+    for (const sc of KIND_SCALES[kind] || SCALES) {
       const x = Math.abs(v * sc);
       if (Math.abs(a - x) <= Math.max(0.5 * Math.pow(10, -decimals), 0.01 * x, 1e-9)) return sc;
     }
@@ -236,25 +271,41 @@
       fields.push(...evidenceFields(ev.result, id));
       fields.push(...evidenceFields(ev.params || {}, `${id}.params`));
     }
-    const text = `${finding.title || ""}\n${finding.statement || ""}`;
+    const raw = `${finding.title || ""}\n${finding.statement || ""}`;
+    const text = maskCitations(raw);
+    const byPath = new Map(fields.map((fl) => [fl.path, fl]));
+    const cites = citedNumbers(raw);
     const numbers = [];
-    for (const m of numberMatches(text)) {
+    for (const m of numberMatches(raw)) {
       const norm = m.text.replace("−", "-");
       const val = parseFloat(norm);
       if (Number.isNaN(val)) continue;
       const mant = norm.toLowerCase().split("e")[0];
       const dec = mant.includes(".") ? mant.split(".")[1].length : 0;
-      const cands = [];
-      for (const fl of fields) { const sc = matches(val, dec, fl.value); if (sc !== null) cands.push([fl, sc]); }
-      // closest value first, so a message names the field the writer most likely meant (stable, as in Python)
-      cands.sort((a, b) => Math.abs(Math.abs(val) - Math.abs(a[0].value * a[1])) - Math.abs(Math.abs(val) - Math.abs(b[0].value * b[1])));
+      const cite = cites.has(m.start) ? cites.get(m.start) : null;
+      let cands = [];
+      if (cite !== null) { // the writer named the field: check against that one only
+        const fl = byPath.get(cite);
+        const sc = fl === undefined ? null : matches(val, dec, fl.value, fl.kind);
+        if (sc !== null) cands = [[fl, sc]];
+        if (fl === undefined) {
+          const eid = cite.match(/E\d+/)[0];
+          problems.push((finding.evidence || []).includes(eid)
+            ? `'${m.text}' cites ${cite}, which is not a numeric field`
+            : `'${m.text}' cites ${cite}, but ${eid} is not among the finding's evidence`);
+        } else if (sc === null) problems.push(`'${m.text}' cites ${cite} = ${fl.value}, which does not match`);
+      } else {
+        for (const fl of fields) { const sc = matches(val, dec, fl.value, fl.kind); if (sc !== null) cands.push([fl, sc]); }
+        // closest value first, so a message names the field the writer most likely meant (stable, as in Python)
+        cands.sort((a, b) => Math.abs(Math.abs(val) - Math.abs(a[0].value * a[1])) - Math.abs(Math.abs(val) - Math.abs(b[0].value * b[1])));
+      }
       const sem = cands.length ? checkNumber(text, m.start, m.end, cands) : null;
       let best = null;
       if (cands.length) best = cands.find(([fl]) => sem && fl.path === sem.field) || cands[0];
       numbers.push({
         text: m.text, value: val, start: m.start, end: m.end,
         inTitle: m.start < (finding.title || "").length,
-        grounded: cands.length > 0,
+        grounded: cands.length > 0, cited: cite,
         consistent: cands.length > 0 && sem.ok,
         matched: best && { value: best[0].value, scale: best[1], field: best[0].path },
         unit: sem ? sem.unit : null, role: sem ? sem.role : null,
@@ -267,7 +318,7 @@
     return { status, numbers, ungrounded, mismatched, problems, titleLength: (finding.title || "").length + 1 };
   }
 
-  const api = { verifyFinding, evidenceFields, numberMatches };
+  const api = { verifyFinding, evidenceFields, numberMatches, citations };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.GroundlineVerifier = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

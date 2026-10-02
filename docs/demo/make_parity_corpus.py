@@ -12,7 +12,7 @@ from groundline.agent import RuleAgent
 from groundline.findings import verify_finding
 from groundline.session import Session
 from groundline.synth import generate_run
-from groundline.verifier_bench import _mutate
+from groundline.verifier_bench import _mutate, _tagged
 
 
 def case(f, s):
@@ -32,8 +32,9 @@ def main(out, n=20):
             run = generate_run(1000 + i)
             s = Session(run.data, run.meta, run.reference, run.limits)
             for f in RuleAgent(lang).run(s).findings:
-                cases.append(case(f, s))
-                cases += [case(g, s) for _, g, _ in _mutate(f, s, rng)]
+                for g in (f, _tagged(f, s)):  # as written, and with every number's source field tagged
+                    cases.append(case(g, s))
+                    cases += [case(h, s) for _, h, _ in _mutate(g, s, rng)]
     with open(out, "w") as fh:
         json.dump(cases, fh, ensure_ascii=False)
     print(f"{len(cases)} cases, {sum(len(c['numbers']) for c in cases)} numbers -> {out}")

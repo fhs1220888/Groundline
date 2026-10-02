@@ -162,12 +162,12 @@ Results from 2026-09-29 (`--n 14 --seed 1000`; local models ran with Ollama on a
 |---|---|---|---|---|---|---|---|
 | Rule agent | 14/14 | 100% / 100% | 100% | 0 | – | 0 | 1.3 |
 | gpt-5.6-sol | 14/14 | 100% / 100% | 95% | 0 | 0 / 376 (0%) | 0 | 22 |
-| Qwen2.5 7B | 11/14 | 5% / 50% | 5% | 0 | 23 / 98 (23%), plus 4 with the wrong meaning | 26 numbers, 19 findings | 478 |
+| Qwen2.5 7B | 11/14 | 5% / 50% | 5% | 0 | 25 / 98 (26%), plus 2 with the wrong meaning | 26 numbers, 19 findings | 478 |
 | Qwen2.5 3B | 13/14 | 0% / 0% | – | 0 | 1 / 1 | 1 number, 4 findings | 28 |
 
 Strict recall needs the finding's channel field and time window to match; loose recall also counts a finding with no channel if its category is right and its time does not conflict (the model found the problem but did not fill in the structured field).
 
-Qwen2.5 7B was run three times with very different results (reports submitted 11 / 7 / 11; first-draft numbers without a source 15% / 12% / 23%). The table shows the last run, the first one that stored its evidence ledger and could be re-verified with the new verifier.
+Qwen2.5 7B was run three times with very different results (reports submitted 11 / 7 / 11; first-draft numbers without a source 15% / 12% / 23%, as scored at the time). The table shows the last run, re-scored with the current verifier (26%); it is the first one that stored its evidence ledger and could be re-verified with the new verifier.
 
 On the second run we audited, one by one, the 10 numbers the verifier stopped in the 7B first drafts, recomputing the evidence from the same seeds:
 
@@ -245,18 +245,22 @@ So the verifier now remembers which field every evidence number came from (`peak
 
 This is still deterministic string and field matching; no second LLM is asked to judge.
 
-**The verifier's own benchmark** (`groundline verifier-bench`): starting from correct rule-agent findings, change one number at a time to plant one of three known errors, and count what the old and new verifiers catch. 100 synthetic runs, 50 each in Chinese and English:
+**Source tags.** Guessing which field a number came from has a ceiling: two numbers that are both "a time" cannot be told apart from the text. So a number may name its field in brackets right after it (and its unit): `742.3 K [E4.violations[0].peak_value]`, `3 spikes [len(E3.issues[0].spikes)]`, `3.86 [E6.events[0].t_start]–6.01 s [E6.events[0].t_end]`. A tagged number is checked against that field only (value, unit, role word, range order); a tag that names the wrong field, or evidence the finding does not cite, is flagged. A bare `[E4]` stays an ordinary reference. In the HTML report the tags become links to their evidence entry. LLM agents are asked to tag every number (`GROUNDLINE_CITE_NUMBERS=0` turns this off); MCP clients can do the same. Untagged numbers are still checked as before.
 
-| Planted error | Count | Grounding only (old verifier) | Grounding + semantics (new verifier) |
-|---|---|---|---|
-| Invented value (changed by −30% to +50%) | 1364 | 87% | **98%** |
-| Real value in the wrong place (another field of the same evidence) | 1436 | 0% | **66%** |
-| Wrong unit (s ↔ Hz, % → s, ...) | 1168 | 0% | **99%** |
-| Unchanged correct findings (false alarms) | 268 | 0% | **0%** |
+Unit conversions are also tied to the kind of field now: s ↔ ms only for times, fraction ↔ % only for unitless fractions. A frequency of 802 Hz no longer "matches" a written 8 (×0.01), and a 0.5 % threshold no longer matches "50 %".
 
-The 66% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 90% of the time; swapping in a field of the same kind (one time replaced by another time) 34%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale and count rules were added these were 45% overall, 69% and 13%.) That is the limit of this approach: two numbers that are both "a time" cannot be told apart from the text alone.
+**The verifier's own benchmark** (`groundline verifier-bench`): starting from correct rule-agent findings, change one number at a time to plant one of three known errors, and count what the verifier catches: checking only that the value occurs in the cited evidence, the full checks on untagged text, and the full checks when every number carries its source tag. 100 synthetic runs, 50 each in Chinese and English:
 
-Also note that the role-word rules were written against the rule agent's sentence templates, so the false-alarm rate above, measured on those same templates, is optimistic. On independent text, the two reports written by gpt-5.6-sol (9 findings, 60 numbers, including the HANARO real-data report), the new verifier also raised no false alarms, and re-verifying the stored gpt-5.6-sol and Qwen benchmark runs after the range, scale and count rules were added (123 gpt-5.6-sol claims, 798 numbers) changed no verdict. A more reliable false-alarm estimate needs more real reports from different models.
+| Planted error | Count | Grounding only | Grounding + semantics | With source tags |
+|---|---|---|---|---|
+| Invented value (changed by −30% to +50%) | 1364 | 91% | **98%** | **100%** |
+| Real value in the wrong place (another field of the same evidence) | 1436 | 0% | **69%** | **100%** |
+| Wrong unit (s ↔ Hz, % → s, ...) | 1168 | 0% | **99%** | **100%** |
+| Unchanged correct findings (false alarms) | 268 | 0% | **0%** | **0%** |
+
+Without tags, the 69% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 93% of the time; swapping in a field of the same kind (one time replaced by another time) 35%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale, count and conversion rules these were 45% overall, 69% and 13%.) That is the limit of reading text alone; with source tags every planted error is caught. Whether LLM agents tag their numbers reliably has not been measured yet: the benchmark runs above predate the tag instruction.
+
+Also note that the role-word rules were written against the rule agent's sentence templates, so the false-alarm rate above, measured on those same templates, is optimistic. On independent text, the two reports written by gpt-5.6-sol (9 findings, 60 numbers, including the HANARO real-data report), the new verifier also raised no false alarms, and re-verifying the stored gpt-5.6-sol and Qwen benchmark runs after the range, scale, count and conversion rules were added (123 gpt-5.6-sol claims, 798 numbers) changed no gpt-5.6-sol verdict. In the 7B drafts it stopped two more numbers, both wrong: a duration of "0.2 s" that only matched a total impulse of 19.4 at ×0.01, and a mean deviation in MPa scaled ×1000 and written as a percentage. A more reliable false-alarm estimate needs more real reports from different models.
 
 LLM benchmark runs store every run's findings together with its evidence ledger. When the verifier improves, `groundline reverify <results.json>` re-scores them without re-running the model; the last 7B run above (`docs/results/leaderboard/`) was re-scored this way.
 

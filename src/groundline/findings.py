@@ -14,6 +14,10 @@ session ledger.  :func:`verify_findings` then checks, mechanically:
 5. a finding filed under an anomaly category cites evidence in which the matching tool actually
    reported that anomaly, on the finding's channel (a passed check cannot be filed as a fault).
 
+A number may name the exact evidence field it comes from, in brackets right after it (and its unit):
+``742.3 K [E4.violations[0].peak_value]``, ``3 spikes [len(E3.issues[0].spikes)]``. Such a number is
+checked against that field only, instead of against every field of the cited evidence.
+
 The LLM can phrase things however it likes, but it cannot introduce a number
 that no tool produced without the report flagging it.
 """
@@ -72,11 +76,52 @@ class Finding:
 # numbers not glued to an identifier (skips E3, P2, x1e3 ...)
 _NUM_RE = re.compile(r"(?<![A-Za-z_\d.])[-+−]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
 _SCALES = (1.0, 1000.0, 0.001, 100.0, 0.01, 60.0)
+# conversions that make sense per kind of field: s<->ms (and min) for times; fraction<->% only for unitless
+# fields (a *_pct field already is a percentage);
+# counts, frequencies and physical values are written as they are (802 Hz is not "8" at x0.01)
+_KIND_SCALES = {"time": (1.0, 1000.0, 0.001, 60.0), "percent": (1.0,),
+                "count": (1.0,), "freq": (1.0,), "physical": (1.0,)}
+
+
+# a source tag after a number: [E4.peak], [E6.events[0].freq_hz], [len(E3.issues)] (a bare [E4] is just a reference)
+_SEG = r"(?:\.[^\s.\[\]()]+|\[\d+\])+"
+_CITE_RE = re.compile(r"\[\s*(len\(E\d+" + _SEG + r"\)|E\d+" + _SEG + r")\s*\]")
+
+
+def citations(text: str) -> list[re.Match]:
+    """Source tags in a claim; group(1) is the cited field path."""
+    return list(_CITE_RE.finditer(text or ""))
+
+
+def mask_citations(text: str) -> str:
+    """The claim with every source tag blanked out (same length, so positions do not move)."""
+    text = text or ""
+    for m in citations(text):
+        text = text[:m.start()] + " " * (m.end() - m.start()) + text[m.end():]
+    return text
+
+
+def cited_numbers(text: str) -> dict[int, str]:
+    """{start of number: cited field path}. A tag belongs to the nearest number before it in the same clause,
+    with only words in between ("742.3 K [E4.peak]", "3 个孤立尖峰 [len(E3.issues)]")."""
+    masked = mask_citations(text)
+    nums = number_matches(text)
+    out: dict[int, str] = {}
+    for c in citations(text):
+        prev = [m for m in nums if m.end() <= c.start()]
+        if not prev:
+            continue
+        m = prev[-1]
+        gap = masked[m.end():c.start()]
+        if len(gap) <= 24 and not re.search(r"[\d，,;；。:：\n（()）]", gap):
+            out[m.start()] = re.sub(r"\.(\d+)(?=\.|\)|$)", r"[\1]", c.group(1))  # E6.events.0.x -> E6.events[0].x
+    return out
 
 
 def number_matches(text: str) -> list[re.Match]:
-    """Positions of the numbers a claim states (identifiers such as SYN-1013 or run_42 are skipped)."""
-    text = text or ""
+    """Positions of the numbers a claim states (identifiers such as SYN-1013 or run_42, and the source
+    tags after numbers, are skipped)."""
+    text = mask_citations(text)
     out = []
     for m in _NUM_RE.finditer(text):
         i = m.start()
@@ -102,10 +147,11 @@ def extract_numbers(text: str) -> list[tuple[str, float, int]]:
     return [(m.group(0), *p) for m in number_matches(text) if (p := _parse_number(m.group(0))) is not None]
 
 
-def _matches(value: float, decimals: int, v: float) -> float | None:
-    """The scale (s<->ms, fraction<->% ...) at which evidence value ``v`` rounds to ``value``, if any."""
+def _matches(value: float, decimals: int, v: float, kind: str = "plain") -> float | None:
+    """The scale (s<->ms, fraction<->% ...) at which evidence value ``v`` (a field of this kind) rounds to
+    ``value``, if any."""
     a = abs(value)
-    for sc in _SCALES:
+    for sc in _KIND_SCALES.get(kind, _SCALES):
         x = abs(v * sc)
         if abs(a - x) <= max(0.5 * 10 ** (-decimals), 0.01 * x, 1e-9):
             return sc
@@ -175,22 +221,37 @@ def verify_finding(f: Finding, s: Session) -> dict:
         text_blob += repr(ev.params) + repr(ev.result)
 
     numbers = []
-    text = f"{f.title}\n{f.statement}"
-    for m in number_matches(text):
+    raw = f"{f.title}\n{f.statement}"
+    text = mask_citations(raw)  # the semantic checks read units and ranges across a blanked-out tag
+    by_path = {fl.path: fl for fl in fields}
+    cites = cited_numbers(raw)
+    for m in number_matches(raw):
         tok = m.group(0)
         parsed = _parse_number(tok)
         if parsed is None:
             continue
         val, dec = parsed
-        cands = [(fl, sc) for fl in fields if (sc := _matches(val, dec, fl.value)) is not None]
-        # closest value first, so a message names the field the writer most likely meant
-        cands.sort(key=lambda c: abs(abs(val) - abs(c[0].value * c[1])))
+        cite = cites.get(m.start())
+        if cite is not None:  # the writer named the field: check against that one only
+            fl = by_path.get(cite)
+            sc = None if fl is None else _matches(val, dec, fl.value, fl.kind)
+            cands = [] if sc is None else [(fl, sc)]
+            if fl is None:
+                eid = re.search(r"E\d+", cite).group(0)
+                problems.append(f"'{tok}' cites {cite}, but {eid} is not among the finding's evidence"
+                                if eid not in f.evidence else f"'{tok}' cites {cite}, which is not a numeric field")
+            elif sc is None:
+                problems.append(f"'{tok}' cites {cite} = {fl.value:g}, which does not match")
+        else:
+            cands = [(fl, sc) for fl in fields if (sc := _matches(val, dec, fl.value, fl.kind)) is not None]
+            # closest value first, so a message names the field the writer most likely meant
+            cands.sort(key=lambda c: abs(abs(val) - abs(c[0].value * c[1])))
         sem = check_number(text, m.start(), m.end(), cands) if cands else None
         best = None
         if cands:
             path = sem["field"] if sem else None
             best = next(((fl, sc) for fl, sc in cands if fl.path == path), cands[0])
-        numbers.append({"text": tok, "value": val, "grounded": bool(cands),
+        numbers.append({"text": tok, "value": val, "grounded": bool(cands), "cited": cite,
                         "matched": None if best is None else {"value": best[0].value, "scale": best[1],
                                                                "field": best[0].path},
                         "consistent": bool(cands) and sem["ok"],
@@ -199,7 +260,7 @@ def verify_finding(f: Finding, s: Session) -> dict:
     for key in ("t_start", "t_end"):
         v = getattr(f, key)
         if v is not None:
-            cands = [fl for fl in fields if _matches(v, 2, fl.value) is not None]
+            cands = [fl for fl in fields if _matches(v, 2, fl.value, fl.kind) is not None]
             if not cands:
                 problems.append(f"{key}={v} not found in cited evidence")
             elif not any(fl.kind == "time" for fl in cands):
@@ -223,6 +284,7 @@ def verify_finding(f: Finding, s: Session) -> dict:
         "n_grounded": sum(n["grounded"] for n in numbers),
         "ungrounded_numbers": ungrounded,
         "n_consistent": sum(n["consistent"] for n in numbers),
+        "n_cited": sum(n["cited"] is not None for n in numbers),
         "mismatched_numbers": mismatched,
         "semantic_problems": [n["semantic_problem"] for n in numbers if n["semantic_problem"]],
         "numbers": numbers,
@@ -240,5 +302,5 @@ def verify_findings(findings: list[Finding], s: Session) -> dict:
     n_ok = sum(f.verification["n_grounded"] for f in findings)
     n_con = sum(f.verification["n_consistent"] for f in findings)
     return {**counts, "n_findings": len(findings), "numbers_total": n_num, "numbers_grounded": n_ok,
-            "numbers_consistent": n_con,
+            "numbers_consistent": n_con, "numbers_cited": sum(f.verification["n_cited"] for f in findings),
             "grounding_rate": (n_ok / n_num) if n_num else 1.0}
