@@ -80,7 +80,7 @@ _SCALES = (1.0, 1000.0, 0.001, 100.0, 0.01, 60.0)
 # fields (a *_pct field already is a percentage);
 # counts, frequencies and physical values are written as they are (802 Hz is not "8" at x0.01)
 _KIND_SCALES = {"time": (1.0, 1000.0, 0.001, 60.0), "percent": (1.0,),
-                "count": (1.0,), "freq": (1.0,), "physical": (1.0,)}
+                "count": (1.0,), "freq": (1.0, 0.001), "physical": (1.0,)}  # freq: Hz and kHz
 
 
 # a source tag after a number: [E4.peak], [E6.events[0].freq_hz], [len(E3.issues)] (a bare [E4] is just a reference)

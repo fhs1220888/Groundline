@@ -73,13 +73,13 @@ def evidence_fields(obj, path: str = "", key: str = "", unit: str | None = None)
 
 
 # ---------------------------------------------------------------------------- reading the text
-_BASE_U = r"(?:MPa|kPa|Pa|bar|psi|degC|°C|℃|kg|Hz|hz|ms|sec|s|K|N|g|m|W|J|V|A|rpm)"
+_BASE_U = r"(?:MPa|kPa|Pa|bar|psi|degC|°C|℃|kg|kHz|Hz|hz|ms|sec|s|K|N|g|m|W|J|V|A|rpm)"
 _UNIT_RE = re.compile(
     r"\s*(毫秒|秒|赫兹|%|％|个采样点|个|次|段|条|处|samples?|windows?|spikes?|gaps?"
     r"|" + _BASE_U + r"(?:\s?[·*/]\s?" + _BASE_U + r")*)(?![A-Za-z])"
 )
 _TIME_U = {"毫秒", "秒", "ms", "sec", "s"}
-_FREQ_U = {"赫兹", "Hz", "hz"}
+_FREQ_U = {"赫兹", "Hz", "hz", "kHz"}
 _PCT_U = {"%", "％"}
 _COUNT_U = {"个采样点", "个", "次", "段", "条", "处", "sample", "samples", "window", "windows", "spike", "spikes",
             "gap", "gaps"}
@@ -214,8 +214,8 @@ def _unit_ok(tk: str | None, tu: str | None, f: EvField, scale: float) -> bool:
         return True
     if tk == "time":  # and in the unit written: a field in seconds read as "0.8 ms" is a different number
         return f.kind == "time" and scale == _time_scale(tu, f)
-    if tk == "freq":
-        return f.kind == "freq"
+    if tk == "freq":  # and in the unit written: 1.127 kHz is 1127 Hz
+        return f.kind == "freq" and scale == (0.001 if tu == "kHz" else 1.0)
     if tk == "percent":
         return f.kind == "percent" or (scale == 100.0 and f.kind == "plain")
     if tk == "count":  # "3 个" / "3 spikes" must come from a count or a list length, not any field equal to 3
