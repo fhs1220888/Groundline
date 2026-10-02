@@ -166,16 +166,21 @@ The test caught two mistakes on our side before they reached these numbers. The 
 
 ### The LLM agent on the real tests
 
-One gpt-5.6-sol run with tags on each real test (about 150k input tokens in all). All 25 findings verify, and 115 of 116 numbers carry a tag. Compared with the team reports and the rule agent:
+One gpt-5.6-sol run with tags on each real test. Compared with the team reports and the rule agent:
 
-- UVic 2024-12-12: the firing truncated during start-up, a DAQ-wide cut-off transient, a dead thermocouple, as the team reported.
-- UVic 2025-01-18: the invalid chamber-pressure zero, the dead chamber thermocouples and the duplicated pressure channels. It called mainstage F/Pc stable and did not mention the tail-off mismatch the rule agent flags.
-- UVic 2025-02-08: "unstable pressure and thrust performance" with F/Pc changing materially, the broken throat insert's signature.
-- UVic 2025-09-20: the saturated chamber pressure and dead thermocouples, and it judged the shutdown thrust spike not credible as peak thrust.
-- Triton: the shared DAQ dropouts, the saturated regulator sensor and the 127 Hz event, which it rated critical for a 0.58% amplitude (the rule agent says warning). It left out the chamber pressure that does not return to baseline, although the sensor-health result it read reported it.
-- HANARO: as before.
+- UVic 2024-12-12: the record ends while chamber pressure is still rising, so performance and stability cannot be assessed; a coincident multi-channel transient at the cut-off; a dead thermocouple. As the team reported.
+- UVic 2025-01-18: the chamber-pressure offset, the dead chamber thermocouples, the duplicated pressure channels, and F/Pc stable through mainstage but diverging after it.
+- UVic 2025-02-08: it flags the failed F/Pc consistency check but calls it "sensor-confounded" (the chamber pressure has a large offset) rather than pointing to the throat. The rule agent names a throat change as one possible cause; neither can say what broke.
+- UVic 2025-09-20: the saturated chamber pressure, three dead thermocouples, and transients near shutdown that make the peak not credible.
+- Triton: the shared DAQ dropouts, the saturated regulator sensor, the chamber pressure that does not recover after shutdown, the isolated spikes, and the 127 Hz event as a warning.
+- HANARO: a nominal firing, off-fire gaps on the thrust channel.
 
-Two runs needed a fix round, both for the same verifier false alarm: "its maximum 5180.25 psi" tagged to a `stuck_value` field. A tagged number now also matches sibling fields of the same object that hold the very same value, and stuck-at-maximum issues carry a `channel_max` field.
+All findings verify. Two corrections went into getting here:
+
+- **A leak in our own test.** The first UVic runs used metadata whose description quoted each team report ("nozzle throat insert broke ..."), and `describe_data` hands the description to the model; its 2025-02-08 report then said "consistent with the reported nozzle/throat hardware failure". The reports are now kept out of the metadata (they stay in `prepare.py` and here), and the results above are from clean reruns. The rule agent never reads the description, so its results were not affected.
+- **Two prompt rules**, after the first Triton run left out the chamber pressure that does not recover after shutdown (although the sensor-health result it read reported it) and rated a 0.58% oscillation critical: every sensor-health issue must reach the report, and an oscillation is critical only at twice its criterion. On the 14 synthetic runs the new prompt keeps recall at 100% and precision at 95% (1 false positive, the known coolant-lag mistake), with 97% of numbers tagged and no wrong tags.
+
+Earlier, two runs needed a fix round for the same verifier false alarm: "its maximum 5180.25 psi" tagged to a `stuck_value` field. A tagged number now also matches sibling fields of the same object that hold the very same value, and stuck-at-maximum issues carry a `channel_max` field.
 
 ### Model leaderboard
 
