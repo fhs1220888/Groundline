@@ -1,6 +1,6 @@
 """groundline — a verifiable test-data analysis agent."""
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from .session import Evidence, Session  # noqa: E402
 
