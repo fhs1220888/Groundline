@@ -114,7 +114,9 @@ def cited_numbers(text: str) -> dict[int, str]:
         m = prev[-1]
         gap = masked[m.end():c.start()]
         if len(gap) <= 24 and not re.search(r"[\d，,;；。:：\n（()）]", gap):
-            out[m.start()] = re.sub(r"\.(\d+)(?=\.|\)|$)", r"[\1]", c.group(1))  # E6.events.0.x -> E6.events[0].x
+            path = re.sub(r"\.(\d+)(?=\.|\)|$)", r"[\1]", c.group(1))  # E6.events.0.x -> E6.events[0].x
+            # agents see tool output as {"evidence_id": "E3", "result": {...}}: E3.result.x means E3.x
+            out[m.start()] = re.sub(r"^(len\()?(E\d+)\.result(?=[.\[])", r"\1\2", path)
     return out
 
 
@@ -240,12 +242,17 @@ def verify_finding(f: Finding, s: Session) -> dict:
             fl = by_path.get(cite)
             sc = None if fl is None else _matches(val, dec, fl.value, fl.kind)
             cands = [] if sc is None else [(fl, sc)]
-            if fl is None:
+            if fl is None or sc is None:
                 eid = re.search(r"E\d+", cite).group(0)
-                problems.append(f"'{tok}' cites {cite}, but {eid} is not among the finding's evidence"
-                                if eid not in f.evidence else f"'{tok}' cites {cite}, which is not a numeric field")
-            elif sc is None:
-                problems.append(f"'{tok}' cites {cite} = {fl.value:g}, which does not match")
+                if fl is None:
+                    msg = (f"'{tok}' cites {cite}, but {eid} is not among the finding's evidence"
+                           if eid not in f.evidence else f"'{tok}' cites {cite}, which is not a numeric field")
+                else:
+                    msg = f"'{tok}' cites {cite} = {fl.value:g}, which does not match"
+                # point at the field the value does match, so the writer can fix the tag in one round
+                alt = sorted(((g, k) for g in fields if (k := _matches(val, dec, g.value, g.kind)) is not None),
+                             key=lambda c: abs(abs(val) - abs(c[0].value * c[1])))
+                problems.append(msg + (f" (the value matches {alt[0][0].path})" if alt else ""))
         else:
             cands = [(fl, sc) for fl in fields if (sc := _matches(val, dec, fl.value, fl.kind)) is not None]
             # closest value first, so a message names the field the writer most likely meant
