@@ -160,13 +160,15 @@ def _matches(value: float, decimals: int, v: float, kind: str = "plain") -> floa
     return None
 
 
-def _flagged_channels(ev) -> list[str] | None:
+def _flagged_channels(ev, category: str | None = None) -> list[str] | None:
     """Channels on which this evidence entry reports an anomaly, or None if its tool reports none of the
     kind (the list may be empty: the tool ran and found nothing)."""
     r = ev.result
     if ev.tool == "check_redlines":
         return [v.get("channel") for v in r.get("violations") or []]
-    if ev.tool == "detect_oscillation":
+    if ev.tool == "detect_oscillation":  # pickup present before ignition is an instrumentation problem
+        if category == "sensor_fault":
+            return [r.get("channel")] if r.get("interference") else []
         return [r.get("channel")] if r.get("detected") else []
     if ev.tool == "check_sensor_health":  # an issue shared by every channel (DAQ dropouts) lists them all
         return [c for i in r.get("issues") or [] for c in (i.get("channels") or [i.get("channel")])]
@@ -183,7 +185,7 @@ def _flagged_channels(ev) -> list[str] | None:
 _CATEGORY_TOOL = {
     "redline_violation": "check_redlines",
     "combustion_oscillation": "detect_oscillation",
-    "sensor_fault": "check_sensor_health",
+    "sensor_fault": ("check_sensor_health", "detect_oscillation"),
     "valve_response": "measure_valve_response",
     "performance_deviation": ("compare_reference", "check_thrust_pressure_ratio"),
 }
@@ -196,7 +198,7 @@ def category_problem(f: Finding, cited: list) -> str | None:
         return None
     tools = (tools,) if isinstance(tools, str) else tools
     tool = " or ".join(tools)
-    flagged = [c for ev in cited if ev.tool in tools for c in (_flagged_channels(ev) or [])]
+    flagged = [c for ev in cited if ev.tool in tools for c in (_flagged_channels(ev, f.category) or [])]
     if not any(ev.tool in tools for ev in cited):
         return f"category {f.category!r} needs cited {tool} evidence that reports it; none is cited"
     if not flagged:

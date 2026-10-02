@@ -374,7 +374,9 @@ def _peak_interp(mag: np.ndarray, k: int) -> float:
     "(zero-mean channels such as accelerometers use only the prominence test). Consecutive flagged windows "
     "with the same frequency are merged into events with frequency and amplitude. An oscillation has to last "
     "min_windows overlapping windows (default 3); shorter narrow-band peaks are listed as short_events: usually "
-    "a transient such as a pressure spike, not a sustained oscillation.",
+    "a transient such as a pressure spike, not a sustained oscillation. A line that is already there before "
+    "ignition at half the amplitude or more is listed under interference (electrical or mechanical pickup such as "
+    "mains hum), not as an oscillation event.",
     {
         "channel": {**_CH, "description": "channel to analyse (default Pc)"},
         "t_start": _T,
@@ -507,6 +509,28 @@ def detect_oscillation(
             ev["peak_amp_pct"] = pk["amp_pct"]
             ev["mean_amp_pct"] = float(np.mean([r["amp_pct"] for r in rs]))
         out_events.append(ev)
+    # a line already there before ignition is pickup (mains hum, a pump, a structural mode), not combustion: the
+    # chamber is not burning yet. Compare each event with the same frequency over the last seconds of pre-test.
+    interference = []
+    ph = {q["name"]: q for q in s.phases()}
+    if "pre_test" in ph and "startup" in ph:
+        p_hi = ph["startup"]["t_start"] - 0.2
+        i_a, i_b = int(np.searchsorted(t, max(ph["pre_test"]["t_start"], p_hi - 2.0))), int(np.searchsorted(t, p_hi))
+        if i_b - i_a >= 2 * n:
+            for e in list(out_events):
+                kf = int(round(e["freq_hz"] / df))
+                amps = []
+                for j in range(i_a, i_b - n + 1, hop):
+                    seg = x_all[j:j + n]
+                    if nan_all[j:j + n].mean() > 0.2:
+                        continue
+                    tt = np.arange(n)
+                    m = 2 * np.abs(np.fft.rfft((seg - np.polyval(np.polyfit(tt, seg, 1), tt)) * win)) / win.sum()
+                    amps.append(float(m[max(kf - 2, 0):kf + 3].max()))
+                if amps and float(np.median(amps)) >= 0.5 * e["peak_amp"]:
+                    e["pre_ignition_amp"] = float(np.median(amps))
+                    interference.append(e)
+                    out_events.remove(e)
     valid = [r for r in rows if not r.get("skipped")]
     worst = max(valid, key=lambda r: r["amp"]) if valid else None
     res = {
@@ -526,6 +550,7 @@ def detect_oscillation(
         "min_windows": need,
         "detected": bool(out_events),
         "events": out_events,
+        "interference": interference,  # lines present before ignition too: pickup, not combustion
         "short_events": [{"t_start": e["_rows"][0]["t_center"] - hop_s / 2, "t_end": e["_rows"][-1]["t_center"] + hop_s / 2,
                           "freq_hz": float(np.median(e["_f"])), "n_windows": len(e["_rows"]),
                           **({"peak_amp_pct": max(r["amp_pct"] for r in e["_rows"])}
@@ -588,7 +613,7 @@ def _gap_issue(t: np.ndarray, gaps: list[dict], firing) -> dict:
             "count_during_firing": len(in_fire), "gaps_during_firing": in_fire[:10]}
 
 
-def _baseline_return(s: Session, frac: float = 0.25, settle_s: float = 2.0) -> dict | None:
+def _baseline_return(s: Session, frac: float = 0.25, settle_s: float = 1.0) -> dict | None:
     """The segmentation channel (chamber pressure) should fall back to its pre-test reading once the engine is
     off. Returns an issue when, from ``settle_s`` after mainstage end, it stays above baseline by more than
     ``frac`` of the steady level."""
@@ -602,7 +627,7 @@ def _baseline_return(s: Session, frac: float = 0.25, settle_s: float = 2.0) -> d
     t_after = seg["mainstage_end_s"] + settle_s
     post = x[t >= t_after]
     pre, post = pre[~np.isnan(pre)], post[~np.isnan(post)]
-    if pre.size < 0.5 * s.fs or post.size < 1.0 * s.fs:
+    if pre.size < 0.5 * s.fs or post.size < 0.5 * s.fs:  # a record that ends soon after shutdown still counts
         return None
     base, after, level = float(np.median(pre)), float(np.median(post)), float(seg["steady_level"])
     if level <= base or after - base <= frac * (level - base):
@@ -787,7 +812,7 @@ def check_sensor_health(s: Session, channels: list[str] | None = None, spike_sig
                         "flatline_min_s": max(int(0.05 * fs), 3) / fs, "flatline_min_native_samples": 3,
                         "flatline_only_during_firing": firing is not None, "flatline_bridges_gaps_up_to_s": 0.1,
                         "recurring_gap_threshold": 3, "nan_margin_s": 0.01, "coincident_spike_s": COINCIDENT_S,
-                        "baseline_return_frac": 0.25, "baseline_settle_s": 2.0}}
+                        "baseline_return_frac": 0.25, "baseline_settle_s": 1.0}}
     fig = None
     bad = [c for c in chans if not summary[c]["ok"]][:4]
     if bad:

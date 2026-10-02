@@ -21,7 +21,7 @@ from pathlib import Path
 
 from .findings import Finding
 from .session import Session
-from .synth import ANOMALY_TYPES, Anomaly, generate_run
+from .synth import ANOMALY_TYPES, ANY_CHANNEL, Anomaly, generate_run
 
 
 def _overlaps(f: Finding, a: Anomaly, tol_s: float) -> bool:
@@ -37,7 +37,11 @@ def match(findings: list[Finding], truth: list[Anomaly], tol_s: float = 0.25) ->
     per_truth = []
     for a in truth:
         chans = {a.channel, *a.related_channels}
-        hits = [i for i, f in enumerate(claims) if f.channel in chans and _overlaps(f, a, tol_s)]
+        if a.channel == ANY_CHANNEL:  # a DAQ-wide or channel-group fault: the category and time are what count
+            hits = [i for i, f in enumerate(claims) if f.category == a.category and _overlaps(f, a, tol_s)
+                    and (f.channel is None or f.channel in chans)]
+        else:
+            hits = [i for i, f in enumerate(claims) if f.channel in chans and _overlaps(f, a, tol_s)]
         used.update(hits)
         # loose: a claim that names no channel but has the right category (and a compatible time) —
         # the model found the problem but did not fill in the structured field
@@ -76,7 +80,7 @@ class BenchmarkInterrupted(RuntimeError):
 
 def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, progress=None,
                   keep_going: bool = False, resume_rows: list[dict] | None = None, infra_retries: int = 0,
-                  stop_on_infra: bool = False, on_row=None) -> dict:
+                  stop_on_infra: bool = False, on_row=None, suite: str = "classic") -> dict:
     """Run ``n`` synthetic tests. A failure on the very first run is raised (usually a bad key or URL)
     unless ``keep_going`` is set, in which case every failure is recorded and the benchmark continues.
 
@@ -93,7 +97,7 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
             if progress:
                 progress(i + 1, n)
             continue
-        run = generate_run(seed + i)
+        run = generate_run(seed + i, suite=suite)
         for attempt in range(infra_retries + 1):
             s = Session(run.data, run.meta, run.reference, run.limits)
             t0 = time.perf_counter()
@@ -122,6 +126,7 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
         rows.append({
             "seed": seed + i,
             "anomalies": [a.type for a in run.truth],
+            **({"nuisances": run.meta.get("nuisances", [])} if suite != "classic" else {}),
             "match": m,
             "verification": res.verification,
             "first_submission": res.agent.get("first_submission"),
@@ -149,7 +154,8 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
             on_row(rows)
         if progress:
             progress(i + 1, n)
-    return {"n_runs": n, "seed": seed, "tol_s": tol_s, "summary": summarize(rows), "runs": rows}
+    return {"n_runs": n, "seed": seed, "tol_s": tol_s, **({"suite": suite} if suite != "classic" else {}),
+            "summary": summarize(rows), "runs": rows}
 
 
 def summarize(rows: list[dict]) -> dict:
@@ -175,7 +181,7 @@ def summarize(rows: list[dict]) -> dict:
         num_ok += v["numbers_grounded"]
         num_con += v.get("numbers_consistent", v["numbers_grounded"])
     per_type = {}
-    for k in ANOMALY_TYPES:
+    for k in [*ANOMALY_TYPES, *(t for t in by_type if t not in ANOMALY_TYPES)]:
         d = by_type.get(k)
         if not d or not d["n"]:
             continue

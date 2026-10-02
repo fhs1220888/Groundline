@@ -90,6 +90,9 @@ _TXT = {
         "ratio_after": "主级段内它只变化了 {msc:.0f}%，偏离出现在主级段之后：推力仍然不小，室压却已经降了下来。要么这一段的室压读数不可信，"
                        "要么燃烧或喉部状态发生了变化。",
         "ratio_main": "可能是喉部变化（烧蚀、喉衬破裂），也可能是推力或室压传感器漂移、失效。",
+        "hum_t": "{ch} 上有 {f:.0f} Hz 干扰",
+        "hum_s": "{ch} 在点火前就带有 {f:.0f} Hz 的窄带分量（幅值 {pre:.4g} {unit}），点火期间仍在（{t0:.2f}–{t1:.2f} s，幅值为均值的 "
+                 "{amp:.2f}%）。燃烧开始之前就存在，说明这是电气或机械拾取（如工频干扰），不是燃烧振荡。",
         "coin_t": "{n} 个不同类型的通道在 {t0:.3f} s 同时出现尖峰",
         "coin_s": "{t0:.3f}–{t1:.3f} s 内，{chs} 同时出现快速尖峰（{n} 个通道，不同类型的传感器）。单个传感器解释不了这种"
                   "同时出现的尖峰：可能是真实的快速瞬变，也可能是采集系统受到的电磁干扰，需要结合现场情况判断。",
@@ -179,6 +182,10 @@ _TXT = {
                        "there, or combustion or the throat changed.",
         "ratio_main": " Possible causes: a throat change (erosion, a broken insert), or a drifting or failing thrust or "
                       "pressure sensor.",
+        "hum_t": "{f:.0f} Hz pickup on {ch}",
+        "hum_s": "{ch} carries a {f:.0f} Hz narrow-band line before ignition ({pre:.4g} {unit}) that is still there during the "
+                 "firing ({t0:.2f}–{t1:.2f} s, {amp:.2f}% of mean). Present before combustion starts, it is electrical "
+                 "or mechanical pickup (such as mains hum), not a combustion oscillation.",
         "coin_t": "Spikes on {n} different channels at {t0:.3f} s",
         "coin_s": "Between {t0:.3f} and {t1:.3f} s, {chs} spike at the same moment ({n} channels, different kinds of "
                   "sensor). No single sensor explains simultaneous spikes: either a fast physical transient or "
@@ -298,6 +305,8 @@ class RuleAgent:
                              i["t_start"], i["t_end"], [health.id]))
             if ch is not None:
                 covered.add(ch)
+            elif i["kind"] == "duplicate_channels":  # a copied channel says nothing about its own quantity
+                covered.update(i["channels"])
 
         red = s.run("check_redlines")
         for v in red.result.get("violations", []):
@@ -334,6 +343,11 @@ class RuleAgent:
 
         pc = seg.result.get("channel", "Pc")
         osc = None if ends else s.run("detect_oscillation", channel=pc)  # nothing to search in a cut-off log
+        for e in ([] if osc is None else osc.result.get("interference", [])):
+            F.append(Finding(T["hum_t"].format(ch=pc, f=e["freq_hz"]),
+                             T["hum_s"].format(ch=pc, f=e["freq_hz"], pre=e["pre_ignition_amp"], unit=e["peak_amp_unit"],
+                                               t0=e["t_start"], t1=e["t_end"], amp=e.get("peak_amp_pct", 0.0)),
+                             "sensor_fault", "warning", pc, e["t_start"], e["t_end"], [osc.id]))
         for e in ([] if osc is None else osc.result["events"]):
             ids = [osc.id]
             corr = ""

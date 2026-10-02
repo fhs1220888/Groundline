@@ -35,6 +35,24 @@ ANOMALY_TYPES = (
     "pc_deficit",       # chamber pressure below prediction at nominal flow (low c* efficiency)
 )
 
+# Faults seen in real test logs (Triton, UVic MULE-1), injected only in the "realistic" suite so the classic
+# benchmark stays exactly as it was. Each one is an instrumentation problem an agent should report.
+REALISTIC_FAULTS = (
+    "daq_dropout",        # every channel loses data at the same moments (dropped DAQ frames)
+    "sensor_saturation",  # a pressure transducer clips at full scale while the engine runs
+    "pc_stuck_after_shutdown",  # chamber pressure sticks high once the engine is off
+    "zero_offset",        # a pressure channel reads below vacuum: a zero / calibration offset
+    "duplicate_channel",  # one channel carries another channel's samples (wiring or DAQ configuration)
+    "dead_channel",       # a channel holds one value for the whole record (not connected)
+    "mains_hum",          # 60 Hz pickup on the pressure channels, before ignition as well as during the firing
+)
+# Real-world features that are not faults; the realistic suite adds them so an agent must not report them.
+NUISANCES = (
+    "startup_spike",      # a ~30 ms chamber-pressure overshoot shortly after ignition
+    "shutdown_slam",      # water hammer on the injector pressures when the valves close
+    "quantization",       # ADC steps on every pressure channel
+)
+
 # Which finding category an agent is expected to report for each truth type.
 TRUTH_TO_CATEGORY = {
     "oscillation": "combustion_oscillation",
@@ -43,7 +61,9 @@ TRUTH_TO_CATEGORY = {
     "sensor_spike": "sensor_fault",
     "valve_delay": "valve_response",
     "pc_deficit": "performance_deviation",
+    **{k: "sensor_fault" for k in REALISTIC_FAULTS},
 }
+ANY_CHANNEL = "*"  # truth that concerns the whole DAQ or a group of channels, not one channel
 
 
 @dataclass
@@ -216,21 +236,33 @@ def generate_run(
     spec: EngineSpec | None = None,
     seq: Sequence | None = None,
     test_id: str | None = None,
+    suite: str = "classic",
+    nuisances: list[str] | None = None,
 ) -> SyntheticRun:
     """Generate one synthetic hot-fire run.
 
     ``anomalies``: list of anomaly type names to inject.  ``None`` picks a random
     subset (0-3 anomalies) from the seed; ``[]`` gives a nominal run.
+
+    ``suite="realistic"`` draws from the classic anomalies plus :data:`REALISTIC_FAULTS`, and adds a random
+    subset of :data:`NUISANCES` (or exactly ``nuisances``). The classic suite is unchanged, seed for seed.
     """
+    if suite not in ("classic", "realistic"):
+        raise ValueError(f"unknown suite {suite!r}")
     rng = np.random.default_rng(seed)
     spec = spec or EngineSpec()
     seq = seq or Sequence()
+    pool = ANOMALY_TYPES + (REALISTIC_FAULTS if suite == "realistic" else ())
     if anomalies is None:
         k = int(rng.choice([0, 1, 1, 2, 2, 3]))
-        anomalies = list(rng.choice(ANOMALY_TYPES, size=k, replace=False))
+        anomalies = list(rng.choice(pool, size=k, replace=False))
     for a in anomalies:
-        if a not in ANOMALY_TYPES:
-            raise ValueError(f"unknown anomaly type {a!r}; choose from {ANOMALY_TYPES}")
+        if a not in ANOMALY_TYPES + REALISTIC_FAULTS:
+            raise ValueError(f"unknown anomaly type {a!r}; choose from {ANOMALY_TYPES + REALISTIC_FAULTS}")
+    # realism draws come from their own generator, so the classic draws above and below are untouched
+    rr = np.random.default_rng([seed, 7])
+    if nuisances is None:
+        nuisances = [x for x in NUISANCES if rr.random() < 0.5] if suite == "realistic" else []
 
     n = int(round(seq.duration * fs))
     t = np.arange(n) / fs
@@ -323,6 +355,18 @@ def generate_run(
             )
         )
 
+    if "startup_spike" in nuisances:  # a short overshoot after ignition, as in the Triton log
+        t_s = sig["_t_ign"] + spec.pc_rise_s + float(rr.uniform(0.1, 0.4))
+        bump = 0.08 * spec.pc_nom * np.exp(-0.5 * ((t - t_s) / 0.008) ** 2)  # below the 12 % redline: harmless
+        pc += bump
+        p_ox += 0.5 * bump
+        p_fu += 0.5 * bump
+    if "shutdown_slam" in nuisances:  # water hammer when the valves close
+        tc = seq.cmd_close + spec.valve_dead_ms / 1000
+        ring = np.where(t >= tc, np.exp(-np.clip(t - tc, 0, None) / 0.03) * np.sin(2 * np.pi * 220 * (t - tc)), 0.0)
+        p_ox += 0.25 * ring
+        p_fu += 0.25 * ring
+
     # ---- noise ----
     data = {
         "time": t,
@@ -374,6 +418,63 @@ def generate_run(
             data[ch][i0:i1] = np.nan
         truth.append(Anomaly("sensor_dropout", ch, t0, t0 + dur, {"mode": mode}))
 
+    # ---- faults seen in real logs, and quantization (realistic suite) ----
+    pressures = ["Pc", "P_ox_inj", "P_fu_inj"]
+    busy = {a.channel for a in truth}
+    t_end = float(t[-1])
+    if "mains_hum" in anomalies:
+        hum = 0.008 * spec.pc_nom * np.sin(2 * np.pi * 60.0 * t + rr.uniform(0, 2 * np.pi))
+        for ch in pressures:
+            data[ch] = data[ch] + hum
+        truth.append(Anomaly("mains_hum", "Pc", 0.0, t_end, {"freq_hz": 60.0, "amplitude_MPa": 0.008 * spec.pc_nom},
+                             related_channels=pressures[1:]))
+    if "sensor_saturation" in anomalies:
+        ch = str(rr.choice([c for c in ("P_ox_inj", "P_fu_inj") if c not in busy] or ["P_ox_inj"]))
+        top = 0.97 * float(np.nanpercentile(data[ch], 99))
+        clipped = data[ch] > top
+        data[ch] = np.minimum(data[ch], top)
+        ii = np.where(clipped)[0]
+        truth.append(Anomaly("sensor_saturation", ch, float(t[ii[0]]), float(t[ii[-1]]), {"full_scale": round(top, 4)}))
+        busy.add(ch)
+    if "pc_stuck_after_shutdown" in anomalies:
+        t_s = seq.cmd_close + 0.25
+        stuck = t >= t_s
+        data["Pc"][stuck] = 0.6 * spec.pc_nom + rng.normal(0, 0.003 * spec.pc_nom, int(stuck.sum()))
+        truth.append(Anomaly("pc_stuck_after_shutdown", "Pc", t_s, t_end, {"stuck_MPa": 0.6 * spec.pc_nom}))
+    if "zero_offset" in anomalies:
+        ch = str(rr.choice([c for c in ("P_ox_inj", "P_fu_inj") if c not in busy] or ["P_fu_inj"]))
+        off = float(rr.uniform(0.2, 0.4))  # reads 0.2-0.4 MPa low: below vacuum while unpressurised
+        data[ch] = data[ch] - off
+        truth.append(Anomaly("zero_offset", ch, 0.0, t_end, {"offset_MPa": round(-off, 3)}))
+        busy.add(ch)
+    if "duplicate_channel" in anomalies:
+        src, dst = [(a, b) for a, b in (("mdot_ox", "mdot_fu"), ("P_ox_inj", "P_fu_inj"))
+                    if a not in busy and b not in busy][0] if any(a not in busy and b not in busy for a, b in
+                                                                  (("mdot_ox", "mdot_fu"), ("P_ox_inj", "P_fu_inj"))) \
+            else ("mdot_ox", "mdot_fu")
+        data[dst] = data[src].copy()
+        truth.append(Anomaly("duplicate_channel", ANY_CHANNEL, 0.0, t_end, {"source": src, "copy": dst},
+                             related_channels=[src, dst]))
+        busy.update((src, dst))
+    if "dead_channel" in anomalies:
+        ch = str(rr.choice([c for c in ("vib_axial", "T_cool_out", "mdot_fu") if c not in busy] or ["vib_axial"]))
+        data[ch] = np.full(n, 0.0)
+        truth.append(Anomaly("dead_channel", ch, 0.0, t_end, {"value": 0.0}))
+        busy.add(ch)
+    if "quantization" in nuisances:
+        for ch in pressures:
+            data[ch] = np.round(data[ch] / 0.002) * 0.002  # 2 kPa ADC steps
+    if "daq_dropout" in anomalies:  # last: a dropped frame loses every channel, faults included
+        gaps = np.zeros(n, bool)
+        g = float(rr.uniform(0.2, 0.6))
+        while g < t_end - 0.1:
+            gaps[int(g * fs):int((g + rr.uniform(0.01, 0.04)) * fs)] = True
+            g += float(rr.uniform(0.25, 0.7))
+        for ch in data:
+            if ch != "time" and not ch.startswith("cmd_"):
+                data[ch] = np.where(gaps, np.nan, data[ch])
+        truth.append(Anomaly("daq_dropout", ANY_CHANNEL, 0.0, t_end, {"n_gaps": len(np.where(np.diff(gaps.astype(int)) == 1)[0])}))
+
     df = pd.DataFrame(data)
 
     # ---- reference (simulation prediction), coarser sampling, no noise ----
@@ -399,5 +500,6 @@ def generate_run(
         "engine": asdict(spec),
         "seed": seed,
         "anomalies_injected": sorted(anomalies),
+        **({"suite": suite, "nuisances": sorted(nuisances)} if suite != "classic" else {}),
     }
     return SyntheticRun(df, ref, truth, meta, default_limits(spec))
