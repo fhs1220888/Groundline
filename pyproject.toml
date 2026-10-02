@@ -20,7 +20,7 @@ dependencies = [
   "scipy>=1.10",
   "pandas>=2.0",
   "matplotlib>=3.7",
-  "mcp>=1.0,<2",  # v2 renamed FastMCP; pinned until the server is ported. Core dep so `uvx groundline mcp` works
+  "mcp>=1.0,<3",  # core dep so `uvx groundline mcp` works; the server runs on both 1.x and 2.x
 ]
 
 [project.urls]
@@ -30,9 +30,9 @@ Repository = "https://github.com/fhs1220888/Groundline"
 [project.optional-dependencies]
 llm = ["httpx>=0.25"]
 tdms = ["nptdms>=1.7"]
-mcp = ["mcp>=1.0,<2"]
+mcp = ["mcp>=1.0,<3"]
 dev = ["pytest>=7", "httpx>=0.25", "nptdms>=1.7"]
-all = ["httpx>=0.25", "nptdms>=1.7", "mcp>=1.0,<2"]
+all = ["httpx>=0.25", "nptdms>=1.7", "mcp>=1.0,<3"]
 
 [project.scripts]
 groundline = "groundline.cli:main"

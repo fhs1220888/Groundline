@@ -694,7 +694,8 @@ def test_mcp_server_round_trip(tmp_path):
 
     async def go():
         def payload(res):
-            blocks = res[0] if isinstance(res, tuple) else res
+            blocks = res[0] if isinstance(res, tuple) else res  # mcp 1.x: blocks or (blocks, structured)
+            blocks = getattr(blocks, "content", blocks)  # mcp 2.x: CallToolResult
             return json.loads(blocks[0].text)
 
         opened = payload(await srv.call_tool("open_run", {"run_path": str(paths["run"])}))
