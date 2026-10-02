@@ -11,6 +11,10 @@ statement is then corrupted in one of three ways, one error per mutant:
 For every mutant we record whether the grounding-only check (the verifier before semantic checks: is the
 value anywhere in the cited evidence?) and the full verifier flag it. Unmodified findings measure false
 alarms.
+
+The same is then done with source tags: every number of the correct finding gets the field it matched
+written after it (``742.3 K [E4.violations[0].peak_value]``), the way an agent that cites its numbers
+would write it, and the mutants keep the tag. This measures the verifier when the writer names its sources.
 """
 
 from __future__ import annotations
@@ -82,6 +86,21 @@ def _mutate(f: Finding, s, rng: random.Random) -> list[tuple[str, Finding, str]]
     return out
 
 
+def _tagged(f: Finding, s) -> Finding:
+    """The finding with each statement number followed by the evidence field it matched."""
+    v = verify_finding(f, s)
+    nums = v["numbers"][len(number_matches(f.title)):]
+    text = f.statement
+    for m, n in reversed(list(zip(number_matches(text), nums))):
+        if n["matched"]:
+            um = _UNIT_RE.match(text, m.end())
+            end = um.end() if um else m.end()
+            text = f"{text[:end]} [{n['matched']['field']}]{text[end:]}"
+    g = copy.copy(f)
+    g.statement, g.verification = text, None
+    return g
+
+
 def run_verifier_bench(n: int = 50, seed: int = 1000, langs=("zh", "en"), rng_seed: int = 0,
                        examples: int = 3) -> dict:
     from .agent import RuleAgent
@@ -89,9 +108,11 @@ def run_verifier_bench(n: int = 50, seed: int = 1000, langs=("zh", "en"), rng_se
     from .synth import generate_run
 
     rng = random.Random(rng_seed)
+    rng_tagged = random.Random(rng_seed + 1)  # separate stream: the untagged results stay comparable
     stats = defaultdict(lambda: {"n": 0, "caught_grounding": 0, "caught_full": 0})
+    tagged = defaultdict(lambda: {"n": 0, "caught": 0})
     samples = defaultdict(list)
-    clean = {"findings": 0, "flagged_grounding": 0, "flagged_full": 0}
+    clean = {"findings": 0, "flagged_grounding": 0, "flagged_full": 0, "flagged_tagged": 0}
     for lang in langs:
         for i in range(n):
             run = generate_run(seed + i)
@@ -113,7 +134,16 @@ def run_verifier_bench(n: int = 50, seed: int = 1000, langs=("zh", "en"), rng_se
                                               "why": (vg["semantic_problems"] or vg["problems"] or ["?"])[0]})
                     if not new and len(samples[kind + "_missed"]) < examples:
                         samples[kind + "_missed"].append({"change": desc, "statement": g.statement})
+                t = _tagged(f, s)
+                clean["flagged_tagged"] += verify_finding(t, s)["status"] != "verified"
+                for kind, g, desc in _mutate(t, s, rng_tagged):
+                    caught = verify_finding(g, s)["status"] != "verified"
+                    tagged[kind]["n"] += 1
+                    tagged[kind]["caught"] += caught
+                    if not caught and len(samples[kind + "_missed_tagged"]) < examples:
+                        samples[kind + "_missed_tagged"].append({"change": desc, "statement": g.statement})
     return {"n_runs": n, "seed": seed, "langs": list(langs), "clean": clean, "mutations": dict(stats),
+            "mutations_tagged": dict(tagged),
             "examples": dict(samples)}
 
 
@@ -124,14 +154,16 @@ def format_bench(res: dict) -> str:
     c = res["clean"]
     names = {"fabricated": "编造的数值", "swapped": "真实数值放错位置", "wrong_unit": "单位写错"}
     lines = [
-        "| 植入的错误 | 数量 | 只查出处（原校验器） | 出处 + 语义（新校验器） |",
-        "|---|---|---|---|",
+        "| 植入的错误 | 数量 | 只查出处（原校验器） | 出处 + 语义（新校验器） | 数字标明出处时 |",
+        "|---|---|---|---|---|",
     ]
+    tg = res.get("mutations_tagged", {})
     for k in ("fabricated", "swapped", "wrong_unit"):
         st = res["mutations"].get(k)
         if st:
+            t = tg.get(k, {"caught": 0, "n": 0})
             lines.append(f"| {names[k]} | {st['n']} | {pct(st['caught_grounding'], st['n'])} | "
-                         f"{pct(st['caught_full'], st['n'])} |")
+                         f"{pct(st['caught_full'], st['n'])} | {pct(t['caught'], t['n'])} |")
     lines.append(f"| 未改动的正确结论（误报） | {c['findings']} | {pct(c['flagged_grounding'], c['findings'])} | "
-                 f"{pct(c['flagged_full'], c['findings'])} |")
+                 f"{pct(c['flagged_full'], c['findings'])} | {pct(c.get('flagged_tagged', 0), c['findings'])} |")
     return "\n".join(lines)

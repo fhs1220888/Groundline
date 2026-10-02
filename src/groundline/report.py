@@ -12,7 +12,7 @@ import numpy as np
 
 from . import __version__, plots
 from .agent import AnalysisResult
-from .findings import number_matches
+from .findings import citations, number_matches
 from .session import Session
 
 UI = {
@@ -131,6 +131,9 @@ font-weight:650;font-size:13px;color:var(--ink2)}
 .stmt{margin:0 0 8px}
 .g{border-bottom:1px dotted var(--ink3);cursor:help}
 .ng{text-decoration:underline wavy var(--crit);text-underline-offset:3px}
+.cite{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink3);text-decoration:none;
+  vertical-align:1px;margin-left:2px}
+.cite:hover{color:var(--accent);text-decoration:underline}
 .chips a{display:inline-block;margin:2px 4px 0 0;padding:1px 8px;border-radius:6px;background:var(--chip);
 color:var(--accent);text-decoration:none;font:600 12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
 .chips a:hover{text-decoration:underline}
@@ -156,11 +159,23 @@ def _esc(x) -> str:
     return html.escape(str(x))
 
 
+def _plain(text: str) -> str:
+    """Escape text between numbers; source tags ([E4.peak]) become small links to their evidence entry."""
+    out, pos = [], 0
+    for c in citations(text):
+        eid = c.group(1).removeprefix("len(").split(".")[0].split("[")[0]
+        out.append(_esc(text[pos:c.start()]))
+        out.append(f'<a class="cite" href="#{_esc(eid)}">{_esc(c.group(1))}</a>')
+        pos = c.end()
+    out.append(_esc(text[pos:]))
+    return "".join(out)
+
+
 def _highlight(text: str, numbers: list[dict]) -> str:
     """Wrap each number in the statement with its grounding status."""
     out, pos, k = [], 0, 0
     for m in number_matches(text):
-        out.append(_esc(text[pos : m.start()]))
+        out.append(_plain(text[pos : m.start()]))
         n = numbers[k] if k < len(numbers) else None
         k += 1
         tok = _esc(m.group(0))
@@ -176,7 +191,7 @@ def _highlight(text: str, numbers: list[dict]) -> str:
         else:
             out.append(tok)
         pos = m.end()
-    out.append(_esc(text[pos:]))
+    out.append(_plain(text[pos:]))
     return "".join(out)
 
 

@@ -607,6 +607,41 @@ def test_anomaly_category_needs_evidence_that_reports_it():
     assert "not " + repr(other) in problems("redline_violation", [red.id], other)[0]
 
 
+def test_numbers_tagged_with_their_source_field():
+    from groundline.agent import LLMAgent, ScriptedBackend
+    from groundline.findings import verify_finding
+    from groundline.report import _highlight
+
+    _, s = session_for(["overtemp"], seed=2)
+    ev = s.run("check_redlines")
+    v, E = ev.result["violations"][0], ev.id
+
+    def check(stmt, evidence=(E,)):
+        return verify_finding(Finding("t", stmt, "redline_violation", "critical", v["channel"], None, None,
+                                      list(evidence)), s)
+
+    ok = check(f"peak {v['peak_value']:.1f} K [{E}.violations[0].peak_value] from {v['t_start']:.3f} "
+               f"[{E}.violations.0.t_start]–{v['t_end']:.3f} s [{E}.violations[0].t_end], "
+               f"出现 {len(ev.result['violations'])} 次超限 [len({E}.violations)], see [{E}]")
+    assert ok["status"] == "verified" and ok["n_cited"] == 4, ok
+    # a real value of the evidence, but not the field the tag names
+    bad = check(f"peak {v['peak_value']:.1f} K [{E}.violations[0].limit]")
+    assert bad["ungrounded_numbers"] == [f"{v['peak_value']:.1f}"] and "does not match" in bad["problems"][0]
+    # a tag into evidence the finding does not cite
+    assert "not among the finding's evidence" in check(f"{v['peak_value']:.1f} K [E99.peak]")["problems"][0]
+    # the tagged field still has to fit the unit written (a time is not a temperature)
+    assert check(f"{v['t_peak']:.3f} K [{E}.violations[0].t_peak]")["mismatched_numbers"]
+    html = _highlight(f"{v['peak_value']:.1f} K [{E}.violations[0].peak_value]", ok["numbers"][:1])
+    assert f'<a class="cite" href="#{E}">{E}.violations[0].peak_value</a>' in html
+    # LLM agents are asked to tag their numbers unless turned off
+    for on in (True, False):
+        seen = []
+        backend = ScriptedBackend([])
+        backend.complete = lambda system, messages, tools, seen=seen: seen.append(system) or {"content": "", "tool_calls": []}
+        LLMAgent(backend, lang="en", max_steps=1, cite_numbers=on).run(s)
+        assert ("name the evidence field it comes from" in seen[0]) is on
+
+
 def test_role_word_must_lead_into_the_number():
     from groundline.semantics import role_before
 

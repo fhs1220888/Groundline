@@ -8,23 +8,38 @@
   "clean": {
     "findings": 268,
     "flagged_grounding": 0,
-    "flagged_full": 0
+    "flagged_full": 0,
+    "flagged_tagged": 0
   },
   "mutations": {
     "fabricated": {
       "n": 1364,
-      "caught_grounding": 1191,
-      "caught_full": 1334
+      "caught_grounding": 1246,
+      "caught_full": 1339
     },
     "swapped": {
       "n": 1436,
       "caught_grounding": 0,
-      "caught_full": 950
+      "caught_full": 986
     },
     "wrong_unit": {
       "n": 1168,
       "caught_grounding": 0,
       "caught_full": 1154
+    }
+  },
+  "mutations_tagged": {
+    "fabricated": {
+      "n": 1364,
+      "caught": 1364
+    },
+    "swapped": {
+      "n": 1436,
+      "caught": 1436
+    },
+    "wrong_unit": {
+      "n": 1168,
+      "caught": 1168
     }
   },
   "examples": {
@@ -83,13 +98,13 @@
         "why": "'8 个采样点' matches only E3.issues[0].spikes[2].value (plain)"
       },
       {
-        "change": "2.84 -> 1.99",
-        "statement": "Pc 在 2.45–4.40 s 检测到约 230 Hz 的窄带振荡，峰值幅值为均值的 1.99%（判据 0.5%）。 vib_axial 在 230 Hz 同步检出振荡，佐证其为物理现象而非单个传感器问题。",
-        "why": "'1.99 %' matches only E6.fmax_hz (freq)"
+        "change": "5.000 -> 4.000",
+        "statement": "基于 Pc 分段：点火 1.154 s，主级段 1.368–9.024 s（持续 7.66 s），稳态水平 4.000 MPa。",
+        "why": "'4.000 MPa' matches only len(E2.command_events) (count)"
       },
       {
         "change": "5.000 -> 4.000",
-        "statement": "基于 Pc 分段：点火 1.154 s，主级段 1.368–9.024 s（持续 7.66 s），稳态水平 4.000 MPa。",
+        "statement": "基于 Pc 分段：点火 1.054 s，主级段 1.268–9.024 s（持续 7.76 s），稳态水平 4.000 MPa。",
         "why": "'4.000 MPa' matches only len(E2.command_events) (count)"
       }
     ],

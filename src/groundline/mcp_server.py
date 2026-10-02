@@ -69,7 +69,9 @@ def build_server():
         """Check findings (title, statement, category, severity, channel, t_start, t_end, evidence[]) against the
         ledger. Every number in a statement must be present in the cited evidence, with a unit and role that fit
         the evidence field it came from (e.g. a number after "peak" must come from a peak field). A finding in an
-        anomaly category must cite the tool result that reports that anomaly; passed checks are 'observation'."""
+        anomaly category must cite the tool result that reports that anomaly; passed checks are 'observation'.
+        Tag a number with its source field to have it checked against exactly that field:
+        "742.3 K [E4.violations[0].peak_value]", "3 spikes [len(E3.issues[0].spikes)]"."""
         s = _get(run_id)
         fs = [Finding.from_dict(d) for d in findings]
         summary = verify_findings(fs, s)
