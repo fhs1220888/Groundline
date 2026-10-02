@@ -19,7 +19,7 @@ Give Groundline the data from an engine hot-fire (or any bench test) and it segm
 - **A verifier checks every number in every finding.** Each number in a title or statement must be found in the evidence it cites (rounding and s↔ms, fraction↔% conversions allowed). Numbers that are not found get a red squiggle in the report, and an LLM agent gets the rejection back with one chance to fix it. The verifier also checks what a number *means*: the unit written after it (s, Hz, %, bar, N·s, ...) must match the unit of the evidence field, and a number introduced by a word such as "peak", "duration", "mean" or "impulse" must come from a field with that role (see [Semantic verification](#semantic-verification)).
 - **Every finding can be reproduced.** `groundline reproduce report.json` re-runs every ledger entry on the raw data and compares the results one by one.
 
-> Status: v0.1 prototype. Benchmarks use data from the built-in synthetic generator. Two public real tests are worked examples: a solid-motor static fire ([HANARO](#real-data-example-hanaro-solid-motor-static-fire)) and a liquid-engine hot fire ([Triton](#real-data-example-triton-liquid-engine-hot-fire)). Neither comes with redlines, valve commands or a simulation prediction, so those checks are still validated on synthetic data only.
+> Status: v0.1 prototype. Benchmarks use data from the built-in synthetic generator. Public real tests are worked examples: a solid-motor static fire ([HANARO](#real-data-example-hanaro-solid-motor-static-fire)), a liquid-engine hot fire ([Triton](#real-data-example-triton-liquid-engine-hot-fire)) and four hybrid-motor hot fires checked against the team's own reports ([UVic MULE-1](#real-data-example-uvic-mule-1-hybrid-motor-checked-against-the-teams-own-reports)). None comes with redlines, valve commands or a simulation prediction, so those checks are still validated on synthetic data only.
 
 ## Quick start
 
@@ -106,6 +106,7 @@ It exposes five tools: `open_run`, `list_analysis_tools`, `run_analysis`, `verif
 | `detect_oscillation` | Sliding-window FFT: frequency, amplitude (% of mean) and start/end of narrow-band oscillations |
 | `compare_reference` | Comparison with the simulation prediction: mean deviation, RMSE and intervals of sustained deviation |
 | `pulse_metrics` | Peak, action time, integral (total impulse) and mean of a pulse-shaped channel such as solid-motor thrust |
+| `check_thrust_pressure_ratio` | Thrust over chamber pressure (both above baseline) is proportional to thrust coefficient × throat area; flags a change of more than 50 % while the engine burns (throat erosion or failure, or a failing sensor) |
 | `channel_stats` / `plot_window` | Statistics and plots for drilling down |
 
 `groundline tools` prints the full parameter descriptions.
@@ -259,7 +260,34 @@ This was the first liquid-engine data Groundline saw, and the first rule-agent r
 - the start transient produced "critical" 59 Hz and 134 Hz "oscillations" from single 50 ms windows → an oscillation has to persist over 3 windows; shorter peaks are listed as short events;
 - spikes on several kinds of sensor at once were called "measurement glitches, not physical events" → reported as one event that no single sensor explains.
 
-After the changes there are 18 findings, all verified (105 numbers), and the synthetic benchmark and the HANARO results are unchanged (the HANARO mainstage window moved by 20 ms at the start and 130 ms at the end with the new steady-level estimate). A ~126 Hz component shows in Pc, the LOX manifold and thrust throughout the burn; it is real but small (about 0.1% of Pc on average), and Groundline flags the one 0.15 s stretch where it exceeds the default 0.5% criterion, as a warning.
+After the changes there are 18 findings, all verified (105 numbers), and the synthetic benchmark and the HANARO results are unchanged (with the new steady-level estimate and, later, baseline-relative thresholds, HANARO's ignition and mainstage boundaries moved by at most 150 ms). A ~126 Hz component shows in Pc, the LOX manifold and thrust throughout the burn; it is real but small (about 0.1% of Pc on average), and Groundline flags the one 0.15 s stretch where it exceeds the default 0.5% criterion, as a warning.
+
+## Real-data example: UVic MULE-1 hybrid motor, checked against the team's own reports
+
+`examples/uvic_mule/` turns four hot fires of MULE-1, UVic Rocketry's N2O / paraffin hybrid motor ([UVicRocketry/Propulsion-Test-Data](https://github.com/UVicRocketry/Propulsion-Test-Data)), into Groundline runs. It is a hybrid, not a liquid engine, but it has a liquid-style oxidiser feed (run tank, flow lines, valve, injector) and ~450 Hz logs, and what makes it valuable is that the team wrote down what happened at every test. The repository has no license, so as with Triton, `prepare.py` downloads the logs and nothing is committed.
+
+```bash
+python examples/uvic_mule/prepare.py          # all four hot fires
+groundline analyze examples/uvic_mule/2025-01-18/run.csv
+```
+
+| Test | The team's report | Groundline (rule agent) |
+|---|---|---|
+| 2024-12-12 | Igniter wiring shorted, both valves lost power, the DAQ cut out as soon as the engine ignited | "Recording stops during the firing": Pc starts rising at 317.48 s and the log ends at 317.53 s, so no performance is reported. T_post_comb has no signal |
+| 2025-01-18 | "First completely nominal hot fire"; thrust ~25% low, cause unclear; chamber thermocouples not installed / damaged | Both chamber thermocouples dead (−273.1 °C: open sensors). Pc reads below vacuum (median −25.4 psi): a zero offset. **P_n2_line and P_run_tank are identical sample for sample**, which the report does not mention: a wiring or configuration error. F/Pc steady within mainstage (9%) but 62% off in the tail-off, with thrust still ~330 N while Pc reads 24–171 psi |
+| 2025-02-08 | Nozzle throat insert broke (~7 mm wider), liner shattered, no stable combustion, low thrust | F/Pc changed 79% while burning (1.54 → 2.76 N/psi): the signature of a throat that opened up, or a failing sensor. Pc offset; simultaneous spikes on several channels during start-up |
+| 2025-09-20 | No report | Pc saturated at 2021 psi during the firing, so segmentation fell back to thrust (1.16–5.67 s; action time 4.51 s, 1268 N·s). A 10 ms, 2343 N thrust spike at shutdown is recognised as a spike, not the peak. Three thermocouples dead |
+
+What it cannot say: that thrust was 25% below expectation (no prediction is published), what broke on 02-08 beyond "a throat change or a sensor", or whether the 01-18 tail-off mismatch comes from the pressure port or from combustion.
+
+As with Triton, the first run was wrong in instructive ways: phases from a noise blip and from a log cut at ignition, "saturated" for sensors that were simply unplugged, segmentation on a saturated Pc, a 10 ms shutdown slam taken as peak thrust, and a crash on a sub-window oscillation search. What changed, each change general:
+
+- segmentation: thresholds relative to the pre-test baseline (so offsets do not matter), ignition found by searching back from mainstage, a fallback to thrust when Pc shows no clear pulse, and a flag when the log ends during the firing;
+- sensor health: one value for the whole record is "no signal", not saturation; physically impossible readings (pressure below vacuum, temperature below absolute zero, for at least 0.5 s); channels with identical samples;
+- a new tool, `check_thrust_pressure_ratio`: thrust over chamber pressure is proportional to the thrust coefficient times the throat area, so it should hold while the engine burns; it uses quasi-steady windows only and says whether the change happens within mainstage;
+- pulse metrics: the pulse is located on a 0.1 s median, so a short shock cannot pass for the peak.
+
+Regression: the synthetic benchmark is unchanged (100% recall and precision, 134/134 verified), HANARO's thrust results are unchanged (2222.2 N, 6362 / 6391 N·s; ignition and mainstage boundaries moved by at most 150 ms with the baseline-relative thresholds), Triton is unchanged, and the verifier benchmark moved by at most a point because tool results now carry more fields.
 
 ## Semantic verification
 
@@ -281,12 +309,12 @@ Unit conversions are also tied to the kind of field now: s ↔ ms only for times
 
 | Planted error | Count | Grounding only | Grounding + semantics | With source tags |
 |---|---|---|---|---|
-| Invented value (changed by −30% to +50%) | 1364 | 91% | **98%** | **100%** |
-| Real value in the wrong place (another field of the same evidence) | 1436 | 0% | **69%** | **100%** |
+| Invented value (changed by −30% to +50%) | 1364 | 90% | **98%** | **100%** |
+| Real value in the wrong place (another field of the same evidence) | 1436 | 0% | **68%** | **99.9%** |
 | Wrong unit (s ↔ Hz, % → s, ...) | 1168 | 0% | **99%** | **100%** |
 | Unchanged correct findings (false alarms) | 268 | 0% | **0%** | **0%** |
 
-Without tags, the 69% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 93% of the time; swapping in a field of the same kind (one time replaced by another time) 35%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale, count and conversion rules these were 45% overall, 69% and 13%.) That is the limit of reading text alone; with source tags every planted error is caught. Whether LLM agents tag their numbers reliably has not been measured yet: the benchmark runs above predate the tag instruction.
+Without tags, the 68% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 93% of the time; swapping in a field of the same kind (one time replaced by another time) 34%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale, count and conversion rules these were 45% overall, 69% and 13%.) That is the limit of reading text alone; with source tags all but one of the 3,968 planted errors are caught (the one left: a swapped-in value that equals the cited field within rounding). Whether LLM agents tag their numbers reliably has not been measured yet: the benchmark runs above predate the tag instruction.
 
 Also note that the role-word rules were written against the rule agent's sentence templates, so the false-alarm rate above, measured on those same templates, is optimistic. On independent text, the two reports written by gpt-5.6-sol (9 findings, 60 numbers, including the HANARO real-data report), the new verifier also raised no false alarms, and re-verifying the stored gpt-5.6-sol and Qwen benchmark runs after the range, scale, count and conversion rules were added (123 gpt-5.6-sol claims, 798 numbers) changed no gpt-5.6-sol verdict. In the 7B drafts it stopped two more numbers, both wrong: a duration of "0.2 s" that only matched a total impulse of 19.4 at ×0.01, and a mean deviation in MPa scaled ×1000 and written as a percentage. A more reliable false-alarm estimate needs more real reports from different models.
 
