@@ -68,6 +68,28 @@ _TXT = {
         "rec_all_s": "被检查的 {nch} 个通道在 {t0:.2f}–{t1:.2f} s 内同时出现 {n} 段数据缺失，合计 {tot:.2f} s，"
                      "最长 {lg:.3f} s，相邻两段的间隔中位数 {iv:.2f} s；其中 {nf} 段落在点火到拖尾结束之间。"
                      "所有通道同时缺失，说明是采集系统丢帧，而不是某个传感器的问题。",
+        "dead_t": "{ch} 没有信号",
+        "dead_s": "{ch} 在整段记录（{t0:.2f}–{t1:.2f} s）中始终读 {v:.4g} {unit}，没有任何变化：传感器未接入或已失效。",
+        "dead_imp": "这个读数在物理上不可能（低于绝对零度或真空），是断线或未接入时的典型读数。",
+        "imp_t": "{ch} 读数在物理上不可能",
+        "imp_s": "{ch} 在 {t0:.2f}–{t1:.2f} s 间有 {pct:.0f}% 的读数低于 {lim:g} {unit}（最低 {mn:.1f} {unit}，中位数 "
+                 "{med:.1f} {unit}）。{phys}：这是零点偏移或标定错误，它的绝对读数不可信。",
+        "phys_p": "真实的压力不会低于真空",
+        "phys_t": "真实的温度不会低于绝对零度",
+        "dup_t": "{chs} 的数据完全相同",
+        "dup_s": "{chs} 在整段记录（{t0:.2f}–{t1:.2f} s）中逐点完全相同。不同的传感器不可能读数完全一致，几乎可以肯定是接线或"
+                 "采集配置错误，其中至少有一个通道测的不是它名字所说的量。",
+        "ends_t": "记录在点火过程中中断",
+        "ends_s": "{ch} 在 {ign:.3f} s 开始上升，但记录在 {t1:.3f} s 就结束了，此时仍有 {last:.1f} {unit}：点火过程没有被记录下来"
+                  "（采集系统停止或断电），无法从这份记录得出这次试车的性能。",
+        "phase_fb": " {fb} 没有清晰的点火脉冲，因此改用 {ch} 分段。",
+        "pulse_spk": " 最高点 {pk:.1f} {unit}（{tp:.2f} s）只是一个短促尖峰，持续段的峰值为 {sus:.1f} {unit}，工作时间按后者截取。",
+        "ratio_t": "{f}/{p} 比值在燃烧中变化了 {chg:.0f}%",
+        "ratio_s": "{f} 与 {p}（均扣除试验前基线）之比正比于推力系数乘喉部面积，燃烧中本应基本不变；它从 {tmin:.2f} s 的 {rmin:.2f} "
+                   "变到 {tmax:.2f} s 的 {rmax:.2f} {u}，变化 {chg:.0f}%（判据 {thr:.0f}%）。",
+        "ratio_after": "主级段内它只变化了 {msc:.0f}%，偏离出现在主级段之后：推力仍然不小，室压却已经降了下来。要么这一段的室压读数不可信，"
+                       "要么燃烧或喉部状态发生了变化。",
+        "ratio_main": "可能是喉部变化（烧蚀、喉衬破裂），也可能是推力或室压传感器漂移、失效。",
         "coin_t": "{n} 个不同类型的通道在 {t0:.3f} s 同时出现尖峰",
         "coin_s": "{t0:.3f}–{t1:.3f} s 内，{chs} 同时出现快速尖峰（{n} 个通道，不同类型的传感器）。单个传感器解释不了这种"
                   "同时出现的尖峰：可能是真实的快速瞬变，也可能是采集系统受到的电磁干扰，需要结合现场情况判断。",
@@ -126,6 +148,37 @@ _TXT = {
                      "{t1:.2f} s, {tot:.2f} s in total, the longest {lg:.3f} s, median spacing {iv:.2f} s; {nf} of them "
                      "fall between ignition and the end of tail-off. Gaps shared by every channel are dropped DAQ "
                      "frames, not a sensor problem.",
+        "dead_t": "{ch} has no signal",
+        "dead_s": "{ch} reads {v:.4g} {unit} for the whole record ({t0:.2f}–{t1:.2f} s) without any change: the sensor is "
+                  "not connected or not working.",
+        "dead_imp": " That reading is physically impossible (below absolute zero or vacuum), typical of an open or "
+                    "missing sensor.",
+        "imp_t": "{ch} reads physically impossible values",
+        "imp_s": "{pct:.0f}% of {ch}'s readings between {t0:.2f} and {t1:.2f} s lie below {lim:g} {unit} (lowest {mn:.1f} "
+                 "{unit}, median {med:.1f} {unit}). {phys}: a zero offset or a calibration error, so its absolute values "
+                 "cannot be trusted.",
+        "phys_p": "No real pressure is below vacuum",
+        "phys_t": "No real temperature is below absolute zero",
+        "dup_t": "{chs} carry identical data",
+        "dup_s": "{chs} are identical sample for sample over the whole record ({t0:.2f}–{t1:.2f} s). Separate sensors "
+                 "never agree exactly, so this is almost certainly a wiring or DAQ configuration error, and at least "
+                 "one of these channels is not measuring what its name says.",
+        "ends_t": "Recording stops during the firing",
+        "ends_s": "{ch} starts rising at {ign:.3f} s, but the record ends at {t1:.3f} s with it still at {last:.1f} "
+                  "{unit}: the firing was not recorded (the DAQ stopped or lost power), so no performance can be derived "
+                  "from this log.",
+        "phase_fb": " {fb} shows no clear firing pulse, so the run was segmented on {ch} instead.",
+        "pulse_spk": " The highest sample, {pk:.1f} {unit} at {tp:.2f} s, is a short spike; the sustained peak is "
+                     "{sus:.1f} {unit} and the action time is taken from it.",
+        "ratio_t": "{f}/{p} ratio changed {chg:.0f}% during the burn",
+        "ratio_s": "The ratio of {f} to {p} (both above their pre-test baselines) is proportional to the thrust coefficient "
+                   "times the throat area and should hold while the engine burns; it went from {rmin:.2f} at {tmin:.2f} s "
+                   "to {rmax:.2f} {u} at {tmax:.2f} s, a {chg:.0f}% change (criterion {thr:.0f}%).",
+        "ratio_after": " Within mainstage it moved only {msc:.0f}%; the change comes after mainstage, with thrust still "
+                       "high but the chamber pressure already down. Either the chamber pressure reading is unreliable "
+                       "there, or combustion or the throat changed.",
+        "ratio_main": " Possible causes: a throat change (erosion, a broken insert), or a drifting or failing thrust or "
+                      "pressure sensor.",
         "coin_t": "Spikes on {n} different channels at {t0:.3f} s",
         "coin_s": "Between {t0:.3f} and {t1:.3f} s, {chs} spike at the same moment ({n} channels, different kinds of "
                   "sensor). No single sensor explains simultaneous spikes: either a fast physical transient or "
@@ -168,21 +221,32 @@ class RuleAgent:
         s.run("describe_data")
         seg = s.run("segment_phases")
         r = seg.result
-        if r.get("fired"):
+        ends = bool(r.get("record_ends_during_firing"))
+        if r.get("fired") and ends:
+            F.append(Finding(T["ends_t"], T["ends_s"].format(ch=r["channel"], ign=r["ignition_s"], t1=r["record_end_s"],
+                                                             last=r["value_at_record_end"], unit=r["unit"]),
+                             "observation", "warning", r["channel"], r["ignition_s"], r["record_end_s"], [seg.id]))
+        elif r.get("fired"):
+            st = T["phase_s"].format(ch=r["channel"], ign=r["ignition_s"], ms0=r["mainstage_start_s"],
+                                     ms1=r["mainstage_end_s"], dur=r["mainstage_duration_s"],
+                                     lvl=r["steady_level"], unit=r["unit"])
+            if r.get("fallback_from"):
+                st += T["phase_fb"].format(fb=r["fallback_from"], ch=r["channel"])
             F.append(Finding(
                 T["phase_t"].format(ign=r["ignition_s"], ms0=r["mainstage_start_s"], ms1=r["mainstage_end_s"]),
-                T["phase_s"].format(ch=r["channel"], ign=r["ignition_s"], ms0=r["mainstage_start_s"],
-                                    ms1=r["mainstage_end_s"], dur=r["mainstage_duration_s"],
-                                    lvl=r["steady_level"], unit=r["unit"]),
-                "observation", "info", r["channel"], r["mainstage_start_s"], r["mainstage_end_s"], [seg.id]))
+                st, "observation", "info", r["channel"], r["mainstage_start_s"], r["mainstage_end_s"], [seg.id]))
 
-        for fc in s.channels_of_kind("force"):
+        for fc in ([] if ends else s.channels_of_kind("force")):  # a cut-off log has no pulse to measure
             pm = s.run("pulse_metrics", channel=fc)
             p = pm.result
             kw = dict(ch=fc, pk=p["peak"], unit=p["unit"], dur=p["action_time_s"], imp=p["integral"],
                       iu=p["integral_unit"], p0=p["start_pct"], t0=p["t_start"], t1=p["t_end"], tp=p["t_peak"],
                       mean=p["mean_over_action_time"], base=p["baseline"])
-            F.append(Finding(T["pulse_t"].format(**kw), T["pulse_s"].format(**kw), "observation", "info", fc,
+            st = T["pulse_s"].format(**kw)
+            if p.get("peak_is_short_spike"):
+                kw["pk"] = p["peak_sustained"]
+                st += T["pulse_spk"].format(pk=p["peak"], tp=p["t_peak"], sus=p["peak_sustained"], unit=p["unit"])
+            F.append(Finding(T["pulse_t"].format(**kw), st, "observation", "info", fc,
                              p["t_start"], p["t_end"], [pm.id]))
 
         covered: set[str] = set()  # channels already explained by a finding
@@ -206,6 +270,18 @@ class RuleAgent:
                 key = "sat" if i.get("at_channel_max") else "low" if i.get("at_channel_min") else "flat"
                 t, st = T[f"{key}_t"], T[f"{key}_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], v=i["stuck_value"],
                                                            dur=i["duration_s"])
+            elif i["kind"] == "dead_channel":
+                t = T["dead_t"].format(ch=ch)
+                st = T["dead_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], v=i["value"], unit=i["unit"])
+                st += T["dead_imp"] if i.get("physically_impossible") else ""
+            elif i["kind"] == "impossible_value":
+                t = T["imp_t"].format(ch=ch)
+                phys = T["phys_t"] if s.channel_info(ch).get("kind") == "temperature" else T["phys_p"]
+                st = T["imp_s"].format(ch=ch, t0=i["t_start"], t1=i["t_end"], pct=i["share_of_record_pct"], phys=phys,
+                                       lim=i["physical_limit"], unit=i["unit"], mn=i["min_value"], med=i["median_value"])
+            elif i["kind"] == "duplicate_channels":
+                t = T["dup_t"].format(chs=" / ".join(i["channels"]))
+                st = T["dup_s"].format(chs=", ".join(i["channels"]), t0=i["t_start"], t1=i["t_end"])
             elif i["kind"] == "coincident_spikes":
                 kw = dict(n=i["n_channels"], t0=i["t_start"], t1=i["t_end"], chs=", ".join(i["channels"]))
                 t, st = T["coin_t"].format(**kw), T["coin_s"].format(**kw)
@@ -241,9 +317,24 @@ class RuleAgent:
                                         lim=e["limit_ms"]),
                     "valve_response", "warning", e["response"], e["t_cmd"], e["t_response"], [valves.id]))
 
+        if s.channels_of_kind("force") and r.get("fired") and not ends:
+            rat = s.run("check_thrust_pressure_ratio")
+            q = rat.result
+            if q.get("applicable") and not q["consistent"]:
+                st = T["ratio_s"].format(f=q["thrust"], p=q["pressure"], rmin=q["ratio_min"], tmin=q["t_ratio_min"],
+                                         rmax=q["ratio_max"], tmax=q["t_ratio_max"], u=q["ratio_unit"],
+                                         chg=q["change_pct"], thr=q["max_change_pct"])
+                msc = q.get("mainstage_change_pct")
+                if q.get("t_ratio_max_after_mainstage") and msc is not None and msc <= q["max_change_pct"]:
+                    st += T["ratio_after"].format(msc=msc)
+                else:
+                    st += T["ratio_main"]
+                F.append(Finding(T["ratio_t"].format(f=q["thrust"], p=q["pressure"], chg=q["change_pct"]), st,
+                                 "performance_deviation", "warning", q["pressure"], q["t_start"], q["t_end"], [rat.id]))
+
         pc = seg.result.get("channel", "Pc")
-        osc = s.run("detect_oscillation", channel=pc)
-        for e in osc.result["events"]:
+        osc = None if ends else s.run("detect_oscillation", channel=pc)  # nothing to search in a cut-off log
+        for e in ([] if osc is None else osc.result["events"]):
             ids = [osc.id]
             corr = ""
             for ch2 in [c for c in s.channels_of_kind("vibration")] + [

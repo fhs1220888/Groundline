@@ -170,6 +170,8 @@ def _flagged_channels(ev) -> list[str] | None:
         return [c for i in r.get("issues") or [] for c in (i.get("channels") or [i.get("channel")])]
     if ev.tool == "measure_valve_response":
         return [c for e in r.get("events") or [] if e.get("exceeds_limit") for c in (e.get("response"), e.get("command"))]
+    if ev.tool == "check_thrust_pressure_ratio":
+        return [] if r.get("consistent", True) else [r.get("thrust"), r.get("pressure")]
     if ev.tool == "compare_reference":
         return [r.get("channel")] if r.get("within_tolerance") is False or r.get("sustained_deviation_intervals") else []
     return None
@@ -181,17 +183,19 @@ _CATEGORY_TOOL = {
     "combustion_oscillation": "detect_oscillation",
     "sensor_fault": "check_sensor_health",
     "valve_response": "measure_valve_response",
-    "performance_deviation": "compare_reference",
+    "performance_deviation": ("compare_reference", "check_thrust_pressure_ratio"),
 }
 
 
 def category_problem(f: Finding, cited: list) -> str | None:
     """Why the cited evidence does not support the anomaly the finding's category claims, if it does not."""
-    tool = _CATEGORY_TOOL.get(f.category)
-    if tool is None or not cited:
+    tools = _CATEGORY_TOOL.get(f.category)
+    if tools is None or not cited:
         return None
-    flagged = [c for ev in cited if ev.tool == tool for c in (_flagged_channels(ev) or [])]
-    if not any(ev.tool == tool for ev in cited):
+    tools = (tools,) if isinstance(tools, str) else tools
+    tool = " or ".join(tools)
+    flagged = [c for ev in cited if ev.tool in tools for c in (_flagged_channels(ev) or [])]
+    if not any(ev.tool in tools for ev in cited):
         return f"category {f.category!r} needs cited {tool} evidence that reports it; none is cited"
     if not flagged:
         return (f"category {f.category!r}: the cited {tool} evidence reports no anomaly "
