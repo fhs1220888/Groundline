@@ -586,6 +586,27 @@ def test_semantic_ranges_time_scale_and_counts():
     assert check_number(text, i, i + 1, [plain, count])["ok"]
 
 
+def test_anomaly_category_needs_evidence_that_reports_it():
+    from groundline.findings import verify_finding
+
+    _, s = session_for(["overtemp"], seed=2)
+    red, valve, health = s.run("check_redlines"), s.run("measure_valve_response"), s.run("check_sensor_health")
+    ch = red.result["violations"][0]["channel"]
+
+    def problems(category, evidence, channel=ch):
+        return verify_finding(Finding("t", "s", category, "warning", channel, None, None, evidence), s)["problems"]
+
+    assert problems("redline_violation", [red.id]) == []
+    # a passed check filed as a fault: the valve check found nothing late
+    assert not valve.result["n_exceeding"]
+    assert "reports no anomaly" in problems("valve_response", [valve.id], None)[0]
+    assert problems("observation", [valve.id], None) == []
+    # the anomaly must come from the matching tool, and on the finding's channel
+    assert "none is cited" in problems("redline_violation", [health.id])[0]
+    other = next(c for c in s.channels if c != ch and c in json.dumps(red.result))
+    assert "not " + repr(other) in problems("redline_violation", [red.id], other)[0]
+
+
 def test_role_word_must_lead_into_the_number():
     from groundline.semantics import role_before
 

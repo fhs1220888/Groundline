@@ -162,7 +162,7 @@ Results from 2026-09-29 (`--n 14 --seed 1000`; local models ran with Ollama on a
 |---|---|---|---|---|---|---|---|
 | Rule agent | 14/14 | 100% / 100% | 100% | 0 | – | 0 | 1.3 |
 | gpt-5.6-sol | 14/14 | 100% / 100% | 95% | 0 | 0 / 376 (0%) | 0 | 22 |
-| Qwen2.5 7B | 11/14 | 5% / 50% | 5% | 0 | 23 / 98 (23%), plus 4 with the wrong meaning | 26 numbers, 14 findings | 478 |
+| Qwen2.5 7B | 11/14 | 5% / 50% | 5% | 0 | 23 / 98 (23%), plus 4 with the wrong meaning | 26 numbers, 19 findings | 478 |
 | Qwen2.5 3B | 13/14 | 0% / 0% | – | 0 | 1 / 1 | 1 number, 4 findings | 28 |
 
 Strict recall needs the finding's channel field and time window to match; loose recall also counts a finding with no channel if its category is right and its time does not conflict (the model found the problem but did not fill in the structured field).
@@ -241,6 +241,7 @@ So the verifier now remembers which field every evidence number came from (`peak
 
 - **its unit**: a number written with s / ms may only match a time field; Hz only a frequency field; % only a percentage field; a physical unit such as bar, K or N·s must match the unit the tool reported. Compound units are read whole and cancelled (kg/s·s = kg). The written unit also fixes the scale: a field of 0.8 s may be written as 800 ms, not as 0.8 ms. A count word ("3 spikes", "3 个") must come from a count field or a list length.
 - **its role word**: a number directly introduced by "peak / duration / mean / impulse / frequency / deviation / latency" (or the Chinese equivalents) must come from a field whose name fits that role. The word only counts when it leads straight into the number: in "continuously above the 700 K redline" the word describes the exceedance, and "10% of the peak" is a fraction of the peak; neither triggers the check. Range endpoints (1.27–9.02 s) get no role check either; instead the start of a range takes the unit written after its end (so 1.27 must be a time too), and a time range may not end before it starts.
+- **its category**: a finding filed under an anomaly category (redline violation, oscillation, sensor fault, valve response, performance deviation) must cite evidence in which the matching tool actually reported that anomaly, on the finding's channel. A check that passed has to be filed as an observation. This is the mistake behind the 36% precision of the first LLM run above, and re-verifying the stored runs shows it is still the 7B model's most common one: "valve response normal" and "no significant oscillation" filed as anomalies, and plain peak values filed as performance deviations. 5 of its claims are now flagged for it; no gpt-5.6-sol claim and no rule-agent claim is.
 
 This is still deterministic string and field matching; no second LLM is asked to judge.
 
