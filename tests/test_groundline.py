@@ -436,6 +436,21 @@ def test_lessons_from_a_real_liquid_engine_log():
     assert res.verification["verified"] == len(res.findings)
 
 
+def test_slow_tail_off_is_not_a_reading_that_fails_to_return():
+    """A solid or hybrid motor tails off over seconds; a log that ends shortly after is not a stuck sensor."""
+    fs = 200.0
+    t = np.arange(0, 7.8, 1 / fs)  # the log stops 1.8 s after shutdown, while the chamber is still tailing off
+    pc = np.where(t < 3, 1.0, np.where(t < 6, 40.0, 1.0 + 39.0 * np.exp(-(t - 6) / 1.5)))
+    pc += np.random.default_rng(2).normal(0, 0.05, t.size)
+    s = _toy_session({"time": t, "Pc": pc}, fs, {"Pc": {"unit": "bar", "kind": "pressure"}})
+    s.run("segment_phases")
+    assert not [i for i in s.run("check_sensor_health").result["issues"] if i["kind"] == "no_return_to_baseline"]
+    stuck = np.where(t < 6, pc, 25.0 + np.random.default_rng(3).normal(0, 0.05, t.size))
+    s2 = _toy_session({"time": t, "Pc": stuck}, fs, {"Pc": {"unit": "bar", "kind": "pressure"}})
+    s2.run("segment_phases")
+    assert [i for i in s2.run("check_sensor_health").result["issues"] if i["kind"] == "no_return_to_baseline"]
+
+
 def test_lessons_from_real_hybrid_motor_logs():
     """Shapes seen in UVic's MULE-1 hot fires (examples/uvic_mule): a pressure that reads below vacuum, a dead
     thermocouple at absolute zero, two channels carrying the same samples, a saturated chamber pressure (segment on
@@ -503,6 +518,21 @@ def test_realistic_suite_keeps_classic_runs_and_is_caught_by_the_rule_agent():
     assert not [f for f in res.findings if f.category != "observation"]
     r = run_benchmark(lambda: RuleAgent("en"), n=4, seed=2000, suite="realistic")
     assert r["suite"] == "realistic" and r["summary"]["false_positives"] == 0
+    # a frozen reading stays frozen under mains hum, and a fault with no free channel is not injected
+    for seed in range(200):
+        hum = generate_run(seed, ["sensor_dropout", "mains_hum"], suite="realistic", nuisances=[])
+        d = next(x for x in hum.truth if x.type == "sensor_dropout")
+        if d.params["mode"] == "flatline" and d.channel in ("P_ox_inj", "P_fu_inj"):
+            seg = hum.data[d.channel].to_numpy()[int(d.t_start * 5000) + 5:int(d.t_end * 5000) - 5]
+            assert len(np.unique(seg)) == 1
+            break
+    busy = generate_run(3, ["valve_delay", "sensor_spike", "sensor_saturation"], suite="realistic", nuisances=[])
+    assert "sensor_saturation" not in [x.type for x in busy.truth] + busy.meta["anomalies_injected"]
+    # one channel-less claim cannot count for both a duplicated pair and DAQ-wide dropouts
+    both = generate_run(5, ["daq_dropout", "duplicate_channel"], suite="realistic", nuisances=[])
+    src, dst = next(x for x in both.truth if x.type == "duplicate_channel").related_channels
+    dup = Finding(f"{src} / {dst} carry identical data", "", "sensor_fault", "warning", None, 0.0, 11.9, ["E1"])
+    assert [t["detected"] for t in match([dup], both.truth)["truth"]] == [True, False]
 
 
 def test_hybrid_benchmark_injects_and_scores(tmp_path):
@@ -557,6 +587,13 @@ def test_ingest_suggests_a_mapping_and_writes_a_run(tmp_path):
     m2 = suggest_map(tmp_path / "uv.csv")
     assert m2["skip_rows"] == 1 and m2["time"]["column"] == "seconds"
     assert m2["channels"]["P_injector"]["unit"] == "psi" and m2["channels"]["F_thrust"]["unit"] == "N"
+    # names, then a units row under them (a common export), and repeated timestamps averaged
+    (tmp_path / "nu.csv").write_text("Time,Pc,Thrust\ns,bar,N\n0,1,0\n0.1,2,5\n0.1,4,7\n0.2,5,9\n")
+    m3 = suggest_map(tmp_path / "nu.csv")
+    assert m3.get("units_row_below_header") and m3["time"]["column"] == "Time"
+    assert m3["channels"]["Pc"]["unit"] == "bar" and m3["channels"]["F_thrust"]["unit"] == "N"
+    m3["grid_hz"] = 20
+    assert pd.read_csv(ingest(tmp_path / "nu.csv", m3, tmp_path / "nuo")["run"])["Pc"].tolist() == [1, 2, 3, 4]
     assert main(["ingest", str(tmp_path / "uv.csv"), "--out", str(tmp_path / "uvo")]) == 0
     assert main(["ingest", str(tmp_path / "uv.csv"), "--map", str(tmp_path / "uvo" / "map.json"),
                  "--out", str(tmp_path / "uvo")]) == 0

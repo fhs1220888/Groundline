@@ -13,33 +13,33 @@
   },
   "mutations": {
     "fabricated": {
-      "n": 1366,
+      "n": 1372,
       "caught_grounding": 1220,
-      "caught_full": 1332
+      "caught_full": 1342
     },
     "swapped": {
-      "n": 1438,
-      "caught_grounding": 0,
-      "caught_full": 962
+      "n": 1444,
+      "caught_grounding": 1,
+      "caught_full": 972
     },
     "wrong_unit": {
-      "n": 1170,
+      "n": 1174,
       "caught_grounding": 0,
-      "caught_full": 1152
+      "caught_full": 1156
     }
   },
   "mutations_tagged": {
     "fabricated": {
-      "n": 1366,
-      "caught": 1366
+      "n": 1372,
+      "caught": 1372
     },
     "swapped": {
-      "n": 1438,
-      "caught": 1437
+      "n": 1444,
+      "caught": 1442
     },
     "wrong_unit": {
-      "n": 1170,
-      "caught": 1170
+      "n": 1174,
+      "caught": 1174
     }
   },
   "examples": {
@@ -140,6 +140,10 @@
       {
         "change": "-5.96 -> 6.00 (E9.mean_reference)",
         "statement": "Pc 在 2.10 [E7.sustained_deviation_intervals[0].t_start]–9.02 s [E7.t_end] 持续偏离仿真预测，平均偏差 -7.14% [E7.sustained_deviation_intervals[0].mean_dev_pct]（容差 2.0% [E7.tolerance_pct]）。 喷前压力同步偏低（P_ox_inj -6.16% [E8.sustained_deviation_intervals[0].mean_dev_pct], P_fu_inj 6.00% [E9.sustained_deviation_intervals[0].mean_dev_pct]），与室压变化一致。 同期 mdot_ox, mdot_fu 与预测一致（平均偏差 0.00% [E11.mean_dev_pct], -0.00% [E11.mean_dev_pct]），流量正常而室压偏低，指向燃烧效率（c*）不足，建议检查喷注器与混合比。"
+      },
+      {
+        "change": "-5.97 -> 5.98 (E10.sustained_deviation_intervals[0].duration_s)",
+        "statement": "Pc deviates from the simulation prediction from 3.03 [E8.sustained_deviation_intervals[0].t_start] to 9.02 s [E8.t_end], mean deviation -7.15% [E8.sustained_deviation_intervals[0].mean_dev_pct] (tolerance 2.0% [E8.tolerance_pct]). Injector pressures shift with it (P_ox_inj -6.17% [E9.sustained_deviation_intervals[0].mean_dev_pct], P_fu_inj 5.98% [E10.sustained_deviation_intervals[0].mean_dev_pct]), consistent with the chamber pressure change. Over the same window mdot_ox, mdot_fu match the prediction (mean deviation 0.01% [E11.mean_dev_pct], 0.00% [E12.mean_dev_pct]); nominal flow with low chamber pressure points to low combustion efficiency (c*) — check injector and mixture ratio."
       }
     ]
   }

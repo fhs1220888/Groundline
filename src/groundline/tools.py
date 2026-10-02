@@ -640,7 +640,8 @@ def _baseline_return(s: Session, frac: float = 0.25, settle_s: float = 1.0) -> d
     t = s.time
     x = s.require_channel(ch)
     pre = x[(t >= s.phase_window("pre_test")[0]) & (t < seg["ignition_s"])]
-    t_after = seg["mainstage_end_s"] + settle_s
+    # not before tail-off has ended: a slow tail-off (solid or hybrid motors) is not a reading that failed to return
+    t_after = max(seg["mainstage_end_s"] + settle_s, seg.get("tail_off_end_s", 0.0))
     post = x[t >= t_after]
     pre, post = pre[~np.isnan(pre)], post[~np.isnan(post)]
     if pre.size < 0.5 * s.fs or post.size < 0.5 * s.fs:  # a record that ends soon after shutdown still counts
