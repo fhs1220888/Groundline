@@ -146,6 +146,37 @@ The one false positive reports the coolant temperature lag caused by the late va
 
 The first evaluation scored only 36% precision: 35 of the 37 "false positives" were passed checks such as "valve response within limits" or "no oscillation detected" that the model had filed under an anomaly category. After adding one rule to the prompt ("a category other than observation means an anomaly was found; checks that passed use observation"), precision rose to 95%. The scoring was not changed.
 
+### Source tags with a real model
+
+The same 14 synthetic runs (seeds 1000–1013, English, gpt-5.6-sol at low reasoning effort), once with the instruction to tag every number with its source field and once without:
+
+| | Tags on | Tags off |
+|---|---|---|
+| Recall / precision | 100% / 91% (2 false positives) | 100% / 95% (1 false positive) |
+| False positives on nominal runs | 0 | 0 |
+| Numbers tagged in final reports | 236 / 240 (98%) | — |
+| Wrong tags in first drafts | 0 | — |
+| Numbers stopped in first drafts | 0 / 242 | 0 / 314 |
+| Tokens, 14 runs | 277k input / 18.5k output | 296k input / 17.5k output |
+| Time per run | 21 s | 20 s |
+
+Tagging cost nothing measurable, and the model tagged almost every number correctly, so each of its numbers is checked against exactly one field (in the planted-error benchmark below, misplaced values are caught 68% of the time untagged and 99.9% tagged). The three false positives are the same known mistake, a coolant-temperature lag caused by the late valve reported as a deviation of its own: one run (seed 1010) in both arms, and one more run (seed 1001) only with tags. With 14 runs that is not a measurable difference. Tagged reports carry fewer numbers (240 against 312).
+
+The test caught two mistakes on our side before they reached these numbers. The model wrote tags such as `E3.result.issues[0].count`, because its tool results arrive wrapped in `result`, and 6 of 11 tags in a smoke run were rejected; such paths are accepted now, and a wrong tag's message names the field the value does match. And "1.127 kHz" for a 1126.95 Hz oscillation was flagged, because kHz was not a known unit; it is now.
+
+### The LLM agent on the real tests
+
+One gpt-5.6-sol run with tags on each real test (about 150k input tokens in all). All 25 findings verify, and 115 of 116 numbers carry a tag. Compared with the team reports and the rule agent:
+
+- UVic 2024-12-12: the firing truncated during start-up, a DAQ-wide cut-off transient, a dead thermocouple, as the team reported.
+- UVic 2025-01-18: the invalid chamber-pressure zero, the dead chamber thermocouples and the duplicated pressure channels. It called mainstage F/Pc stable and did not mention the tail-off mismatch the rule agent flags.
+- UVic 2025-02-08: "unstable pressure and thrust performance" with F/Pc changing materially, the broken throat insert's signature.
+- UVic 2025-09-20: the saturated chamber pressure and dead thermocouples, and it judged the shutdown thrust spike not credible as peak thrust.
+- Triton: the shared DAQ dropouts, the saturated regulator sensor and the 127 Hz event, which it rated critical for a 0.58% amplitude (the rule agent says warning). It left out the chamber pressure that does not return to baseline, although the sensor-health result it read reported it.
+- HANARO: as before.
+
+Two runs needed a fix round, both for the same verifier false alarm: "its maximum 5180.25 psi" tagged to a `stuck_value` field. A tagged number now also matches sibling fields of the same object that hold the very same value, and stuck-at-maximum issues carry a `channel_max` field.
+
 ### Model leaderboard
 
 `groundline leaderboard` runs several agents / models on the same synthetic runs and summarises them in one table (`leaderboard/LEADERBOARD.md`). Models are listed in a JSON file; `examples/leaderboard.json` has the rule agent, gpt-5.6-sol and Qwen2.5 7B / 3B running locally through [Ollama](https://ollama.com) (14B needs more memory). An existing `groundline eval` result can be imported with `"from"` instead of re-running it. Results are saved after every run, so an interrupted leaderboard resumes where it stopped.
