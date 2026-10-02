@@ -316,7 +316,7 @@ groundline verifier-bench --n 50</code></pre></div>
   const NUM_RE = /(?<![A-Za-z_\d.])[-+−]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?/g;
   const SCALES = [1.0, 1000.0, 0.001, 100.0, 0.01, 60.0];
   const KIND_SCALES = { time: [1.0, 1000.0, 0.001, 60.0], percent: [1.0],
-    count: [1.0], freq: [1.0], physical: [1.0] };
+    count: [1.0], freq: [1.0, 0.001], physical: [1.0] };
   const isAlpha = (ch) => /\p{L}/u.test(ch || "");
 
   // a source tag after a number: [E4.peak], [E6.events[0].freq_hz], [len(E3.issues)] (a bare [E4] is a reference)
@@ -408,12 +408,12 @@ groundline verifier-bench --n 50</code></pre></div>
   }
 
   // ------------------------------------------------------------------ reading the text
-  const BASE_U = "(?:MPa|kPa|Pa|bar|psi|degC|°C|℃|kg|Hz|hz|ms|sec|s|K|N|g|m|W|J|V|A|rpm)";
+  const BASE_U = "(?:MPa|kPa|Pa|bar|psi|degC|°C|℃|kg|kHz|Hz|hz|ms|sec|s|K|N|g|m|W|J|V|A|rpm)";
   const UNIT_SRC =
     "\\s*(毫秒|秒|赫兹|%|％|个采样点|个|次|段|条|处|samples?|windows?|spikes?|gaps?" +
     "|" + BASE_U + "(?:\\s?[·*/]\\s?" + BASE_U + ")*)(?![A-Za-z])";
   const TIME_U = new Set(["毫秒", "秒", "ms", "sec", "s"]);
-  const FREQ_U = new Set(["赫兹", "Hz", "hz"]);
+  const FREQ_U = new Set(["赫兹", "Hz", "hz", "kHz"]);
   const PCT_U = new Set(["%", "％"]);
   const COUNT_U = new Set(["个采样点", "个", "次", "段", "条", "处", "sample", "samples", "window", "windows",
     "spike", "spikes", "gap", "gaps"]);
@@ -521,7 +521,7 @@ groundline verifier-bench --n 50</code></pre></div>
   function unitOk(tk, tu, f, scale) {
     if (tk === null) return true;
     if (tk === "time") return f.kind === "time" && scale === timeScale(tu, f);
-    if (tk === "freq") return f.kind === "freq";
+    if (tk === "freq") return f.kind === "freq" && scale === (tu === "kHz" ? 0.001 : 1.0);
     if (tk === "percent") return f.kind === "percent" || (scale === 100.0 && f.kind === "plain");
     if (tk === "count") return f.kind === "count";
     if (f.kind === "plain") return true;

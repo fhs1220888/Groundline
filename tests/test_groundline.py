@@ -668,6 +668,11 @@ def test_semantic_ranges_time_scale_and_counts():
     assert f"{r['peak']:.1f}" in v["mismatched_numbers"]
     # a duration in seconds written as milliseconds
     assert _check(s, f"lasting {r['action_time_s']:.2f} ms", ev)["mismatched_numbers"]
+    # a frequency may be written in kHz, but only with that unit (1.127 kHz is 1127 Hz; "1.127 Hz" is not)
+    fq = EvField(1126.95, "freq_hz", "E1.events[0].freq_hz", None, "freq")
+    text = "a 1.127 kHz oscillation, or 1.127 Hz"
+    i, j = text.index("1.127"), text.rindex("1.127")
+    assert check_number(text, i, i + 5, [(fq, 0.001)])["ok"] and not check_number(text, j, j + 5, [(fq, 0.001)])["ok"]
     # "3 个" must come from a count, not from any field that happens to equal 3
     text = "出现 3 个孤立尖峰"
     i = text.index("3")
