@@ -17,14 +17,17 @@ from .session import Session
 
 def build_server():
     try:
-        from mcp.server.fastmcp import FastMCP
-    except ImportError as e:  # pragma: no cover
-        raise ImportError("the MCP server needs `pip install groundline[mcp]`") from e
+        from mcp.server.mcpserver import MCPServer  # mcp 2.x renamed FastMCP to MCPServer
+    except ImportError:
+        try:
+            from mcp.server.fastmcp import FastMCP as MCPServer  # mcp 1.x
+        except ImportError as e:  # pragma: no cover
+            raise ImportError("the MCP server needs `pip install groundline[mcp]`") from e
     from .agent import AnalysisResult
     from .report import write_report
     from .tools import REGISTRY
 
-    mcp = FastMCP("groundline")
+    mcp = MCPServer("groundline")
     sessions: dict[str, Session] = {}
 
     def _get(run_id: str | None) -> Session:
