@@ -333,6 +333,9 @@ groundline verifier-bench --n 50</code></pre></div>
     { key: "unit", label: "Wrong unit", cites: ["E4"],
       title: "Thrust peak time",
       stmt: "Thrust peaked at 2222.16 N at 160.48 Hz." },
+    { key: "tags", label: "Source tags", cites: ["E4"],
+      title: "Thrust: peak and impulse",
+      stmt: "Thrust peaked at 2222.16 N [E4.peak] at 160.48 s [E4.t_peak]; the action time lasted 3.91 s [E4.t_peak] and the total impulse was 6361.95 N·s [E4.integral]." },
     { key: "cite", label: "Wrong citation", cites: ["E2"],
       title: "Thrust: peak 2222.16 N",
       stmt: "Thrust peaked at 2222.16 N and the total impulse was 6361.95 N·s." },
@@ -376,7 +379,7 @@ groundline verifier-bench --n 50</code></pre></div>
     for (const n of nums) {
       out += esc(text.slice(pos, n.start));
       const cls = !n.grounded ? "bad" : n.consistent ? "ok" : "mis";
-      const tip = !n.grounded ? "not found in the cited evidence" : n.consistent
+      const tip = !n.grounded ? (n.cited ? `does not match ${n.cited}` : "not found in the cited evidence") : n.consistent
         ? `= ${n.matched.field}${n.matched.scale !== 1 ? " × " + n.matched.scale : ""}` : n.semanticProblem;
       const path = n.matched ? n.matched.field : "";
       out += `<span class="num ${cls}" title="${esc(tip)}" data-path="${esc(path)}" tabindex="0">${esc(n.text)}</span>`;
@@ -402,7 +405,7 @@ groundline verifier-bench --n 50</code></pre></div>
 
     $("checks").innerHTML = v.numbers.map((n) => {
       const cls = !n.grounded ? "bad" : n.consistent ? "ok" : "mis";
-      const d = !n.grounded ? `not found in ${f.evidence.join(", ") || "any cited evidence"}`
+      const d = !n.grounded ? (n.cited ? `does not match the field it cites, ${esc(n.cited)}` : `not found in ${f.evidence.join(", ") || "any cited evidence"}`)
         : n.consistent ? `<b>${esc(n.matched.field)}</b>${n.unit ? ` · unit ${esc(n.unit)}` : ""}${n.role ? ` · read as ${esc(n.role)}` : ""}`
         : esc(n.semanticProblem);
       return `<li><span class="k ${cls}">${esc(n.text)}</span><span class="d">${d}</span></li>`;
