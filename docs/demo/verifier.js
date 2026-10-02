@@ -146,6 +146,28 @@
     return { role: best.role, word: best.word };
   }
 
+  const NUM_TAIL = "[-+]?\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?";
+  const RANGE_END_SRC = "\\s*(?:[–—~\\-]|至|到|to)\\s*" + NUM_TAIL;
+  const RANGE_START_RE = new RegExp("(?<![\\d.])([-+−]?\\d+(?:\\.\\d+)?)\\s*(" + BASE_U +
+    "|毫秒|秒)?\\s*(?:[–—~\\-]|至|到|\\bto)\\s*$");
+
+  function rangeEndUnit(text, end) {
+    const re = new RegExp(RANGE_END_SRC, "y");
+    re.lastIndex = end;
+    return re.exec(text) ? unitAfter(text, re.lastIndex) : null;
+  }
+
+  function rangeStartValue(text, start) {
+    const m = RANGE_START_RE.exec(text.slice(0, start));
+    return m ? parseFloat(m[1].replace("−", "-")) : null;
+  }
+
+  function timeScale(tu, f) {
+    const textMs = tu === "ms" || tu === "毫秒";
+    const fieldMs = f.key.toLowerCase().endsWith("_ms") || (f.unit || "").trim() === "ms";
+    return textMs === fieldMs ? 1.0 : textMs ? 1000.0 : 0.001;
+  }
+
   function isRangeEndpoint(text, start, end) {
     let after = text.slice(end);
     const u = unitMatchAt(after, 0);
@@ -157,22 +179,30 @@
 
   function unitOk(tk, tu, f, scale) {
     if (tk === null) return true;
-    if (tk === "time") return f.kind === "time";
+    if (tk === "time") return f.kind === "time" && scale === timeScale(tu, f);
     if (tk === "freq") return f.kind === "freq";
     if (tk === "percent") return f.kind === "percent" || (scale === 100.0 && f.kind === "plain");
-    if (tk === "count") return f.kind === "count" || f.kind === "plain";
+    if (tk === "count") return f.kind === "count";
     if (f.kind === "plain") return true;
     if (f.kind !== "physical") return false;
     return normUnit(f.unit) === normUnit(tu);
   }
 
   function checkNumber(text, start, end, candidates) {
-    const tu = unitAfter(text, end);
+    const tu = unitAfter(text, end) || rangeEndUnit(text, end);
     const tk = unitKind(tu);
     const rb = roleBefore(text, start);
     const role = rb === null || isRangeEndpoint(text, start, end) ? null : rb;
     const byUnit = candidates.filter(([f, sc]) => unitOk(tk, tu, f, sc));
     const tok = text.slice(start, end);
+    if (tk === "time") {
+      const lo = rangeStartValue(text, start);
+      if (lo !== null && parseFloat(tok.replace("−", "-")) < lo) {
+        const f = (byUnit.length ? byUnit : candidates)[0][0];
+        return { ok: false, unit: tu, role: rb && rb.role, field: f.path,
+                 problem: `time range ends at ${tok} ${tu}, before it starts (${lo})` };
+      }
+    }
     if (candidates.length && !byUnit.length) {
       const f = candidates[0][0];
       const what = f.kind !== "physical" ? f.kind : `unit ${f.unit}`;
