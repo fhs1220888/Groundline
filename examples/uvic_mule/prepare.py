@@ -89,7 +89,7 @@ def download(path: str) -> Path:
 
 
 def prepare(name: str) -> Path:
-    path, note = TESTS[name]
+    path, _note = TESTS[name]  # the team's account, for people reading this script, not for agents
     df = pd.read_csv(download(path), skiprows=1)  # row 0: units (misaligned in some files)
     t = df["seconds"].to_numpy(dtype=float)
     grid = np.arange(0.0, t[-1] - t[0], 1.0 / FS)
@@ -104,7 +104,9 @@ def prepare(name: str) -> Path:
     rate = float(1.0 / np.median(np.diff(t)))
     meta = {
         "test_id": f"UVic MULE-1 {name}",
-        "description": f"N2O / paraffin hybrid motor, UVic Rocketry. {note} Public data from "
+        # the team's account of the test (``note``) stays out of the metadata: describe_data hands the description
+        # to LLM agents, and the point of these logs is to check what an agent finds against what the team saw
+        "description": "N2O / paraffin hybrid motor hot fire, UVic Rocketry MULE-1. Public data from "
                        "github.com/UVicRocketry/Propulsion-Test-Data (no license; not redistributed).",
         "engine_type": "hybrid (N2O / paraffin), pressure-fed oxidiser; no valve states, redlines or prediction",
         "time_base": f"seconds from the first logged sample ({df['timestamp'].iloc[0]})",
