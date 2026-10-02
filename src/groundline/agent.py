@@ -602,8 +602,6 @@ class OpenAICompatible:
         self.timeout = timeout
 
     def complete(self, system: str, messages: list[dict], tools: list[dict]) -> dict:
-        import httpx
-
         msgs = [{"role": "system", "content": system}]
         for m in messages:
             if m["role"] == "assistant":

@@ -64,7 +64,7 @@ def evidence_fields(obj, path: str = "", key: str = "", unit: str | None = None)
             ks = str(k)
             u = obj.get(f"{ks}_unit") if isinstance(obj.get(f"{ks}_unit"), str) else base
             # a dict keyed by channel name ({"Pc": {"unit": "bar", "max": ...}}) keeps its own unit
-            out.extend(evidence_fields(v, f"{path}.{ks}" if path else ks, ks if not isinstance(v, dict) else ks, u))
+            out.extend(evidence_fields(v, f"{path}.{ks}" if path else ks, ks, u))
     elif isinstance(obj, (list, tuple)):
         out.append(EvField(float(len(obj)), f"#len({key})", f"len({path})", None, "count"))
         for i, v in enumerate(obj):
