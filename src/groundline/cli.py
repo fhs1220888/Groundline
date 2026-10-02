@@ -94,7 +94,8 @@ def cmd_eval(a) -> int:
     def prog(i, n):
         print(f"\r  run {i}/{n}", end="", file=sys.stderr, flush=True)
 
-    res = run_benchmark(lambda: make_agent(a.agent, a.lang, a.model, a.base_url), n=a.n, seed=a.seed, progress=prog)
+    res = run_benchmark(lambda: make_agent(a.agent, a.lang, a.model, a.base_url), n=a.n, seed=a.seed, progress=prog,
+                        suite=a.suite)
     print(file=sys.stderr)
     print(format_summary(res["summary"]))
     if a.out:
@@ -207,6 +208,9 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--n", type=int, default=30)
     e.add_argument("--seed", type=int, default=1000)
     e.add_argument("--out", help="write full results JSON here")
+    e.add_argument("--suite", default="classic", choices=["classic", "realistic"],
+                   help="classic: the original six anomaly types; realistic: adds faults and nuisances seen in real "
+                        "test logs (DAQ dropouts, saturation, offsets, duplicated / dead channels, mains hum, ...)")
     _add_agent_args(e)
     e.set_defaults(fn=cmd_eval)
 

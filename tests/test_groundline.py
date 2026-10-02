@@ -480,6 +480,30 @@ def test_lessons_from_real_hybrid_motor_logs():
     assert res.verification["verified"] == len(res.findings)
 
 
+def test_realistic_suite_keeps_classic_runs_and_is_caught_by_the_rule_agent():
+    """The realistic suite adds faults and nuisances seen in real logs; the classic suite must stay seed-for-seed
+    identical, and the rule agent must catch the new faults without reporting the nuisances."""
+    from groundline.evaluate import run_benchmark
+    from groundline.synth import NUISANCES, REALISTIC_FAULTS
+
+    a, b = generate_run(1003), generate_run(1003, suite="classic")
+    assert [x.type for x in a.truth] == [x.type for x in b.truth] and a.data.equals(b.data)
+    for f in REALISTIC_FAULTS:  # each fault alone, with every nuisance on top
+        run = generate_run(77, [f], suite="realistic", nuisances=list(NUISANCES))
+        s = Session(run.data, run.meta, run.reference, run.limits)
+        res = RuleAgent("en").run(s)
+        from groundline.evaluate import match
+        m = match(res.findings, run.truth)
+        assert m["truth"][0]["detected"] and m["truth"][0]["category_ok"], (f, [x.title for x in res.findings])
+        assert not m["false_positives"], (f, m["false_positives"])
+        assert res.verification["verified"] == len(res.findings)
+    nominal = generate_run(78, [], suite="realistic", nuisances=list(NUISANCES))
+    res = RuleAgent("en").run(Session(nominal.data, nominal.meta, nominal.reference, nominal.limits))
+    assert not [f for f in res.findings if f.category != "observation"]
+    r = run_benchmark(lambda: RuleAgent("en"), n=4, seed=2000, suite="realistic")
+    assert r["suite"] == "realistic" and r["summary"]["false_positives"] == 0
+
+
 def test_slow_channel_is_not_searched_above_its_nyquist():
     t = np.arange(0, 10, 0.01)
     pc = np.where((t > 3) & (t < 7), 40.0, 1.0)
