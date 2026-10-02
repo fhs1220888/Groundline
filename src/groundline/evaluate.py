@@ -35,11 +35,24 @@ def match(findings: list[Finding], truth: list[Anomaly], tol_s: float = 0.25) ->
     claims = [f for f in findings if f.category != "observation"]
     used = set()
     per_truth = []
+    # truth not tied to one channel. A channel-group fault (a duplicated pair) needs a claim on one of its
+    # channels, or a channel-less claim that names them all; a DAQ-wide fault (no channels) takes a channel-less
+    # claim that no group truth already claimed, so one claim cannot count for both.
+    def names_all(f: Finding, chans) -> bool:
+        text = f"{f.title} {f.statement}"
+        return all(c in text for c in chans)
+
+    group_hits = {id(a): [i for i, f in enumerate(claims) if f.category == a.category and _overlaps(f, a, tol_s)
+                          and (f.channel in a.related_channels or (f.channel is None and names_all(f, a.related_channels)))]
+                  for a in truth if a.channel == ANY_CHANNEL and a.related_channels}
+    claimed = {i for hits in group_hits.values() for i in hits}
     for a in truth:
         chans = {a.channel, *a.related_channels}
-        if a.channel == ANY_CHANNEL:  # a DAQ-wide or channel-group fault: the category and time are what count
+        if a.channel == ANY_CHANNEL and a.related_channels:
+            hits = group_hits[id(a)]
+        elif a.channel == ANY_CHANNEL:
             hits = [i for i, f in enumerate(claims) if f.category == a.category and _overlaps(f, a, tol_s)
-                    and (f.channel is None or f.channel in chans)]
+                    and f.channel is None and i not in claimed]
         else:
             hits = [i for i, f in enumerate(claims) if f.channel in chans and _overlaps(f, a, tol_s)]
         used.update(hits)

@@ -140,7 +140,7 @@ Rule agent on 50 random runs:
 | valve_delay | 15 | 100% | 100% | 0 ms |
 | pc_deficit | 14 | 100% | 100% | 112 ms |
 
-Overall precision is 100%, with 0 false positives on the 4 nominal runs; 134/134 findings verified and 943/943 numbers grounded.
+Overall precision is 100%, with 0 false positives on the 4 nominal runs; 134/134 findings verified and 946/946 numbers grounded.
 
 These six anomaly types and the detectors were written together, so the table above mostly shows that the tools catch what the generator was built to inject. Two further benchmarks, after the LLM results below, take that away step by step.
 
@@ -378,12 +378,12 @@ Unit conversions are also tied to the kind of field now: s ↔ ms only for times
 
 | Planted error | Count | Grounding only | Grounding + semantics | With source tags |
 |---|---|---|---|---|
-| Invented value (changed by −30% to +50%) | 1366 | 89% | **98%** | **100%** |
-| Real value in the wrong place (another field of the same evidence) | 1438 | 0% | **67%** | **99.9%** |
-| Wrong unit (s ↔ Hz, % → s, ...) | 1170 | 0% | **98%** | **100%** |
+| Invented value (changed by −30% to +50%) | 1372 | 89% | **98%** | **100%** |
+| Real value in the wrong place (another field of the same evidence) | 1444 | 0% | **67%** | **99.9%** |
+| Wrong unit (s ↔ Hz, % → s, ...) | 1174 | 0% | **98%** | **100%** |
 | Unchanged correct findings (false alarms) | 268 | 0% | **0%** | **0%** |
 
-Without tags, the 67% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 92% of the time; swapping in a field of the same kind (one time replaced by another time) 34%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale, count and conversion rules these were 45% overall, 69% and 13%.) That is the limit of reading text alone; with source tags all but one of the 3,974 planted errors are caught (the one left: a swapped-in value that equals the cited field within rounding). Whether LLM agents tag their numbers reliably has not been measured yet: the benchmark runs above predate the tag instruction.
+Without tags, the 67% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 92% of the time; swapping in a field of the same kind (one time replaced by another time) 34%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale, count and conversion rules these were 45% overall, 69% and 13%.) That is the limit of reading text alone; with source tags all but two of the 3,990 planted errors are caught (the two left: swapped-in values that equal the cited field within rounding). Whether LLM agents tag their numbers reliably has not been measured yet: the benchmark runs above predate the tag instruction.
 
 Also note that the role-word rules were written against the rule agent's sentence templates, so the false-alarm rate above, measured on those same templates, is optimistic. On independent text, the two reports written by gpt-5.6-sol (9 findings, 60 numbers, including the HANARO real-data report), the new verifier also raised no false alarms, and re-verifying the stored gpt-5.6-sol and Qwen benchmark runs after the range, scale, count and conversion rules were added (123 gpt-5.6-sol claims, 798 numbers) changed no gpt-5.6-sol verdict. In the 7B drafts it stopped two more numbers, both wrong: a duration of "0.2 s" that only matched a total impulse of 19.4 at ×0.01, and a mean deviation in MPa scaled ×1000 and written as a percentage. A more reliable false-alarm estimate needs more real reports from different models.
 

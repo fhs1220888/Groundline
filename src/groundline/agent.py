@@ -305,8 +305,8 @@ class RuleAgent:
                              i["t_start"], i["t_end"], [health.id]))
             # only issues that make the measurement itself untrustworthy explain away what the channel shows later
             # (a few spikes or a reading that sticks after shutdown do not spoil a mainstage comparison)
-            if ch is not None and i["kind"] in ("dead_channel", "flatline", "impossible_value", "nan_gap",
-                                                "recurring_nan_gaps"):
+            # (nor do data gaps: they spoil the gap, not the record around it)
+            if ch is not None and i["kind"] in ("dead_channel", "flatline", "impossible_value"):
                 covered.add(ch)
             elif i["kind"] == "duplicate_channels":  # a copied channel says nothing about its own quantity
                 covered.update(i["channels"])

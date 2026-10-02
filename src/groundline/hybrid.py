@@ -64,15 +64,20 @@ def _background(path: Path):
 
     df, meta = load_run(path)
     s = Session(df, meta)
+    # chamber-pressure injections are sized and placed from the chamber pressure's own pulse, even when the
+    # default segmentation fell back to thrust; thrust injections use the default segmentation
     seg = s.run("segment_phases").result
+    seg_pc = s.run("segment_phases", channel="Pc").result if "Pc" in df.columns else {"fired": False}
     thrust = s.channels_of_kind("force")
-    return df, meta, seg, (thrust[0] if thrust else None)
+    return df, meta, {"default": seg, "Pc": seg_pc}, (thrust[0] if thrust else None)
 
 
 def _config(kind: str, df: pd.DataFrame, seg: dict, fs: float) -> tuple[dict, pd.DataFrame | None]:
     """Limits and prediction for one kind of injection, shared by the clean and the injected runs."""
     limits = {"redline_persistence_s": PERSISTENCE_S, "reference_tolerance_pct": TOLERANCE_PCT}
     ref = None
+    if kind not in ("redline", "deviation"):
+        return limits, ref
     pc = df["Pc"].to_numpy(dtype=float)
     if kind == "redline":  # a redline 5 % above anything the clean firing reaches
         limits["redlines"] = {"Pc": {"max": float(np.nanmax(pc)) * 1.05}}
@@ -89,6 +94,9 @@ def _inject(kind: str, level: float, df: pd.DataFrame, meta: dict, seg: dict, th
     """A copy of the background with one anomaly, and its truth (channel, t_start, t_end). None if the
     background cannot carry this kind (no thrust channel, chamber pressure sampled too slowly)."""
     t = df["time"].to_numpy()
+    seg = seg["Pc"] if kind in ("oscillation", "redline", "deviation") else seg["default"]
+    if not seg.get("fired"):  # no clear chamber-pressure pulse (missing, saturated, dead) or no firing at all
+        return None
     ms0, ms1, lvl = seg["mainstage_start_s"], seg["mainstage_end_s"], seg["steady_level"]
     base = seg.get("baseline", 0.0)
     out = df.copy()

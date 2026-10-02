@@ -382,6 +382,11 @@ def generate_run(
     }
     if f is not None:
         data["vib_axial"] += 4.0 * env * np.sin(2 * np.pi * f * t + 0.3)
+    pressures = ["Pc", "P_ox_inj", "P_fu_inj"]
+    if "mains_hum" in anomalies:  # pickup rides on the live signal, before any sensor fault replaces it
+        hum = 0.008 * spec.pc_nom * np.sin(2 * np.pi * 60.0 * t + rr.uniform(0, 2 * np.pi))
+        for ch in pressures:
+            data[ch] = data[ch] + hum
 
     # ---- sensor faults (applied after noise: they replace the measurement) ----
     if "sensor_spike" in anomalies:
@@ -419,17 +424,22 @@ def generate_run(
         truth.append(Anomaly("sensor_dropout", ch, t0, t0 + dur, {"mode": mode}))
 
     # ---- faults seen in real logs, and quantization (realistic suite) ----
-    pressures = ["Pc", "P_ox_inj", "P_fu_inj"]
+    # each fault takes a channel no other fault uses; with none free it is not injected (and not in the truth), so
+    # no ground truth is left that the data can no longer show
     busy = {a.channel for a in truth}
+    skipped: list[str] = []
     t_end = float(t[-1])
+
+    def free(cands):
+        return [c for c in cands if c not in busy]
+
     if "mains_hum" in anomalies:
-        hum = 0.008 * spec.pc_nom * np.sin(2 * np.pi * 60.0 * t + rr.uniform(0, 2 * np.pi))
-        for ch in pressures:
-            data[ch] = data[ch] + hum
         truth.append(Anomaly("mains_hum", "Pc", 0.0, t_end, {"freq_hz": 60.0, "amplitude_MPa": 0.008 * spec.pc_nom},
                              related_channels=pressures[1:]))
-    if "sensor_saturation" in anomalies:
-        ch = str(rr.choice([c for c in ("P_ox_inj", "P_fu_inj") if c not in busy] or ["P_ox_inj"]))
+    if "sensor_saturation" in anomalies and not free(("P_ox_inj", "P_fu_inj")):
+        skipped.append("sensor_saturation")
+    elif "sensor_saturation" in anomalies:
+        ch = str(rr.choice(free(("P_ox_inj", "P_fu_inj"))))
         top = 0.97 * float(np.nanpercentile(data[ch], 99))
         clipped = data[ch] > top
         data[ch] = np.minimum(data[ch], top)
@@ -441,23 +451,27 @@ def generate_run(
         stuck = t >= t_s
         data["Pc"][stuck] = 0.6 * spec.pc_nom + rng.normal(0, 0.003 * spec.pc_nom, int(stuck.sum()))
         truth.append(Anomaly("pc_stuck_after_shutdown", "Pc", t_s, t_end, {"stuck_MPa": 0.6 * spec.pc_nom}))
-    if "zero_offset" in anomalies:
-        ch = str(rr.choice([c for c in ("P_ox_inj", "P_fu_inj") if c not in busy] or ["P_fu_inj"]))
+    if "zero_offset" in anomalies and not free(("P_ox_inj", "P_fu_inj")):
+        skipped.append("zero_offset")
+    elif "zero_offset" in anomalies:
+        ch = str(rr.choice(free(("P_ox_inj", "P_fu_inj"))))
         off = float(rr.uniform(0.2, 0.4))  # reads 0.2-0.4 MPa low: below vacuum while unpressurised
         data[ch] = data[ch] - off
         truth.append(Anomaly("zero_offset", ch, 0.0, t_end, {"offset_MPa": round(-off, 3)}))
         busy.add(ch)
-    if "duplicate_channel" in anomalies:
-        src, dst = [(a, b) for a, b in (("mdot_ox", "mdot_fu"), ("P_ox_inj", "P_fu_inj"))
-                    if a not in busy and b not in busy][0] if any(a not in busy and b not in busy for a, b in
-                                                                  (("mdot_ox", "mdot_fu"), ("P_ox_inj", "P_fu_inj"))) \
-            else ("mdot_ox", "mdot_fu")
+    pairs = [p for p in (("mdot_ox", "mdot_fu"), ("P_ox_inj", "P_fu_inj")) if len(free(p)) == 2]
+    if "duplicate_channel" in anomalies and not pairs:
+        skipped.append("duplicate_channel")
+    elif "duplicate_channel" in anomalies:
+        src, dst = pairs[0]
         data[dst] = data[src].copy()
         truth.append(Anomaly("duplicate_channel", ANY_CHANNEL, 0.0, t_end, {"source": src, "copy": dst},
                              related_channels=[src, dst]))
         busy.update((src, dst))
-    if "dead_channel" in anomalies:
-        ch = str(rr.choice([c for c in ("vib_axial", "T_cool_out", "mdot_fu") if c not in busy] or ["vib_axial"]))
+    if "dead_channel" in anomalies and not free(("vib_axial", "T_cool_out", "mdot_fu")):
+        skipped.append("dead_channel")
+    elif "dead_channel" in anomalies:
+        ch = str(rr.choice(free(("vib_axial", "T_cool_out", "mdot_fu"))))
         data[ch] = np.full(n, 0.0)
         truth.append(Anomaly("dead_channel", ch, 0.0, t_end, {"value": 0.0}))
         busy.add(ch)
@@ -466,9 +480,13 @@ def generate_run(
             data[ch] = np.round(data[ch] / 0.002) * 0.002  # 2 kPa ADC steps
     if "daq_dropout" in anomalies:  # last: a dropped frame loses every channel, faults included
         gaps = np.zeros(n, bool)
+        # keep the frames clear of point-like truth (spikes), which a gap would erase from the data
+        spikes = [x for a in truth if a.type == "sensor_spike" for x in a.params["times_s"]]
         g = float(rr.uniform(0.2, 0.6))
         while g < t_end - 0.1:
-            gaps[int(g * fs):int((g + rr.uniform(0.01, 0.04)) * fs)] = True
+            w = float(rr.uniform(0.01, 0.04))
+            if not any(g - 0.02 <= x <= g + w + 0.02 for x in spikes):
+                gaps[int(g * fs):int((g + w) * fs)] = True
             g += float(rr.uniform(0.25, 0.7))
         for ch in data:
             if ch != "time" and not ch.startswith("cmd_"):
@@ -499,7 +517,7 @@ def generate_run(
         "sequence": asdict(seq),
         "engine": asdict(spec),
         "seed": seed,
-        "anomalies_injected": sorted(anomalies),
+        "anomalies_injected": sorted(a for a in anomalies if a not in skipped),
         **({"suite": suite, "nuisances": sorted(nuisances)} if suite != "classic" else {}),
     }
     return SyntheticRun(df, ref, truth, meta, default_limits(spec))

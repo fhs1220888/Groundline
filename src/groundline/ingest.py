@@ -4,7 +4,7 @@ A mapping is a small JSON document::
 
     {
       "skip_rows": 0,                         # rows above the header to skip (a units row above the names: 1)
-      "units_row": false,                     # the row above the header holds units (UVic layout)
+      "units_row_below_header": false,        # a units row right under the names (skipped when reading data)
       "time": {"column": "Time (s)", "scale": 1.0},
       "channels": {
         "Pc": {"column": "Chamber Pressure (psi)", "unit": "psi", "kind": "pressure", "desc": "chamber pressure"},
@@ -55,6 +55,8 @@ def _slug(words: str) -> str:
 
 def _kind(label: str, unit: str) -> str:
     lo, u = label.lower(), unit.lower()
+    if lo in ("pc", "p_c", "pcc"):  # the usual short name of chamber pressure, whatever its unit
+        return "pressure"
     if any(k in lo for k in ("cjc", "thermistor", "battery", "supply", "voltage")):
         return "housekeeping"
     if any(k in lo for k in ("cmd", "command", "valve state", "solenoid")):
@@ -73,10 +75,8 @@ def _kind(label: str, unit: str) -> str:
 def _name(label: str, kind: str, used: set[str]) -> str:
     lo = label.lower()
     label = re.sub(r"^[A-Za-z]_", "", label)  # P_INJECTOR, T_RUN_TANK: the type letter is added back below
-    if kind == "pressure" and ("chamber" in lo or "comb" in lo) and "Pc" not in used:
+    if kind == "pressure" and ("chamber" in lo or "comb" in lo or lo in ("pc", "p_c", "pcc")) and "Pc" not in used:
         base = "Pc"
-    elif kind == "force" and "thrust" in lo and "F_thrust" not in used:
-        base = "F_thrust"
     else:
         prefix = {"pressure": "P", "temperature": "T", "force": "F", "weight": "W", "command": "cmd"}.get(kind, "")
         words = _slug(re.sub(r"\b(pressure|temperature|temp|weight|thrust)\b", "", label, flags=re.I)) or _slug(label)
@@ -91,6 +91,16 @@ def _name(label: str, kind: str, used: set[str]) -> str:
 def _read_head(path: Path, n: int = 3) -> list[list[str]]:
     with open(path, newline="", encoding="utf-8-sig") as f:
         return [row for _, row in zip(range(n), csv.reader(f))]
+
+
+_UNIT_TOKENS = _PRESSURE_U | _TEMP_U | _FORCE_U | _MASS_U | {"s", "sec", "ms", "us", "hz", "khz", "v", "mv", "a", "ma",
+                                                              "%", "g", "m/s", "kg/s", "g/s", "lb/s", "rpm", "-", "deg"}
+
+
+def _unit_like(cells: list[str]) -> bool:
+    """A row of units: every non-empty cell a known unit (or bracketed), at least two of them."""
+    toks = [c.strip().strip("[]()").lower() for c in cells if c.strip()]
+    return len(toks) >= 2 and sum(t in _UNIT_TOKENS for t in toks) >= 0.8 * len(toks)
 
 
 def _numeric(cells: list[str]) -> float:
@@ -139,10 +149,12 @@ def suggest_map(path: str | Path) -> dict:
     path = Path(path)
     rows = _read_head(path)
     units: list[str] = []
-    skip = 0
-    # UVic layout: a units row ("psi,psi,...,kg,N,C") above the names row
-    if len(rows) >= 3 and _numeric(rows[0]) < 0.5 and _numeric(rows[1]) < 0.5 and _numeric(rows[2]) >= 0.5:
+    skip, below = 0, False
+    two_text = len(rows) >= 3 and _numeric(rows[0]) < 0.5 and _numeric(rows[1]) < 0.5 and _numeric(rows[2]) >= 0.5
+    if two_text and _unit_like(rows[0]) and not _unit_like(rows[1]):  # units above the names (UVic)
         units, header, skip = rows[0], rows[1], 1
+    elif two_text and _unit_like(rows[1]):  # names, then a units row (common DAQ export)
+        units, header, below = rows[1], rows[0], True
     else:
         header = rows[0]
     if units and len(units) != len(header):  # misaligned units rows exist (an extra leading or trailing cell)
@@ -165,9 +177,13 @@ def suggest_map(path: str | Path) -> dict:
             continue
         kind = _kind(label, unit)
         channels[_name(label, kind, used)] = {"column": col, "unit": unit, "kind": kind, "desc": label}
-    out: dict = {"skip_rows": skip, "time": {"column": time_col, "scale": scale}, "channels": channels}
+    out: dict = {"skip_rows": skip, **({"units_row_below_header": True} if below else {}),
+                 "time": {"column": time_col, "scale": scale}, "channels": channels}
     forces = [n for n, c in channels.items() if c["kind"] == "force"]
-    if len(forces) > 1:  # several load cells: thrust is their sum
+    if len(forces) == 1 and "F_thrust" not in channels:  # the one thrust channel gets the usual name
+        channels = {("F_thrust" if n == forces[0] else n): c for n, c in channels.items()}
+        out["channels"] = channels
+    elif len(forces) > 1:  # several load cells: thrust is their sum
         for n in forces:
             channels[n]["kind"] = "force_component"
         out["derived"] = {"F_thrust": {"sum": forces, "unit": channels[forces[0]]["unit"], "kind": "force",
@@ -179,15 +195,18 @@ def suggest_map(path: str | Path) -> dict:
 def ingest(raw: str | Path, mapping: dict, out_dir: str | Path, float_format: str = "%.6g") -> dict[str, Path]:
     """Write ``run.csv`` and ``meta.json`` for ``raw`` according to ``mapping``."""
     raw, out_dir = Path(raw), Path(out_dir)
-    df = pd.read_csv(raw, skiprows=mapping.get("skip_rows", 0))
+    skip = int(mapping.get("skip_rows", 0))
+    rows = list(range(skip)) + ([skip + 1] if mapping.get("units_row_below_header") else [])
+    df = pd.read_csv(raw, skiprows=rows)
     tcfg = mapping["time"]
-    t = df[tcfg["column"]].to_numpy(dtype=float) * float(tcfg.get("scale", 1.0))
-    order = np.argsort(t, kind="stable")
-    t = t[order]
-    vals: dict[str, np.ndarray] = {}
-    for name, c in mapping["channels"].items():
-        x = pd.to_numeric(df[c["column"]], errors="coerce").to_numpy(dtype=float)[order]
-        vals[name] = x * float(c.get("scale", 1.0)) + float(c.get("offset", 0.0))
+    t_all = pd.to_numeric(df[tcfg["column"]], errors="coerce").to_numpy(dtype=float) * float(tcfg.get("scale", 1.0))
+    cols = {name: pd.to_numeric(df[c["column"]], errors="coerce").to_numpy(dtype=float) * float(c.get("scale", 1.0))
+            + float(c.get("offset", 0.0)) for name, c in mapping["channels"].items()}
+    # sort, drop rows without a time, and average samples that share a timestamp (some DAQs repeat them),
+    # since interpolation needs strictly increasing sample times
+    merged = pd.DataFrame({"__t": t_all, **cols}).dropna(subset=["__t"]).groupby("__t", sort=True).mean()
+    t = merged.index.to_numpy(dtype=float)
+    vals: dict[str, np.ndarray] = {name: merged[name].to_numpy(dtype=float) for name in cols}
     win = mapping.get("window_s")
     t0 = float(win[0]) if win else float(t[0])
     near = (t >= win[0] - 1) & (t <= win[1] + 1) if win else np.ones(len(t), bool)
@@ -212,9 +231,9 @@ def ingest(raw: str | Path, mapping: dict, out_dir: str | Path, float_format: st
     run = pd.DataFrame(out)
     run.loc[gap, run.columns != "time"] = np.nan
     derived = list((mapping.get("derived") or {}))
-    cols = ["time"] + [c for c in mapping.get("order", []) if c in run] + \
+    order = ["time"] + [c for c in mapping.get("order", []) if c in run] + \
         [c for c in [*derived, *mapping["channels"]] if c not in mapping.get("order", [])]
-    run = run[list(dict.fromkeys(cols))]
+    run = run[list(dict.fromkeys(order))]
     chmeta = {}
     for name in run.columns[1:]:
         c = (mapping.get("derived") or {}).get(name) or mapping["channels"][name]
