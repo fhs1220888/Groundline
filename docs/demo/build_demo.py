@@ -11,6 +11,7 @@ HANARO static-fire data. Run from the repository root:
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -40,7 +41,8 @@ def ledger() -> tuple[dict, Session]:
 
 
 def report() -> None:
-    s = Session.open(ROOT / "examples" / "hanaro_knsb" / "run.csv")
+    # a relative path, so the reproduce snippets in the published report do not carry the builder's home directory
+    s = Session.open(os.path.relpath(ROOT / "examples" / "hanaro_knsb" / "run.csv"))
     res = RuleAgent("en").run(s)
     paths = write_report(s, res, HERE / "report_hanaro.html", "en")
     Path(paths["json"]).unlink(missing_ok=True)  # the demo links the HTML only
