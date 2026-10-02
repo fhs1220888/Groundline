@@ -133,6 +133,31 @@ def cmd_verifier_bench(a) -> int:
     return 0
 
 
+def cmd_hybrid_bench(a) -> int:
+    from pathlib import Path as _P
+
+    from .evaluate import save
+    from .hybrid import available_backgrounds, format_hybrid, run_hybrid
+
+    bgs = {_P(p).parent.name if _P(p).name == "run.csv" else _P(p).stem: _P(p) for p in a.backgrounds} \
+        if a.backgrounds else available_backgrounds()
+    if not bgs:
+        print("no backgrounds found: run examples/triton_lox/prepare.py and examples/uvic_mule/prepare.py, "
+              "or pass run.csv paths")
+        return 1
+
+    def prog(i, n):
+        print(f"\r  case {i}/{n}", end="", file=sys.stderr, flush=True)
+
+    res = run_hybrid(bgs, reps=a.reps, seed=a.seed, progress=prog)
+    print(file=sys.stderr)
+    print("backgrounds: " + ", ".join(bgs))
+    print(format_hybrid(res))
+    if a.out:
+        print(f"details: {save(res, a.out)}")
+    return 0
+
+
 def cmd_reverify(a) -> int:
     from .evaluate import format_summary, reverify, save
 
@@ -222,6 +247,13 @@ def main(argv: list[str] | None = None) -> int:
     vb.add_argument("--seed", type=int, default=1000)
     vb.add_argument("--out", help="write details JSON here")
     vb.set_defaults(fn=cmd_verifier_bench)
+
+    hb = sub.add_parser("hybrid-bench", help="inject known anomalies into real test logs and count what is caught")
+    hb.add_argument("backgrounds", nargs="*", help="run.csv files (default: the real-data examples present locally)")
+    hb.add_argument("--reps", type=int, default=5, help="injections per size and background (default 5)")
+    hb.add_argument("--seed", type=int, default=0)
+    hb.add_argument("--out", help="write details JSON here")
+    hb.set_defaults(fn=cmd_hybrid_bench)
 
     rv = sub.add_parser("reverify", help="re-run the current verifier on saved LLM benchmark results")
     rv.add_argument("results", nargs="+", help="eval / leaderboard JSON files (updated in place)")

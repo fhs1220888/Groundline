@@ -374,7 +374,8 @@ def _peak_interp(mag: np.ndarray, k: int) -> float:
     "(zero-mean channels such as accelerometers use only the prominence test). Consecutive flagged windows "
     "with the same frequency are merged into events with frequency and amplitude. An oscillation has to last "
     "min_windows overlapping windows (default 3); shorter narrow-band peaks are listed as short_events: usually "
-    "a transient such as a pressure spike, not a sustained oscillation. A line that is already there before "
+    "a transient such as a pressure spike, not a sustained oscillation. A second pass with windows five times "
+    "longer (at least 0.5 s) catches sustained lines hidden in broadband combustion noise. A line already there before "
     "ignition at half the amplitude or more is listed under interference (electrical or mechanical pickup such as "
     "mains hum), not as an oscillation event.",
     {
@@ -399,6 +400,7 @@ def detect_oscillation(
     window_s: float = 0.1,
     prominence: float = 8.0,
     min_windows: int | None = None,
+    _long_pass: bool = False,
 ):
     cfg = s.limits.get("oscillation", {})
     min_windows = int(min_windows if min_windows is not None else cfg.get("min_windows", 3))
@@ -509,6 +511,20 @@ def detect_oscillation(
             ev["peak_amp_pct"] = pk["amp_pct"]
             ev["mean_amp_pct"] = float(np.mean([r["amp_pct"] for r in rs]))
         out_events.append(ev)
+    # a sustained line in rough, broadband combustion noise can hide in short windows: a window five times longer
+    # gains about sqrt(5) in signal-to-noise for a steady line. Search again with long windows and keep the
+    # events the short-window pass missed (marked with their window).
+    long_w = max(0.5, 5 * window_s)
+    if not _long_pass and t_end - t_start >= 4 * long_w:
+        long_res, _ = detect_oscillation(s, channel, t_start, t_end, fmin, fmax, threshold_pct, long_w, prominence,
+                                         min_windows, _long_pass=True)
+        for e in long_res["events"]:
+            if not any(e["t_start"] < o["t_end"] and o["t_start"] < e["t_end"]
+                       and abs(e["freq_hz"] - o["freq_hz"]) <= 0.05 * e["freq_hz"] for o in out_events):
+                out_events.append({**e, "window_s": long_res["window_s"]})
+        out_events.sort(key=lambda e: e["t_start"])
+    if _long_pass:
+        return {"events": out_events, "window_s": n / fs}, None
     # a line already there before ignition is pickup (mains hum, a pump, a structural mode), not combustion: the
     # chamber is not burning yet. Compare each event with the same frequency over the last seconds of pre-test.
     interference = []

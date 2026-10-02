@@ -130,7 +130,9 @@ Rule agent on 50 random runs:
 | valve_delay | 15 | 100% | 100% | 0 ms |
 | pc_deficit | 14 | 100% | 100% | 112 ms |
 
-Overall precision is 100%, with 0 false positives on the 4 nominal runs; 134/134 findings verified and 942/942 numbers grounded.
+Overall precision is 100%, with 0 false positives on the 4 nominal runs; 134/134 findings verified and 943/943 numbers grounded.
+
+These six anomaly types and the detectors were written together, so the table above mostly shows that the tools catch what the generator was built to inject. Two further benchmarks, after the LLM results below, take that away step by step.
 
 The LLM agent (`gpt-5.6-sol`, Responses API) on the first 14 runs of the same seeds (`--n 14 --seed 1000`, including 2 nominal runs and all six anomaly types):
 
@@ -181,6 +183,27 @@ All findings verify. Two corrections went into getting here:
 - **Two prompt rules**, after the first Triton run left out the chamber pressure that does not recover after shutdown (although the sensor-health result it read reported it) and rated a 0.58% oscillation critical: every sensor-health issue must reach the report, and an oscillation is critical only at twice its criterion. On the 14 synthetic runs the new prompt keeps recall at 100% and precision at 95% (1 false positive, the known coolant-lag mistake), with 97% of numbers tagged and no wrong tags.
 
 Earlier, two runs needed a fix round for the same verifier false alarm: "its maximum 5180.25 psi" tagged to a `stuck_value` field. A tagged number now also matches sibling fields of the same object that hold the very same value, and stuck-at-maximum issues carry a `channel_max` field.
+
+### Realistic suite: faults and nuisances from real logs
+
+`groundline eval --suite realistic` adds seven faults found in the Triton and UVic logs, each with ground truth (DAQ dropouts on every channel, a saturated transducer, chamber pressure stuck high after shutdown, a zero offset below vacuum, a duplicated channel, a dead channel, 60 Hz mains hum), and nuisances that must not be reported (a start-up overshoot below the redline, water hammer at shutdown, ADC quantization). The classic suite is unchanged seed for seed. Rule agent, 100 runs (`--n 100 --seed 2000`): 100% recall, precision and category accuracy over all 13 types, 0 false positives on the 15 nominal runs, 257/257 findings verified ([details](docs/results/realistic_suite_rule.json)).
+
+Building the suite exposed three gaps that are now fixed: mains hum was reported as combustion instability (a line already present before ignition is now reported as pickup), chamber pressure stuck after shutdown went unnoticed when the record ends soon after shutdown, and a duplicated channel also produced a false performance deviation. Like the first table, though, these faults were written after the fixes, so the suite is a regression test more than a measurement.
+
+### Hybrid benchmark: known anomalies in real logs
+
+`groundline hybrid-bench` keeps the background real and makes only the anomaly synthetic: it injects one anomaly of known size and time into a real firing, runs the rule agent, and compares with the same configuration on the untouched log, so the log's own real problems are neither credited nor counted against it (an injection that lands on one of them is "masked"). Backgrounds: the Triton hot fire and UVic MULE-1 2025-01-18 (HANARO cannot serve: its chamber pressure was logged at 10 Hz and its thrust channel has dropouts across the whole record). 5 injections per size and background, 270 cases ([details](docs/results/hybrid_bench.json)):
+
+| Injected | Detected by size | |
+|---|---|---|
+| Oscillation on Pc (zero-to-peak, % of steady Pc; criterion 0.5%) | Triton: 0.25% 0/5, 0.5% 1/4, 1% 5/5, 2% 4/4, 4% 5/5 · UVic: 0.25–1% 0/15, 2% 2/5, 4% 4/5 | |
+| Pc above a redline (time above; persistence 10 ms) | 5 ms 0/10, 10 ms 0/10, 20 ms 10/10, 50 ms 10/10, 200 ms 10/10 | |
+| Pc below a prediction (% of steady Pc; tolerance 2%) | Triton: 1% 0/5, 2% 0/5, 3–8% 15/15 · UVic: masked (its Pc carries a known zero offset) | |
+| One-sample spike on thrust (local noise sigmas; criterion 12) | 6σ 0/10, 12σ 3/10, 24σ 9/10, 48σ 8/10 | |
+| Gap in the thrust channel | 10 ms to 1 s: 40/40 | |
+| Thrust channel frozen (minimum 50 ms) | 20 ms 4/10, 50 ms to 1 s: 30/30 | |
+
+**No injection produced a new false positive in 270 cases.** The redline, deviation, gap and freeze checks behave as specified on real noise. Oscillation detection depends on the engine: on the Triton liquid engine it works from about the 0.5% criterion upwards; on the rough-burning UVic hybrid, broadband combustion noise hides lines below a few percent. A second search pass with 0.5 s windows (added for this) raised UVic from 2/10 to 6/10 at 2–4%. The misses at 24σ and 48σ are spikes placed in Triton's start-up pressure event or next to a DAQ dropout, where spike detection is deliberately desensitised; the four 20 ms "detections" are the spike check firing at the step back, not the flatline check.
 
 ### Model leaderboard
 
@@ -378,6 +401,7 @@ src/groundline/
   evaluate.py        benchmark and re-verification
   leaderboard.py     multi-model leaderboard
   verifier_bench.py  benchmark of the verifier itself (planted errors)
+  hybrid.py          hybrid benchmark: known anomalies injected into real logs
   mcp_server.py      MCP server
   config.py          .env loading
   cli.py             command line

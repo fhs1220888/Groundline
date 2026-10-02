@@ -504,6 +504,29 @@ def test_realistic_suite_keeps_classic_runs_and_is_caught_by_the_rule_agent():
     assert r["suite"] == "realistic" and r["summary"]["false_positives"] == 0
 
 
+def test_hybrid_benchmark_injects_and_scores(tmp_path):
+    """Hybrid benchmark mechanics on a stand-in background (real logs are not in the repository): every kind of
+    injection is caught at a clear size, nothing new is reported, and the summary counts it."""
+    from groundline.hybrid import _case, summarize_hybrid
+
+    run = generate_run(5, [], fs=1000.0)
+    df = run.data.drop(columns=["cmd_ox", "cmd_fu"])
+    df["F_thrust"] = 180.0 * df["Pc"] + np.random.default_rng(0).normal(0, 2.0, len(df))
+    meta = {**run.meta, "channels": {**{k: v for k, v in run.meta["channels"].items() if k in df},
+                                     "F_thrust": {"unit": "kN", "kind": "force"}}}
+    meta.pop("sample_rate_hz")
+    df.to_csv(tmp_path / "run.csv", index=False)
+    (tmp_path / "meta.json").write_text(json.dumps(meta))
+    rows = []
+    for kind, level in (("oscillation", 4.0), ("redline", 0.05), ("deviation", 5.0), ("spike", 48.0),
+                        ("dropout", 0.2), ("stuck", 0.2)):
+        r = _case(("stand-in", str(tmp_path / "run.csv"), kind, level, 0, 0))
+        assert r["detected"] and not r["false_positives"], (kind, r)
+        rows.append(r)
+    assert all(v[str(lv)]["detected"] == 1 for v, lv in zip(summarize_hybrid(rows).values(),
+                                                             (4.0, 0.05, 5.0, 48.0, 0.2, 0.2)))
+
+
 def test_slow_channel_is_not_searched_above_its_nyquist():
     t = np.arange(0, 10, 0.01)
     pc = np.where((t > 3) & (t < 7), 40.0, 1.0)

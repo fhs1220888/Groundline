@@ -303,7 +303,10 @@ class RuleAgent:
             cat = "observation" if i["kind"] == "coincident_spikes" else "sensor_fault"
             F.append(Finding(t.format(ch=ch, n=i.get("count", "")), st, cat, "warning", ch,
                              i["t_start"], i["t_end"], [health.id]))
-            if ch is not None:
+            # only issues that make the measurement itself untrustworthy explain away what the channel shows later
+            # (a few spikes or a reading that sticks after shutdown do not spoil a mainstage comparison)
+            if ch is not None and i["kind"] in ("dead_channel", "flatline", "impossible_value", "nan_gap",
+                                                "recurring_nan_gaps"):
                 covered.add(ch)
             elif i["kind"] == "duplicate_channels":  # a copied channel says nothing about its own quantity
                 covered.update(i["channels"])
@@ -432,7 +435,7 @@ class RuleAgent:
         summary = T["summary"].format(n_ev=len(s.ledger), n_f=len(F), n_c=n_c, n_w=n_w)
         if not (n_c or n_w):
             summary += " " + T["clean"]
-        return AnalysisResult(F, summary, ver, {"type": "rule", "lang": self.lang},
+        return AnalysisResult(F, summary, ver, {"type": "rule", "lang": self.lang, "covered_channels": sorted(covered)},
                               elapsed_s=time.perf_counter() - t0)
 
 
