@@ -48,7 +48,7 @@ def _mutate(f: Finding, s, rng: random.Random) -> list[tuple[str, Finding, str]]
         except ValueError:
             continue
         dec = len(tok.split(".")[1]) if "." in tok else 0
-        fmt = lambda x: f"{x:.{dec}f}"  # noqa: E731
+        fmt = lambda x, dec=dec: f"{x:.{dec}f}"  # noqa: E731
 
         def put(new_tok, a=m.start(), b=m.end()):
             g = copy.copy(f)

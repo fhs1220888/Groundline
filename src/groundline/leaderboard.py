@@ -124,7 +124,7 @@ def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: li
             except KeyboardInterrupt:
                 print(f"\n[{name}] stopped. Finished runs are saved in {path}; run the same command to continue.",
                       file=sys.stderr)
-                raise SystemExit(130)
+                raise SystemExit(130) from None
             except Exception as err:
                 print(f"\n[{name}] first run failed, skipping this model: {type(err).__name__}: {err}"[:900],
                       file=sys.stderr)
@@ -162,7 +162,7 @@ def build_table(out: str | Path, order: list[str] | None = None) -> str:
         "|---|---|---|---|---|---|---|---|---|---|",
     ]
     lines = []
-    for name, res, s in rows:
+    for name, _res, s in rows:
         total = s["runs_total"]
         f = s.get("first_submission")
         is_llm = f is not None or (s.get("usage") is not None)
