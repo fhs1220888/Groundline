@@ -18,3 +18,5 @@ leaderboard/
 examples/triton_lox/raw/
 examples/triton_lox/run.csv
 examples/triton_lox/meta.json
+examples/uvic_mule/raw/
+examples/uvic_mule/20*/
