@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from groundline import Session
@@ -525,6 +526,41 @@ def test_hybrid_benchmark_injects_and_scores(tmp_path):
         rows.append(r)
     assert all(v[str(lv)]["detected"] == 1 for v, lv in zip(summarize_hybrid(rows).values(),
                                                              (4.0, 0.05, 5.0, 48.0, 0.2, 0.2)))
+
+
+def test_ingest_suggests_a_mapping_and_writes_a_run(tmp_path):
+    """Header units in parentheses, a misaligned units row above the names, load cells summed into thrust, a window
+    on a uniform grid with dropouts left as NaN."""
+    from groundline.cli import main
+    from groundline.ingest import ingest, suggest_map
+
+    t = np.r_[np.arange(0, 2.0, 0.001), np.arange(2.05, 4.0, 0.001)]  # a 50 ms dropout at 2.0 s
+    raw = pd.DataFrame({"Time (s)": t, "Chamber Pressure (psi)": 300 * ((t > 1) & (t < 3)),
+                        "Thrust LC A (lbf)": 100 * ((t > 1) & (t < 3)), "Thrust LC B (lbf)": 50 * ((t > 1) & (t < 3)),
+                        "Fuel Tank Weight (lbf)": 40 - t, "Chamber Housing (°C)": 20 + t})
+    raw.to_csv(tmp_path / "log.csv", index=False)
+    m = suggest_map(tmp_path / "log.csv")
+    assert m["time"]["column"] == "Time (s)" and m["channels"]["Pc"]["unit"] == "psi"
+    assert {m["channels"][c]["kind"] for c in m["derived"]["F_thrust"]["sum"]} == {"force_component"}
+    assert m["channels"]["W_fuel_tank"]["kind"] == "weight" and m["channels"]["T_chamber_housing"]["unit"] == "degC"
+    m.update(window_s=[0.5, 3.5], grid_hz=1000, max_gap_s=0.002)
+    paths = ingest(tmp_path / "log.csv", m, tmp_path / "run")
+    run = pd.read_csv(paths["run"])
+    meta = json.loads(paths["meta"].read_text())
+    assert run["time"].iloc[0] == 0.0 and abs(run["time"].iloc[-1] - 2.999) < 1e-9
+    assert run["F_thrust"].max() == 150 and meta["channels"]["F_thrust"]["kind"] == "force"
+    assert run["Pc"].isna().sum() == 47  # the 50 ms dropout stays a gap (points within 2 ms of a sample are kept)
+    # a units row above the names, one cell off (UVic layout)
+    lines = ",psi,psi,N,s\nP_INJECTOR,P_COMB_CHMBR,L_THRUST,seconds\n" + "".join(
+        f"{p},{p / 2},{p * 3},{i / 500}\n" for i, p in enumerate(np.r_[np.zeros(200), np.full(300, 400.0), np.zeros(200)]))
+    (tmp_path / "uv.csv").write_text(lines)
+    m2 = suggest_map(tmp_path / "uv.csv")
+    assert m2["skip_rows"] == 1 and m2["time"]["column"] == "seconds"
+    assert m2["channels"]["P_injector"]["unit"] == "psi" and m2["channels"]["F_thrust"]["unit"] == "N"
+    assert main(["ingest", str(tmp_path / "uv.csv"), "--out", str(tmp_path / "uvo")]) == 0
+    assert main(["ingest", str(tmp_path / "uv.csv"), "--map", str(tmp_path / "uvo" / "map.json"),
+                 "--out", str(tmp_path / "uvo")]) == 0
+    assert Session.open(tmp_path / "uvo" / "run.csv").run("segment_phases").result["fired"]
 
 
 def test_slow_channel_is_not_searched_above_its_nyquist():

@@ -30,12 +30,8 @@ Run from the repository root::
 
 from __future__ import annotations
 
-import json
 import urllib.request
 from pathlib import Path
-
-import numpy as np
-import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 RAW = HERE / "raw"
@@ -81,52 +77,33 @@ def download() -> Path:
     return path
 
 
-def main() -> None:
-    df = pd.read_csv(download())
-    t = df["Time (s)"].to_numpy(dtype=float)
-    keep = (t >= T0 - 1) & (t <= T1 + 1)
-    df, t = df[keep], t[keep]
-    grid = np.arange(T0, T1, 1.0 / FS)
-    # distance from each grid point to the nearest logged sample, to blank out dropouts
-    j = np.clip(np.searchsorted(t, grid), 1, len(t) - 1)
-    near = np.minimum(np.abs(grid - t[j - 1]), np.abs(t[j] - grid))
-    gap = near > MAX_GAP_S
-
-    out = {"time": np.round(grid - T0, 6)}
-    cells = []
-    for col, name in LOAD_CELLS.items():
-        out[name] = np.interp(grid, t, df[col].to_numpy(dtype=float))
-        cells.append(out[name])
-    out["F_thrust"] = np.sum(cells, axis=0)
-    for col, (name, *_rest) in CHANNELS.items():
-        out[name] = np.interp(grid, t, df[col].to_numpy(dtype=float))
-    run = pd.DataFrame(out)
-    run.loc[gap, run.columns != "time"] = np.nan
-    order = ["time", "Pc", "F_thrust", *LOAD_CELLS.values(), *[v[0] for v in CHANNELS.values() if v[0] != "Pc"]]
-    run = run[order]
-
-    rate = float(1.0 / np.median(np.diff(t)))
-    channels = {"F_thrust": {"unit": "lbf", "kind": "force", "desc": "thrust, sum of the three load cells",
-                             "native_rate_hz": round(rate, 1)}}
-    for name in LOAD_CELLS.values():
-        channels[name] = {"unit": "lbf", "kind": "force_component", "desc": f"thrust load cell {name[-1].upper()}",
-                          "native_rate_hz": round(rate, 1)}
-    for name, unit, kind, desc in CHANNELS.values():
-        channels[name] = {"unit": unit, "kind": kind, "desc": desc, "native_rate_hz": round(rate, 1)}
-    meta = {
+def mapping() -> dict:
+    """The conversion as a groundline.ingest mapping (``groundline ingest raw.csv --map map.json`` does the same)."""
+    channels = {name: {"column": col, "unit": "lbf", "kind": "force_component", "desc": f"thrust load cell {name[-1].upper()}"}
+                for col, name in LOAD_CELLS.items()}
+    channels.update({name: {"column": col, "unit": unit, "kind": kind, "desc": desc}
+                     for col, (name, unit, kind, desc) in CHANNELS.items()})
+    return {
+        "source": URL,
+        "time": {"column": "Time (s)"},
+        "channels": channels,
+        "derived": {"F_thrust": {"sum": list(LOAD_CELLS.values()), "unit": "lbf", "kind": "force",
+                                 "desc": "thrust, sum of the three load cells"}},
+        "order": ["Pc", "F_thrust", *LOAD_CELLS.values()],
+        "window_s": [T0, T1], "grid_hz": FS, "max_gap_s": MAX_GAP_S,
         "test_id": "Triton HF 2025-04-11",
         "description": "Pressure-fed LOX/fuel liquid rocket engine hot fire (Triton). Public data from "
                        "github.com/aidenmccollum/Triton-Hotfire-Analysis (no license; not redistributed).",
         "engine_type": "liquid bipropellant, pressure fed (no valve command channels, no simulation prediction)",
         "time_base": f"seconds from {T0:g} s of the original log",
-        "sample_rate_hz": FS,
-        "channels": {k: channels[k] for k in order if k != "time"},
-        "preparation": {"source": URL, "window_s": [T0, T1], "grid_hz": FS, "max_gap_s": MAX_GAP_S,
-                        "grid_points_blanked": int(gap.sum())},
     }
-    run.to_csv(HERE / "run.csv", index=False, float_format="%.6g")
-    (HERE / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
-    print(f"wrote {HERE / 'run.csv'} ({len(run)} rows, {int(gap.sum())} grid points blanked) and meta.json")
+
+
+def main() -> None:
+    from groundline.ingest import ingest
+
+    paths = ingest(download(), mapping(), HERE)
+    print(f"wrote {paths['run']} and {paths['meta']}")
 
 
 if __name__ == "__main__":

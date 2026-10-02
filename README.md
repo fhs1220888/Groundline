@@ -39,6 +39,16 @@ groundline analyze path/to/run.csv --reference sim.csv --limits limits.json
 
 For the `limits.json` format, see the example written by `groundline synth`: redlines, redline persistence, allowed valve latency, oscillation thresholds and the tolerance for deviation from the simulation.
 
+A raw DAQ export rarely has Groundline's layout. `groundline ingest` turns it into one from a small JSON mapping, and drafts the mapping for you:
+
+```bash
+groundline ingest raw_log.csv                         # writes raw_log/map.json and lists what it guessed
+groundline ingest raw_log.csv --map raw_log/map.json  # writes raw_log/run.csv + meta.json
+groundline analyze raw_log/run.csv
+```
+
+The draft reads units from headers such as `Chamber Pressure (psi)` or from a units row above the names (it also realigns a units row that is a cell off), finds the time column, names the chamber pressure `Pc`, sums several thrust load cells into `F_thrust`, and assigns each channel a kind from its unit and name. In the mapping you then set what it cannot know: names, a time window, a uniform grid (`grid_hz`) and how long a gap may be bridged (`max_gap_s`, beyond which the run keeps NaN so dropouts stay visible), plus `scale` / `offset` per channel. The Triton and UVic examples below are converted this way, and reproduce the earlier hand-written conversions exactly. Read the draft before trusting it, and keep test outcomes out of `description`: LLM agents read it.
+
 ## Using an LLM
 
 The rule agent (the default) is a fixed checklist and needs no model. With an LLM agent, the model plans the analysis, cross-checks and writes the findings itself.
@@ -162,7 +172,7 @@ The same 14 synthetic runs (seeds 1000–1013, English, gpt-5.6-sol at low reaso
 | Tokens, 14 runs | 277k input / 18.5k output | 296k input / 17.5k output |
 | Time per run | 21 s | 20 s |
 
-Tagging cost nothing measurable, and the model tagged almost every number correctly, so each of its numbers is checked against exactly one field (in the planted-error benchmark below, misplaced values are caught 68% of the time untagged and 99.9% tagged). The three false positives are the same known mistake, a coolant-temperature lag caused by the late valve reported as a deviation of its own: one run (seed 1010) in both arms, and one more run (seed 1001) only with tags. With 14 runs that is not a measurable difference. Tagged reports carry fewer numbers (240 against 312).
+Tagging cost nothing measurable, and the model tagged almost every number correctly, so each of its numbers is checked against exactly one field (in the planted-error benchmark below, misplaced values are caught 67% of the time untagged and 99.9% tagged). The three false positives are the same known mistake, a coolant-temperature lag caused by the late valve reported as a deviation of its own: one run (seed 1010) in both arms, and one more run (seed 1001) only with tags. With 14 runs that is not a measurable difference. Tagged reports carry fewer numbers (240 against 312).
 
 The test caught two mistakes on our side before they reached these numbers. The model wrote tags such as `E3.result.issues[0].count`, because its tool results arrive wrapped in `result`, and 6 of 11 tags in a smoke run were rejected; such paths are accepted now, and a wrong tag's message names the field the value does match. And "1.127 kHz" for a 1126.95 Hz oscillation was flagged, because kHz was not a known unit; it is now.
 
@@ -368,12 +378,12 @@ Unit conversions are also tied to the kind of field now: s ↔ ms only for times
 
 | Planted error | Count | Grounding only | Grounding + semantics | With source tags |
 |---|---|---|---|---|
-| Invented value (changed by −30% to +50%) | 1364 | 90% | **98%** | **100%** |
-| Real value in the wrong place (another field of the same evidence) | 1436 | 0% | **68%** | **99.9%** |
-| Wrong unit (s ↔ Hz, % → s, ...) | 1168 | 0% | **99%** | **100%** |
+| Invented value (changed by −30% to +50%) | 1366 | 89% | **98%** | **100%** |
+| Real value in the wrong place (another field of the same evidence) | 1438 | 0% | **67%** | **99.9%** |
+| Wrong unit (s ↔ Hz, % → s, ...) | 1170 | 0% | **98%** | **100%** |
 | Unchanged correct findings (false alarms) | 268 | 0% | **0%** | **0%** |
 
-Without tags, the 68% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 93% of the time; swapping in a field of the same kind (one time replaced by another time) 34%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale, count and conversion rules these were 45% overall, 69% and 13%.) That is the limit of reading text alone; with source tags all but one of the 3,968 planted errors are caught (the one left: a swapped-in value that equals the cited field within rounding). Whether LLM agents tag their numbers reliably has not been measured yet: the benchmark runs above predate the tag instruction.
+Without tags, the 67% for misplaced values splits into two cases: swapping in a field of a different kind (a duration replaced by a peak pressure) is caught 92% of the time; swapping in a field of the same kind (one time replaced by another time) 34%, when the sentence has a role word, the swap breaks a time range, or the s/ms scale no longer fits. (Before the range, scale, count and conversion rules these were 45% overall, 69% and 13%.) That is the limit of reading text alone; with source tags all but one of the 3,974 planted errors are caught (the one left: a swapped-in value that equals the cited field within rounding). Whether LLM agents tag their numbers reliably has not been measured yet: the benchmark runs above predate the tag instruction.
 
 Also note that the role-word rules were written against the rule agent's sentence templates, so the false-alarm rate above, measured on those same templates, is optimistic. On independent text, the two reports written by gpt-5.6-sol (9 findings, 60 numbers, including the HANARO real-data report), the new verifier also raised no false alarms, and re-verifying the stored gpt-5.6-sol and Qwen benchmark runs after the range, scale, count and conversion rules were added (123 gpt-5.6-sol claims, 798 numbers) changed no gpt-5.6-sol verdict. In the 7B drafts it stopped two more numbers, both wrong: a duration of "0.2 s" that only matched a total impulse of 19.4 at ×0.01, and a mean deviation in MPa scaled ×1000 and written as a percentage. A more reliable false-alarm estimate needs more real reports from different models.
 
@@ -402,6 +412,7 @@ src/groundline/
   leaderboard.py     multi-model leaderboard
   verifier_bench.py  benchmark of the verifier itself (planted errors)
   hybrid.py          hybrid benchmark: known anomalies injected into real logs
+  ingest.py          raw CSV logs to runs, from a (drafted) mapping
   mcp_server.py      MCP server
   config.py          .env loading
   cli.py             command line
