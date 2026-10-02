@@ -84,55 +84,29 @@ def number_matches(text: str) -> list[re.Match]:
     return out
 
 
+def _parse_number(tok: str) -> tuple[float, int] | None:
+    """Value and number of decimals of a number token ("−4.66" -> (-4.66, 2))."""
+    norm = tok.replace("−", "-")
+    try:
+        val = float(norm)
+    except ValueError:
+        return None
+    mant = norm.lower().split("e")[0]
+    return val, len(mant.split(".")[1]) if "." in mant else 0
+
+
 def extract_numbers(text: str) -> list[tuple[str, float, int]]:
-    out = []
-    for m in number_matches(text):
-        tok = m.group(0).replace("−", "-")
-        try:
-            val = float(tok)
-        except ValueError:
-            continue
-        mant = tok.lower().split("e")[0]
-        dec = len(mant.split(".")[1]) if "." in mant else 0
-        out.append((m.group(0), val, dec))
-    return out
-
-
-def evidence_numbers(obj) -> list[float]:
-    """All numeric leaves of an evidence result, plus list lengths (counts)."""
-    out: list[float] = []
-    if isinstance(obj, bool):
-        return out
-    if isinstance(obj, (int, float)):
-        out.append(float(obj))
-    elif isinstance(obj, dict):
-        for v in obj.values():
-            out.extend(evidence_numbers(v))
-    elif isinstance(obj, (list, tuple)):
-        out.append(float(len(obj)))
-        for v in obj:
-            out.extend(evidence_numbers(v))
-    return out
+    """The numbers a claim states, as (token, value, decimals) — exactly what the verifier checks."""
+    return [(m.group(0), *p) for m in number_matches(text) if (p := _parse_number(m.group(0))) is not None]
 
 
 def _matches(value: float, decimals: int, v: float) -> float | None:
+    """The scale (s<->ms, fraction<->% ...) at which evidence value ``v`` rounds to ``value``, if any."""
     a = abs(value)
     for sc in _SCALES:
         x = abs(v * sc)
         if abs(a - x) <= max(0.5 * 10 ** (-decimals), 0.01 * x, 1e-9):
             return sc
-    return None
-
-
-def ground_number(value: float, decimals: int, pool: list[float]) -> tuple[float, float] | None:
-    """Return (evidence_value, scale) if ``value`` matches some pool number after rounding/scaling."""
-    a = abs(value)
-    for v in pool:
-        for sc in _SCALES:
-            x = abs(v * sc)
-            tol = max(0.5 * 10 ** (-decimals), 0.01 * x, 1e-9)
-            if abs(a - x) <= tol:
-                return v, sc
     return None
 
 
@@ -159,13 +133,10 @@ def verify_finding(f: Finding, s: Session) -> dict:
     text = f"{f.title}\n{f.statement}"
     for m in number_matches(text):
         tok = m.group(0)
-        norm = tok.replace("−", "-")
-        try:
-            val = float(norm)
-        except ValueError:
+        parsed = _parse_number(tok)
+        if parsed is None:
             continue
-        mant = norm.lower().split("e")[0]
-        dec = len(mant.split(".")[1]) if "." in mant else 0
+        val, dec = parsed
         cands = [(fl, sc) for fl in fields if (sc := _matches(val, dec, fl.value)) is not None]
         # closest value first, so a message names the field the writer most likely meant
         cands.sort(key=lambda c: abs(abs(val) - abs(c[0].value * c[1])))
