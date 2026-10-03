@@ -12,6 +12,7 @@
       "agent": "openai",
       "model": "gpt-5.6-sol",
       "api": "responses",
+      "reasoning_effort": "low",
       "api_key_env": "OPENAI_API_KEY",
       "from": "eval_sol_v2.json"
     },
