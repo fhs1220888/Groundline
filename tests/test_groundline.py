@@ -239,6 +239,7 @@ def test_openai_backend_wire_format(monkeypatch):
     import httpx
 
     from groundline.agent import make_agent
+    from groundline.config import AgentConfig
 
     def fake_post(url, json=None, headers=None, timeout=None):
         assert url.endswith("/chat/completions")
@@ -262,7 +263,7 @@ def test_openai_backend_wire_format(monkeypatch):
 
     monkeypatch.setattr(httpx, "post", fake_post)
     _, s = session_for(["overtemp"], seed=2)
-    res = make_agent("openai", "en", "fake", "http://x/v1", "k").run(s)
+    res = make_agent(AgentConfig.from_env("openai", "fake", "http://x/v1", "k", env={}), "en").run(s)
     assert res.verification["verified"] == 1
     assert res.agent["first_submission"]["numbers_grounded"] == 0
     assert res.agent["fix_rounds_used"] == 1
@@ -293,9 +294,8 @@ def test_openai_responses_backend(monkeypatch):
     import httpx
 
     from groundline.agent import OpenAIResponses, make_agent
+    from groundline.config import AgentConfig
 
-    monkeypatch.delenv("GROUNDLINE_OPENAI_API", raising=False)
-    monkeypatch.delenv("GROUNDLINE_LLM_BASE_URL", raising=False)
     seen = []
     state = {"n": 0, "submits": 0, "last_ev": None}
 
@@ -329,8 +329,8 @@ def test_openai_responses_backend(monkeypatch):
         return httpx.Response(200, json=body, request=httpx.Request("POST", url))
 
     monkeypatch.setattr(httpx, "post", fake_post)
-    monkeypatch.setenv("GROUNDLINE_LLM_REASONING_EFFORT", "low")
-    agent = make_agent("openai", "en", "gpt-5.6-sol", None, "k")
+    cfg = AgentConfig.from_env("openai", "gpt-5.6-sol", None, "k", env={"GROUNDLINE_LLM_REASONING_EFFORT": "low"})
+    agent = make_agent(cfg, "en")
     assert isinstance(agent.backend, OpenAIResponses)
     _, s = session_for(["overtemp"], seed=2)
     res = agent.run(s)
@@ -349,10 +349,9 @@ def test_anthropic_backend(monkeypatch):
 
     from groundline import agent as agent_mod
     from groundline.agent import AnthropicBackend, make_agent
+    from groundline.config import AgentConfig
 
     monkeypatch.setattr(agent_mod.time, "sleep", lambda _s: None)
-    monkeypatch.delenv("GROUNDLINE_LLM_MODEL", raising=False)
-    monkeypatch.setenv("GROUNDLINE_LLM_REASONING_EFFORT", "medium")
     seen = []
     state = {"n": 0, "overloaded": False}
 
@@ -387,7 +386,8 @@ def test_anthropic_backend(monkeypatch):
         return httpx.Response(200, json=body, request=req)
 
     monkeypatch.setattr(httpx, "post", fake_post)
-    agent = make_agent("anthropic", "en", None, None, "k")
+    agent = make_agent(AgentConfig.from_env("anthropic", api_key="k",
+                                            env={"GROUNDLINE_LLM_REASONING_EFFORT": "medium"}), "en")
     assert isinstance(agent.backend, AnthropicBackend)
     _, s = session_for(["overtemp"], seed=2)
     res = agent.run(s)
@@ -757,13 +757,43 @@ def test_leaderboard_runs_and_imports(tmp_path):
     assert run_leaderboard(cfg, tmp_path / "lb").read_text() == table
 
 
-def test_leaderboard_entry_ignores_env_reasoning_effort(monkeypatch):
-    from groundline.leaderboard import make_entry_agent
+def test_leaderboard_entry_ignores_env_settings():
+    from groundline.agent import AnthropicBackend, OpenAIResponses, make_agent
+    from groundline.config import AgentConfig
 
-    monkeypatch.setenv("GROUNDLINE_LLM_REASONING_EFFORT", "high")
-    a = make_entry_agent({"name": "local", "agent": "openai", "model": "qwen2.5:7b-16k",
-                          "base_url": "http://localhost:11434/v1", "api_key": "ollama"}, "zh")
-    assert a.backend.reasoning_effort is None
+    env = {"GROUNDLINE_LLM_REASONING_EFFORT": "high", "GROUNDLINE_LLM_TEMPERATURE": "0.7",
+           "GROUNDLINE_LLM_MODEL": "gpt-5.6-sol", "GROUNDLINE_CITE_NUMBERS": "0", "OPENAI_API_KEY": "sk-env",
+           "MY_KEY": "sk-mine"}
+    a = make_agent(AgentConfig.from_entry({"name": "local", "agent": "openai", "model": "qwen2.5:7b-16k",
+                                           "base_url": "http://localhost:11434/v1", "api_key": "ollama"}, env), "zh")
+    assert a.backend.reasoning_effort is None and a.backend.temperature is None and a.cite_numbers
+    for entry, backend in (({"agent": "openai", "model": "gpt-5.6-sol"}, OpenAIResponses),
+                           ({"agent": "anthropic", "model": "claude-sonnet-5-5"}, AnthropicBackend)):
+        a = make_agent(AgentConfig.from_entry(entry, env), "en")
+        assert isinstance(a.backend, backend) and a.max_seconds == 1200
+        assert getattr(a.backend, "reasoning_effort", None) is None and getattr(a.backend, "effort", None) is None
+    # the key alone may come from the environment
+    assert make_agent(AgentConfig.from_entry({"model": "m"}, env), "en").backend.api_key == "sk-env"
+    assert AgentConfig.from_entry({"model": "m", "api_key_env": "MY_KEY"}, env).api_key == "sk-mine"
+
+
+def test_cli_config_comes_from_arguments_then_env():
+    from groundline.agent import OpenAICompatible, OpenAIResponses, make_agent
+    from groundline.config import AgentConfig
+
+    env = {"GROUNDLINE_AGENT": "openai", "GROUNDLINE_LLM_MODEL": "env-model", "GROUNDLINE_LLM_TEMPERATURE": "0",
+           "GROUNDLINE_CITE_NUMBERS": "0", "GROUNDLINE_LLM_API_KEY": "gl", "OPENAI_API_KEY": "oa"}
+    cfg = AgentConfig.from_env(env=env)
+    assert (cfg.kind, cfg.model, cfg.api, cfg.api_key, cfg.temperature, cfg.cite_numbers) == \
+        ("openai", "env-model", "responses", "gl", 0.0, False)
+    assert isinstance(make_agent(cfg, "en").backend, OpenAIResponses)
+    local = AgentConfig.from_env("ollama", "qwen", "http://localhost:11434/v1", env=env)
+    a = make_agent(local, "en")
+    assert isinstance(a.backend, OpenAICompatible) and a.backend.model == "qwen" and a.backend.temperature == 0.0
+    forced = AgentConfig.from_env("openai", env={**env, "GROUNDLINE_OPENAI_API": "chat"})
+    assert isinstance(make_agent(forced, "en").backend, OpenAICompatible)
+    assert AgentConfig.from_env("anthropic", env={"ANTHROPIC_API_KEY": "an", **env}).api_key == "an"
+    assert make_agent(AgentConfig.from_env(env={}), "en").__class__ is RuleAgent
 
 
 def test_loose_match_counts_channelless_claim_with_right_category():
@@ -960,7 +990,7 @@ def test_leaderboard_resumes_after_model_server_goes_away(tmp_path, monkeypatch)
                 raise ConnectError("[Errno 61] Connection refused")
             return RuleAgent("en").run(s)
 
-    monkeypatch.setattr(lb, "make_entry_agent", lambda e, lang: Flaky())
+    monkeypatch.setattr(lb, "make_agent", lambda cfg, lang: Flaky())
     monkeypatch.setattr("time.sleep", lambda s: None)
     cfg = {"n": 3, "seed": 1000, "lang": "en", "models": [{"name": "local", "agent": "openai"}]}
     lb.run_leaderboard(cfg, tmp_path)
@@ -985,7 +1015,7 @@ def test_leaderboard_checkpoints_every_run_and_survives_ctrl_c(tmp_path, monkeyp
                 raise KeyboardInterrupt
             return RuleAgent("en").run(s)
 
-    monkeypatch.setattr(lb, "make_entry_agent", lambda e, lang: Slow())
+    monkeypatch.setattr(lb, "make_agent", lambda cfg, lang: Slow())
     cfg = {"n": 4, "seed": 1000, "lang": "en", "models": [{"name": "local", "agent": "openai"}]}
     with pytest.raises(SystemExit):
         lb.run_leaderboard(cfg, tmp_path)
@@ -994,14 +1024,15 @@ def test_leaderboard_checkpoints_every_run_and_survives_ctrl_c(tmp_path, monkeyp
 
 
 def test_run_time_budget_and_reply_cap():
-    from groundline.agent import OpenAICompatible
-    from groundline.leaderboard import make_entry_agent
+    from groundline.agent import OpenAICompatible, make_agent
+    from groundline.config import AgentConfig
 
     _, s = session_for([], seed=4)
     stall = [{"content": "thinking...", "tool_calls": []}] * 50
     res = LLMAgent(ScriptedBackend(stall), lang="en", max_seconds=0.0).run(s)
     assert res.agent["timed_out"] and not res.agent["submitted"]
-    a = make_entry_agent({"name": "x", "agent": "openai", "model": "m", "base_url": "http://localhost:11434/v1"}, "en")
+    a = make_agent(AgentConfig.from_entry({"name": "x", "agent": "openai", "model": "m",
+                                           "base_url": "http://localhost:11434/v1"}), "en")
     assert isinstance(a.backend, OpenAICompatible) and a.backend.max_tokens == 2048 and a.max_seconds == 1200
 
 

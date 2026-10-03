@@ -15,8 +15,10 @@ Config file (JSON)::
 
 Per entry: ``agent`` (rule | openai | anthropic), ``model``, ``base_url``, ``api`` (responses | chat, default:
 responses for api.openai.com, chat otherwise), ``api_key`` or ``api_key_env`` (name of the variable holding the
-key), ``reasoning_effort``, and ``from`` to import an existing ``groundline eval`` JSON instead of re-running it
-(only if it used the same n and seed).
+key), ``reasoning_effort``, ``temperature``, ``timeout`` and ``max_tokens`` (per request; chat endpoints default
+to 600 s and 2048 tokens), ``run_timeout_s`` (per analysis, default 1200 s), ``cite_numbers``, and ``from`` to
+import an existing ``groundline eval`` JSON instead of re-running it (only if it used the same n and seed).
+Nothing else comes from the environment: an entry is the whole configuration of its model.
 
 Every model runs the same seeds. Results go to ``<out>/<name>.json`` and are reused on the next call, so an
 interrupted leaderboard resumes where it stopped; ``<out>/LEADERBOARD.md`` is rewritten each time.
@@ -29,38 +31,13 @@ import re
 import sys
 from pathlib import Path
 
+from .agent import make_agent
+from .config import AgentConfig
 from .evaluate import BenchmarkInterrupted, is_infra_error, run_benchmark, save, summarize
 
 
 def _slug(name: str) -> str:
     return re.sub(r"[^\w.-]+", "_", name).strip("_") or "model"
-
-
-def make_entry_agent(e: dict, lang: str):
-    from . import agent as A
-
-    kind = e.get("agent", "openai")
-    if kind == "rule":
-        return A.RuleAgent(lang)
-    key = e.get("api_key")
-    if key is None and e.get("api_key_env"):
-        import os
-
-        key = os.environ.get(e["api_key_env"], "")
-    if kind == "anthropic":
-        return A.LLMAgent(A.AnthropicBackend(e.get("model"), key), lang)
-    url = e.get("base_url") or "https://api.openai.com/v1"
-    api = e.get("api") or ("responses" if "api.openai.com" in url else "chat")
-    if api == "responses":
-        be = A.OpenAIResponses(e.get("model"), url, key, reasoning_effort=e.get("reasoning_effort"))
-    else:
-        be = A.OpenAICompatible(e.get("model"), url, key, timeout=float(e.get("timeout", 600)),
-                                max_tokens=int(e.get("max_tokens", 2048)))
-        # the entry is the whole configuration: settings meant for the default model in .env
-        # (e.g. GROUNDLINE_LLM_REASONING_EFFORT for gpt-5.6-sol) must not leak into a local model
-        be.reasoning_effort = e.get("reasoning_effort")
-        be.temperature = float(e["temperature"]) if e.get("temperature") is not None else None
-    return A.LLMAgent(be, lang, max_seconds=float(e.get("run_timeout_s", 1200)))
 
 
 def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: list[str] | None = None,
@@ -109,7 +86,7 @@ def run_leaderboard(config: dict, out: str | Path, force: bool = False, only: li
             try:
                 # a non-connection failure on the first run is almost always configuration (URL, key, model
                 # name, unsupported option): stop this model instead of failing the same way n times
-                res = run_benchmark(lambda e=e: make_entry_agent(e, lang), n=n, seed=seed, progress=prog,
+                res = run_benchmark(lambda e=e: make_agent(AgentConfig.from_entry(e), lang), n=n, seed=seed, progress=prog,
                                     resume_rows=resume, infra_retries=1, stop_on_infra=True,
                                     on_row=checkpoint)
             except BenchmarkInterrupted as bi:
