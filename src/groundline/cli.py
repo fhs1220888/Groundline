@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from .agent import make_agent
+from .config import AgentConfig
 
 
 def _add_agent_args(p: argparse.ArgumentParser) -> None:
@@ -37,7 +38,7 @@ def _analyze(run_path, reference, limits, a) -> int:
     from .report import write_report
 
     s = Session.open(run_path, reference=reference, limits=limits)
-    agent = make_agent(a.agent, a.lang, a.model, getattr(a, "base_url", None))
+    agent = make_agent(AgentConfig.from_env(a.agent, a.model, getattr(a, "base_url", None)), a.lang)
     res = agent.run(s)
     out = a.out or str(Path(run_path).with_name("report.html"))
     paths = write_report(s, res, out, a.lang)
@@ -94,7 +95,8 @@ def cmd_eval(a) -> int:
     def prog(i, n):
         print(f"\r  run {i}/{n}", end="", file=sys.stderr, flush=True)
 
-    res = run_benchmark(lambda: make_agent(a.agent, a.lang, a.model, a.base_url), n=a.n, seed=a.seed, progress=prog,
+    cfg = AgentConfig.from_env(a.agent, a.model, a.base_url)
+    res = run_benchmark(lambda: make_agent(cfg, a.lang), n=a.n, seed=a.seed, progress=prog,
                         suite=a.suite)
     print(file=sys.stderr)
     print(format_summary(res["summary"]))

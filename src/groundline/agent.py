@@ -12,11 +12,11 @@ Both produce the same :class:`AnalysisResult`, rendered by ``groundline.report``
 from __future__ import annotations
 
 import json
-import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from .config import OPENAI_KINDS, OPENAI_URL, AgentConfig
 from .findings import CATEGORIES, SEVERITIES, Finding, verify_findings
 from .session import Session, to_jsonable
 from .tools import REGISTRY
@@ -548,11 +548,9 @@ def _compact(result: dict, limit: int = 6000) -> str:
 
 class LLMAgent:
     def __init__(self, backend: Backend, lang: str = "zh", max_steps: int = 24, fix_rounds: int = 1,
-                 prefetch: bool = True, max_seconds: float | None = None, cite_numbers: bool | None = None):
+                 prefetch: bool = True, max_seconds: float | None = None, cite_numbers: bool = True):
         self.backend = backend
-        # ask the model to tag each number with its source field (GROUNDLINE_CITE_NUMBERS=0 turns it off)
-        self.cite_numbers = (os.environ.get("GROUNDLINE_CITE_NUMBERS", "1") != "0") if cite_numbers is None \
-            else cite_numbers
+        self.cite_numbers = cite_numbers  # ask the model to tag each number with its source field
         self.lang = lang
         self.max_steps = max_steps
         self.max_seconds = max_seconds  # wall-clock budget for one analysis; None = unlimited
@@ -706,12 +704,12 @@ class OpenAIResponses:
     name = "openai-responses"
 
     def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None,
-                 reasoning_effort: str | None = None, timeout: float = 300.0):
-        self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "gpt-5.6-sol")
-        self.base_url = (base_url or os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
-        self.api_key = api_key or os.environ.get("GROUNDLINE_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
-        self.reasoning_effort = reasoning_effort or os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT") or None
-        self.timeout = timeout
+                 reasoning_effort: str | None = None, timeout: float | None = None):
+        self.model = model or "gpt-5.6-sol"
+        self.base_url = (base_url or OPENAI_URL).rstrip("/")
+        self.api_key = api_key or ""
+        self.reasoning_effort = reasoning_effort or None
+        self.timeout = timeout or 300.0
         self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
         self._prev_id: str | None = None
         self._sent = 0  # number of agent messages already delivered to the server
@@ -767,17 +765,16 @@ class OpenAICompatible:
     name = "openai-compatible"
 
     def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None,
-                 temperature: float | None = None, timeout: float = 180.0,
-                 max_tokens: int | None = None):
-        self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "gpt-4o-mini")
-        self.base_url = (base_url or os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
-        self.api_key = api_key or os.environ.get("GROUNDLINE_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
-        t = os.environ.get("GROUNDLINE_LLM_TEMPERATURE")
-        self.temperature = temperature if temperature is not None else (float(t) if t else None)
-        self.reasoning_effort = os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT") or None
+                 temperature: float | None = None, timeout: float | None = None, max_tokens: int | None = None,
+                 reasoning_effort: str | None = None):
+        self.model = model or "gpt-4o-mini"
+        self.base_url = (base_url or OPENAI_URL).rstrip("/")
+        self.api_key = api_key or ""
+        self.temperature = temperature
+        self.reasoning_effort = reasoning_effort or None
         self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0}
         self.max_tokens = max_tokens
-        self.timeout = timeout
+        self.timeout = timeout or 180.0
 
     def complete(self, system: str, messages: list[dict], tools: list[dict]) -> dict:
         msgs = [{"role": "system", "content": system}]
@@ -829,14 +826,13 @@ class AnthropicBackend:
 
     name = "anthropic"
 
-    def __init__(self, model: str | None = None, api_key: str | None = None, max_tokens: int = 16000,
-                 reasoning_effort: str | None = None, timeout: float = 300.0):
-        self.model = model or os.environ.get("GROUNDLINE_LLM_MODEL", "claude-sonnet-5-5")
-        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-        self.max_tokens = max_tokens  # thinking counts against it, so leave room beyond the visible reply
-        effort = reasoning_effort or os.environ.get("GROUNDLINE_LLM_REASONING_EFFORT") or None
-        self.effort = None if effort == "none" else effort  # low | medium | high | xhigh | max
-        self.timeout = timeout
+    def __init__(self, model: str | None = None, api_key: str | None = None, max_tokens: int | None = None,
+                 reasoning_effort: str | None = None, timeout: float | None = None):
+        self.model = model or "claude-sonnet-5-5"
+        self.api_key = api_key or ""
+        self.max_tokens = max_tokens or 16000  # thinking counts against it, so leave room beyond the visible reply
+        self.effort = None if reasoning_effort == "none" else reasoning_effort or None  # low | medium | high | xhigh | max
+        self.timeout = timeout or 300.0
         self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0, "cache_read_input_tokens": 0}
 
     @staticmethod
@@ -916,21 +912,20 @@ class ScriptedBackend:
         return r(messages) if callable(r) else r
 
 
-def make_agent(kind: str = "rule", lang: str = "zh", model: str | None = None, base_url: str | None = None,
-               api_key: str | None = None):
-    if kind == "rule":
+def make_agent(cfg: AgentConfig, lang: str = "zh"):
+    """The agent a configuration describes (see AgentConfig.from_env / from_entry)."""
+    if cfg.kind == "rule":
         return RuleAgent(lang)
-    if kind in ("openai", "openai-compatible", "qwen", "deepseek", "ollama", "vllm"):
-        # official OpenAI -> Responses API (tools + reasoning); other endpoints -> Chat Completions.
-        # Override with GROUNDLINE_OPENAI_API=responses|chat.
-        url = base_url or os.environ.get("GROUNDLINE_LLM_BASE_URL", "https://api.openai.com/v1")
-        api = os.environ.get("GROUNDLINE_OPENAI_API") or ("responses" if "api.openai.com" in url else "chat")
-        if kind == "openai" and api == "responses":
-            return LLMAgent(OpenAIResponses(model, base_url, api_key), lang)
-        return LLMAgent(OpenAICompatible(model, base_url, api_key), lang)
-    if kind == "anthropic":
-        return LLMAgent(AnthropicBackend(model, api_key), lang)
-    raise ValueError(f"unknown agent {kind!r}")
+    if cfg.kind == "anthropic":
+        be = AnthropicBackend(cfg.model, cfg.api_key, cfg.max_tokens, cfg.reasoning_effort, cfg.timeout)
+    elif cfg.kind in OPENAI_KINDS and cfg.api == "responses":
+        be = OpenAIResponses(cfg.model, cfg.base_url, cfg.api_key, cfg.reasoning_effort, cfg.timeout)
+    elif cfg.kind in OPENAI_KINDS:
+        be = OpenAICompatible(cfg.model, cfg.base_url, cfg.api_key, cfg.temperature, cfg.timeout, cfg.max_tokens,
+                              cfg.reasoning_effort)
+    else:
+        raise ValueError(f"unknown agent {cfg.kind!r}")
+    return LLMAgent(be, lang, max_seconds=cfg.max_seconds, cite_numbers=cfg.cite_numbers)
 
 
 __all__ = ["AnalysisResult", "RuleAgent", "LLMAgent", "OpenAICompatible", "OpenAIResponses", "AnthropicBackend", "ScriptedBackend",
