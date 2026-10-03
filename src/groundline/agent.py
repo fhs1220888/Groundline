@@ -624,16 +624,16 @@ class LLMAgent:
                         first_findings = [{k: v for k, v in f.to_dict().items() if k != "verification"}
                                           for f in findings]
                         first_flagged = [{"title": f.title, "statement": f.statement, "evidence": f.evidence,
-                                          "ungrounded_numbers": f.verification["ungrounded_numbers"],
-                                          "semantic_problems": f.verification["semantic_problems"],
-                                          "problems": f.verification["problems"]}
-                                         for f in findings if f.verification["status"] != "verified"]
-                    bad = [(i, f) for i, f in enumerate(findings) if f.verification["status"] != "verified"]
+                                          "ungrounded_numbers": f.verification.ungrounded_numbers,
+                                          "semantic_problems": f.verification.semantic_problems,
+                                          "problems": f.verification.problem_messages}
+                                         for f in findings if not f.verification.verified]
+                    bad = [(i, f) for i, f in enumerate(findings) if not f.verification.verified]
                     if bad and fixes_left > 0:
                         fixes_left -= 1
-                        lines = [f"finding {i} ({f.title}): ungrounded numbers {f.verification['ungrounded_numbers']}; "
-                                 f"numbers used with the wrong meaning {f.verification['semantic_problems']}; "
-                                 f"problems {f.verification['problems']}" for i, f in bad]
+                        lines = [f"finding {i} ({f.title}): ungrounded numbers {f.verification.ungrounded_numbers}; "
+                                 f"numbers used with the wrong meaning {f.verification.semantic_problems}; "
+                                 f"problems {f.verification.problem_messages}" for i, f in bad]
                         content = ("Verifier rejected some claims:\n" + "\n".join(lines) +
                                    "\nFix them (cite the right evidence, call tools for missing numbers, or remove "
                                    "the number) and call submit_report again with the full list.")

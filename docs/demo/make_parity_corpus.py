@@ -20,8 +20,8 @@ def case(f, s):
     ledger = {e: {"result": s.evidence(e).result, "params": s.evidence(e).params}
               for e in f.evidence if s.evidence(e) is not None}
     return {"finding": {"title": f.title, "statement": f.statement, "evidence": f.evidence}, "ledger": ledger,
-            "status": v["status"], "numbers": [{"text": n["text"], "grounded": n["grounded"],
-                                                "consistent": n["consistent"]} for n in v["numbers"]]}
+            "status": v.status, "numbers": [{"text": n.text, "grounded": n.grounded, "consistent": n.consistent}
+                                            for n in v.numbers]}
 
 
 def main(out, n=20):

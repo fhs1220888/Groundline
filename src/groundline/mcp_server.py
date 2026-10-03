@@ -76,8 +76,8 @@ def build_server():
         fs = [Finding.from_dict(d) for d in findings]
         summary = verify_findings(fs, s)
         return {"summary": summary, "findings": [
-            {"title": f.title, **{k: f.verification[k] for k in ("status", "ungrounded_numbers", "semantic_problems",
-                                                                   "problems")}}
+            {"title": f.title, "status": f.verification.status, "ungrounded_numbers": f.verification.ungrounded_numbers,
+             "semantic_problems": f.verification.semantic_problems, "problems": f.verification.problem_messages}
             for f in fs]}
 
     @mcp.tool()

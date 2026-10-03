@@ -12,7 +12,7 @@ import numpy as np
 
 from . import __version__, plots
 from .agent import AnalysisResult
-from .findings import citations, number_matches
+from .findings import NumberCheck, Verification, citations
 from .session import Session
 
 UI = {
@@ -171,26 +171,22 @@ def _plain(text: str) -> str:
     return "".join(out)
 
 
-def _highlight(text: str, numbers: list[dict]) -> str:
-    """Wrap each number in the statement with its grounding status."""
-    out, pos, k = [], 0, 0
-    for m in number_matches(text):
-        out.append(_plain(text[pos : m.start()]))
-        n = numbers[k] if k < len(numbers) else None
-        k += 1
-        tok = _esc(m.group(0))
-        if n and n["grounded"] and n.get("consistent", True):
-            mv = n["matched"]
-            sc = "" if mv["scale"] == 1 else f" × {mv['scale']:g}"
-            src = f" ({mv['field']})" if mv.get("field") else ""
-            out.append(f'<span class="g" title="= {_esc(str(mv["value"]))}{sc}{_esc(src)}">{tok}</span>')
-        elif n and n["grounded"]:
-            out.append(f'<span class="ng" title="{_esc(n.get("semantic_problem") or "")}">{tok}</span>')
-        elif n:
-            out.append(f'<span class="ng" title="not found in cited evidence">{tok}</span>')
+def _highlight(text: str, numbers: tuple[NumberCheck, ...]) -> str:
+    """Wrap each checked number of a title or statement with its grounding status."""
+    out, pos = [], 0
+    for n in numbers:
+        out.append(_plain(text[pos : n.start]))
+        tok = _esc(n.text)
+        if n.consistent:
+            mv = n.matched
+            sc = "" if mv.scale == 1 else f" × {mv.scale:g}"
+            src = f" ({mv.field})" if mv.field else ""
+            out.append(f'<span class="g" title="= {_esc(str(mv.value))}{sc}{_esc(src)}">{tok}</span>')
+        elif n.grounded:
+            out.append(f'<span class="ng" title="{_esc(n.semantic_problem or "")}">{tok}</span>')
         else:
-            out.append(tok)
-        pos = m.end()
+            out.append(f'<span class="ng" title="not found in cited evidence">{tok}</span>')
+        pos = n.end
     out.append(_plain(text[pos:]))
     return "".join(out)
 
@@ -269,8 +265,8 @@ def build_report(s: Session, result: AnalysisResult, lang: str = "zh") -> str:
     if not F:
         parts.append(f"<p>{L['none']}</p>")
     for i, f in enumerate(F, 1):
-        v = f.verification or {}
-        st = v.get("status", "unsupported")
+        v = f.verification or Verification("unsupported", (), (), ())
+        st = v.status
         tw = ""
         if f.t_start is not None:
             tw = f"{f.t_start:.3f}" + (f"–{f.t_end:.3f} s" if f.t_end is not None else " s")
@@ -281,20 +277,18 @@ def build_report(s: Session, result: AnalysisResult, lang: str = "zh") -> str:
         if tw:
             tags.append(f"<span class='tag'>{tw}</span>")
         tags.append(f"<span class='st-{st}'>{'✓' if st == 'verified' else '!'} {L['status_' + st]}</span>")
-        nums = v.get("numbers", [])
-        n_title = len(number_matches(f.title))
-        title_html = _highlight(f.title, nums[:n_title])
-        stmt_html = _highlight(f.statement, nums[n_title:])
+        title_html = _highlight(f.title, v.title_numbers)
+        stmt_html = _highlight(f.statement, v.statement_numbers)
         chips = "".join(f"<a href='#{_esc(e)}'>{_esc(e)}</a>" for e in f.evidence)
         warn = ""
-        if v.get("ungrounded_numbers") or v.get("semantic_problems") or v.get("problems"):
+        if v.ungrounded_numbers or v.semantic_problems or v.problems:
             items = []
-            if v.get("ungrounded_numbers"):
-                items.append(f"{L['ungrounded']}: {_esc(', '.join(v['ungrounded_numbers']))}")
-            if v.get("semantic_problems"):
-                items.append(f"{L['semantic']}: {_esc('; '.join(v['semantic_problems']))}")
-            if v.get("problems"):
-                items.append(f"{L['problems']}: {_esc('; '.join(v['problems']))}")
+            if v.ungrounded_numbers:
+                items.append(f"{L['ungrounded']}: {_esc(', '.join(v.ungrounded_numbers))}")
+            if v.semantic_problems:
+                items.append(f"{L['semantic']}: {_esc('; '.join(v.semantic_problems))}")
+            if v.problems:
+                items.append(f"{L['problems']}: {_esc('; '.join(v.problem_messages))}")
             warn = "<div class='warnbox'>" + "<br>".join(items) + "</div>"
         parts.append(
             f"<div class='finding' id='F{i}'><div class='num'>{i}</div><div><div class='tags'>{''.join(tags)}</div>"
