@@ -51,6 +51,25 @@ def _kind(key: str, unit: str | None) -> str:
     return "plain"
 
 
+_SCALES = (1.0, 1000.0, 0.001, 100.0, 0.01, 60.0)
+# conversions that make sense per kind of field: s<->ms (and min) for times; fraction<->% only for unitless
+# fields (a *_pct field already is a percentage);
+# counts, frequencies and physical values are written as they are (802 Hz is not "8" at x0.01)
+_KIND_SCALES = {"time": (1.0, 1000.0, 0.001, 60.0), "percent": (1.0,),
+                "count": (1.0,), "freq": (1.0, 0.001), "physical": (1.0,)}  # freq: Hz and kHz
+
+
+def match_scale(value: float, decimals: int, v: float, kind: str = "plain") -> float | None:
+    """The scale (s<->ms, fraction<->% ...) at which evidence value ``v`` (a field of this kind) rounds to
+    ``value``, written with this many decimals, if any."""
+    a = abs(value)
+    for sc in _KIND_SCALES.get(kind, _SCALES):
+        x = abs(v * sc)
+        if abs(a - x) <= max(0.5 * 10 ** (-decimals), 0.01 * x, 1e-9):
+            return sc
+    return None
+
+
 def evidence_fields(obj, path: str = "", key: str = "", unit: str | None = None) -> list[EvField]:
     """Every numeric leaf with its field name, path and unit (a sibling ``unit`` / ``<key>_unit`` entry)."""
     out: list[EvField] = []

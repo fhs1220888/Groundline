@@ -90,12 +90,51 @@ def test_verifier_flags_invented_numbers():
                   evidence=[ev.id])
     none = Finding("osc", "Pc oscillates", "combustion_oscillation", "critical", "Pc", evidence=["E99"])
     summary = verify_findings([good, bad, none], s)
-    assert good.verification["status"] == "verified"
-    assert bad.verification["status"] == "partial"
-    assert bad.verification["ungrounded_numbers"] == [f"{f_ok + 137:.0f}"]
-    assert none.verification["status"] == "unsupported"
+    assert good.verification.status == "verified"
+    assert bad.verification.status == "partial"
+    assert bad.verification.ungrounded_numbers == [f"{f_ok + 137:.0f}"]
+    assert none.verification.status == "unsupported"
     assert summary["verified"] == 1
 
+
+
+def test_numbers_keep_their_place_in_title_or_statement():
+    from groundline.findings import verify_finding
+
+    _, s = session_for(["oscillation"], seed=21)
+    ev = s.run("detect_oscillation")
+    hz = f"{ev.result['events'][0]['freq_hz']:.0f}"
+    f = Finding(f"Pc at {hz} Hz", f"E1 shows Pc oscillating at {hz} Hz, then 12345 Hz", "combustion_oscillation",
+                "critical", "Pc", evidence=[ev.id])
+    v = verify_finding(f, s)
+    assert [(f.title[n.start:n.end], n.grounded) for n in v.title_numbers] == [(hz, True)]
+    assert [(f.statement[n.start:n.end], n.grounded) for n in v.statement_numbers] == [(hz, True), ("12345", False)]
+    assert v.ungrounded_numbers == ["12345"] and v.to_dict()["n_numbers"] == 3
+
+
+def test_stored_ledger_verifies_like_the_live_session():
+    from groundline.findings import LedgerView, verify_finding
+
+    _, s = session_for(["overtemp", "valve_delay"], seed=2)
+    findings = RuleAgent("en").run(s).findings
+    view = LedgerView([{"id": e.id, "tool": e.tool, "params": e.params, "result": e.result} for e in s.ledger],
+                      s.channels)
+    wrong = Finding("t", "peak 1.5 K", "redline_violation", "critical", "nope", 1234.5, None, ["E1", "E99"])
+    for f in findings + [wrong]:
+        assert verify_finding(f, view) == verify_finding(f, s)
+    assert verify_finding(wrong, view).problems
+
+
+def test_problem_codes_read_back_from_stored_messages():
+    from groundline.findings import PROBLEM_CODES, Problem
+
+    fields = {"ids": "E9", "category": "redline_violation", "channel": "Pc", "tok": "742.3", "cite": "E4.peak",
+              "eid": "E4", "value": 1.5, "key": "t_start", "path": "E4.limit", "tool": "check_redlines",
+              "flagged": ["T_wall"]}
+    for code in PROBLEM_CODES:
+        p = Problem.of(code, " (the value matches E4.limit)" if code.startswith("tag_") else "", **fields)
+        assert Problem.from_message(p.message) == p
+    assert Problem.from_message("something else").code == ""
 
 def test_unit_scaling_is_accepted():
     _, s = session_for(["valve_delay"], seed=4)
@@ -104,7 +143,7 @@ def test_unit_scaling_is_accepted():
     f = Finding("late", f"response after {fu['latency_ms'] / 1000:.4f} s", "valve_response", "warning",
                 "P_fu_inj", evidence=[ev.id])
     verify_findings([f], s)
-    assert f.verification["status"] == "verified"
+    assert f.verification.status == "verified"
 
 
 def test_rule_agent_all_claims_verified_and_detects_everything():
@@ -419,7 +458,7 @@ def test_lessons_from_a_real_liquid_engine_log():
     v = verify_finding(Finding("t", f"stuck at its maximum {flat[0]['stuck_value']:.2f} psi "
                                     f"[{health.id}.issues[{k}].stuck_value]", "sensor_fault", "warning", "P_bottle",
                                None, None, [health.id]), s)
-    assert v["status"] == "verified", v
+    assert v.status == "verified", v
     base = by("no_return_to_baseline")
     assert len(base) == 1 and base[0]["channel"] == "Pc" and 50 < base[0]["offset_of_steady_pct"] < 70
     coin = by("coincident_spikes")
@@ -764,7 +803,7 @@ def test_semantic_accepts_correct_reading():
     r = ev.result
     v = _check(s, f"峰值 {r['peak']:.1f} N，工作时间 {r['action_time_s']:.2f} s，总冲 {r['integral']:.0f} N·s，"
                   f"{r['t_start']:.2f}–{r['t_end']:.2f} s，按峰值的 {r['start_pct']:g}% 截取。", ev)
-    assert v["status"] == "verified", v
+    assert v.status == "verified", v
 
 
 def test_semantic_flags_real_value_in_wrong_role_or_unit():
@@ -772,13 +811,13 @@ def test_semantic_flags_real_value_in_wrong_role_or_unit():
     r = ev.result
     # the action time written as the peak: a real number, wrong meaning
     v = _check(s, f"peak of {r['action_time_s']:.2f}", ev)
-    assert v["status"] == "partial" and v["semantic_problems"]
+    assert v.status == "partial" and v.semantic_problems
     # a time written in Hz
     v = _check(s, f"at {r['t_peak']:.2f} Hz", ev)
-    assert v["mismatched_numbers"]
+    assert v.mismatched_numbers
     # the peak force written with a time unit
     v = _check(s, f"{r['peak']:.1f} s", ev)
-    assert v["mismatched_numbers"]
+    assert v.mismatched_numbers
 
 
 def test_semantic_ranges_time_scale_and_counts():
@@ -786,16 +825,16 @@ def test_semantic_ranges_time_scale_and_counts():
 
     s, ev = _pc_session_with_pulse()
     r = ev.result
-    assert _check(s, f"{r['t_start']:.2f}–{r['t_end']:.2f} s, {r['action_time_s'] * 1000:.0f} ms", ev)["status"] \
+    assert _check(s, f"{r['t_start']:.2f}–{r['t_end']:.2f} s, {r['action_time_s'] * 1000:.0f} ms", ev).status \
         == "verified"
     # a time range that ends before it starts
     v = _check(s, f"{r['t_end']:.2f}–{r['t_start']:.2f} s", ev)
-    assert v["mismatched_numbers"] == [f"{r['t_start']:.2f}"] and "before it starts" in v["semantic_problems"][0]
+    assert v.mismatched_numbers == [f"{r['t_start']:.2f}"] and "before it starts" in v.semantic_problems[0]
     # the start of "a–b s" is a time too, so the peak force cannot open the range
     v = _check(s, f"{r['peak']:.1f}–{r['t_end']:.2f} s", ev)
-    assert f"{r['peak']:.1f}" in v["mismatched_numbers"]
+    assert f"{r['peak']:.1f}" in v.mismatched_numbers
     # a duration in seconds written as milliseconds
-    assert _check(s, f"lasting {r['action_time_s']:.2f} ms", ev)["mismatched_numbers"]
+    assert _check(s, f"lasting {r['action_time_s']:.2f} ms", ev).mismatched_numbers
     # a frequency may be written in kHz, but only with that unit (1.127 kHz is 1127 Hz; "1.127 Hz" is not)
     fq = EvField(1126.95, "freq_hz", "E1.events[0].freq_hz", None, "freq")
     text = "a 1.127 kHz oscillation, or 1.127 Hz"
@@ -818,17 +857,18 @@ def test_anomaly_category_needs_evidence_that_reports_it():
     ch = red.result["violations"][0]["channel"]
 
     def problems(category, evidence, channel=ch):
-        return verify_finding(Finding("t", "s", category, "warning", channel, None, None, evidence), s)["problems"]
+        v = verify_finding(Finding("t", "s", category, "warning", channel, None, None, evidence), s)
+        return [p.code for p in v.problems]
 
     assert problems("redline_violation", [red.id]) == []
     # a passed check filed as a fault: the valve check found nothing late
     assert not valve.result["n_exceeding"]
-    assert "reports no anomaly" in problems("valve_response", [valve.id], None)[0]
+    assert problems("valve_response", [valve.id], None) == ["category_no_anomaly"]
     assert problems("observation", [valve.id], None) == []
     # the anomaly must come from the matching tool, and on the finding's channel
-    assert "none is cited" in problems("redline_violation", [health.id])[0]
+    assert problems("redline_violation", [health.id]) == ["category_uncited"]
     other = next(c for c in s.channels if c != ch and c in json.dumps(red.result))
-    assert "not " + repr(other) in problems("redline_violation", [red.id], other)[0]
+    assert problems("redline_violation", [red.id], other) == ["category_other_channel"]
 
 
 def test_numbers_tagged_with_their_source_field():
@@ -844,18 +884,20 @@ def test_numbers_tagged_with_their_source_field():
         return verify_finding(Finding("t", stmt, "redline_violation", "critical", v["channel"], None, None,
                                       list(evidence)), s)
 
-    ok = check(f"peak {v['peak_value']:.1f} K [{E}.violations[0].peak_value] from {v['t_start']:.3f} "
+    ok_stmt = (f"peak {v['peak_value']:.1f} K [{E}.violations[0].peak_value] from {v['t_start']:.3f} "
                f"[{E}.violations.0.t_start]–{v['t_end']:.3f} s [{E}.violations[0].t_end], "
                f"出现 {len(ev.result['violations'])} 次超限 [len({E}.violations)], see [{E}]")
-    assert ok["status"] == "verified" and ok["n_cited"] == 4, ok
+    ok = check(ok_stmt)
+    assert ok.status == "verified" and sum(n.cited is not None for n in ok.numbers) == 4, ok
     # a real value of the evidence, but not the field the tag names
     bad = check(f"peak {v['peak_value']:.1f} K [{E}.violations[0].limit]")
-    assert bad["ungrounded_numbers"] == [f"{v['peak_value']:.1f}"] and "does not match" in bad["problems"][0]
+    assert bad.ungrounded_numbers == [f"{v['peak_value']:.1f}"] and bad.problems[0].code == "tag_mismatch"
+    assert "does not match" in bad.problems[0].message  # the agent reads the message
     # a tag into evidence the finding does not cite
-    assert "not among the finding's evidence" in check(f"{v['peak_value']:.1f} K [E99.peak]")["problems"][0]
+    assert check(f"{v['peak_value']:.1f} K [E99.peak]").problems[0].code == "tag_outside_evidence"
     # the tagged field still has to fit the unit written (a time is not a temperature)
-    assert check(f"{v['t_peak']:.3f} K [{E}.violations[0].t_peak]")["mismatched_numbers"]
-    html = _highlight(f"{v['peak_value']:.1f} K [{E}.violations[0].peak_value]", ok["numbers"][:1])
+    assert check(f"{v['t_peak']:.3f} K [{E}.violations[0].t_peak]").mismatched_numbers
+    html = _highlight(ok_stmt, ok.statement_numbers)
     assert f'<a class="cite" href="#{E}">{E}.violations[0].peak_value</a>' in html
     # LLM agents are asked to tag their numbers unless turned off
     for on in (True, False):

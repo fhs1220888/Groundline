@@ -19,9 +19,17 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-from .findings import Finding
+from .findings import TAG_PROBLEMS, Finding, LedgerView, Problem, verify_findings
 from .session import Session
 from .synth import ANOMALY_TYPES, ANY_CHANNEL, Anomaly, generate_run
+
+
+def _finding_row(f: Finding) -> dict:
+    """A verified finding as eval results store it."""
+    v = f.verification
+    return {"title": f.title, "statement": f.statement, "category": f.category, "channel": f.channel,
+            "evidence": f.evidence, "status": v.status, "ungrounded_numbers": v.ungrounded_numbers,
+            "semantic_problems": v.semantic_problems, "problems": v.problem_messages}
 
 
 def _overlaps(f: Finding, a: Anomaly, tol_s: float) -> bool:
@@ -149,11 +157,7 @@ def run_benchmark(make_agent, n: int = 30, seed: int = 0, tol_s: float = 0.25, p
             "elapsed_s": time.perf_counter() - t0,
             "n_evidence": len(s.ledger),
             # enough to audit what the verifier flagged without re-running the model
-            "findings": [{"title": f.title, "statement": f.statement, "category": f.category, "channel": f.channel,
-                          "evidence": f.evidence, "status": f.verification.get("status"),
-                          "ungrounded_numbers": f.verification.get("ungrounded_numbers"),
-                          "semantic_problems": f.verification.get("semantic_problems"),
-                          "problems": f.verification.get("problems")} for f in res.findings],
+            "findings": [_finding_row(f) for f in res.findings],
             "first_draft_flagged": res.agent.get("first_draft_flagged"),
         })
         if res.agent.get("type") == "llm":
@@ -236,7 +240,8 @@ def summarize(rows: list[dict]) -> dict:
         return sum(v.get("numbers_cited", 0) for v in vs), sum(v.get("numbers_total", 0) for v in vs)
 
     def bad_tags(findings):
-        return sum(1 for f in findings for p in (f.get("problems") or []) if "' cites " in p)
+        return sum(1 for f in findings for p in (f.get("problems") or [])
+                   if Problem.from_message(p).code in TAG_PROBLEMS)
 
     c_fin, t_fin = cites([r["verification"] for r in rows])
     c_first, t_first = cites(firsts)
@@ -314,36 +319,16 @@ def save(result: dict, path: str | Path) -> Path:
     return p
 
 
-class _LedgerView:
-    """Just enough of a Session for the verifier: evidence lookup and channel names."""
-
-    def __init__(self, ledger: list[dict], channels: list[str]):
-        from types import SimpleNamespace
-
-        self._ev = {e["id"]: SimpleNamespace(**e) for e in ledger}
-        self.channels = channels
-
-    def evidence(self, eid):
-        return self._ev.get(eid)
-
-
 def reverify(result: dict) -> dict:
     """Re-run the current verifier on stored LLM runs (findings + ledger) and refresh the summary."""
-    from .findings import verify_findings
-    from .synth import generate_run
-
     for r in result["runs"]:
         if "ledger" not in r:
             continue
         chans = [c for c in generate_run(r["seed"]).data.columns if c != "time"]
-        view = _LedgerView(r["ledger"], chans)
+        view = LedgerView(r["ledger"], chans)
         fs = [Finding.from_dict(d) for d in r.get("findings_full") or []]
         r["verification"] = verify_findings(fs, view)
-        r["findings"] = [{"title": f.title, "statement": f.statement, "category": f.category, "channel": f.channel,
-                          "evidence": f.evidence, "status": f.verification["status"],
-                          "ungrounded_numbers": f.verification["ungrounded_numbers"],
-                          "semantic_problems": f.verification["semantic_problems"],
-                          "problems": f.verification["problems"]} for f in fs]
+        r["findings"] = [_finding_row(f) for f in fs]
         if r.get("first_draft_full"):
             ff = [Finding.from_dict(d) for d in r["first_draft_full"]]
             r["first_submission"] = verify_findings(ff, view)

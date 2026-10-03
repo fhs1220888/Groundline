@@ -44,7 +44,7 @@ def _analyze(run_path, reference, limits, a) -> int:
     v = res.verification
     print(res.summary)
     for i, f in enumerate(res.findings, 1):
-        mark = "✓" if f.verification["status"] == "verified" else "!"
+        mark = "✓" if f.verification.verified else "!"
         print(f"  {i}. [{f.severity}] {mark} {f.title}  ({', '.join(f.evidence)})")
     print(f"claims verified {v['verified']}/{v['n_findings']}, numbers grounded "
           f"{v['numbers_grounded']}/{v['numbers_total']}")

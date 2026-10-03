@@ -23,17 +23,16 @@ import copy
 import random
 from collections import defaultdict
 
-from .findings import Finding, number_matches, verify_finding
+from .findings import GROUNDING_PROBLEMS, Finding, Verification, number_matches, verify_finding
 from .semantics import _UNIT_RE, evidence_fields, unit_kind
 
 _OTHER_UNIT = {"time": "Hz", "freq": "s", "percent": "s", "count": "s", "physical": "s"}
 
 
-def _grounding_only(v: dict) -> bool:
+def _grounding_only(v: Verification) -> bool:
     """Verdict of the verifier without semantic checks: True = flagged."""
-    return bool(v["ungrounded_numbers"]) or any("not found" in p or "unknown" in p or "not in data" in p
-                                                  or "does not appear" in p for p in v["problems"]) \
-        or v["status"] == "unsupported"
+    return bool(v.ungrounded_numbers) or any(p.code in GROUNDING_PROBLEMS for p in v.problems) \
+        or v.status == "unsupported"
 
 
 def _mutate(f: Finding, s, rng: random.Random) -> list[tuple[str, Finding, str]]:
@@ -88,14 +87,12 @@ def _mutate(f: Finding, s, rng: random.Random) -> list[tuple[str, Finding, str]]
 
 def _tagged(f: Finding, s) -> Finding:
     """The finding with each statement number followed by the evidence field it matched."""
-    v = verify_finding(f, s)
-    nums = v["numbers"][len(number_matches(f.title)):]
     text = f.statement
-    for m, n in reversed(list(zip(number_matches(text), nums))):
-        if n["matched"]:
-            um = _UNIT_RE.match(text, m.end())
-            end = um.end() if um else m.end()
-            text = f"{text[:end]} [{n['matched']['field']}]{text[end:]}"
+    for n in reversed(verify_finding(f, s).statement_numbers):
+        if n.matched:
+            um = _UNIT_RE.match(text, n.end)
+            end = um.end() if um else n.end
+            text = f"{text[:end]} [{n.matched.field}]{text[end:]}"
     g = copy.copy(f)
     g.statement, g.verification = text, None
     return g
@@ -121,23 +118,23 @@ def run_verifier_bench(n: int = 50, seed: int = 1000, langs=("zh", "en"), rng_se
                 v = verify_finding(f, s)
                 clean["findings"] += 1
                 clean["flagged_grounding"] += _grounding_only(v)
-                clean["flagged_full"] += v["status"] != "verified"
+                clean["flagged_full"] += not v.verified
                 for kind, g, desc in _mutate(f, s, rng):
                     vg = verify_finding(g, s)
                     st = stats[kind]
                     st["n"] += 1
-                    old, new = _grounding_only(vg), vg["status"] != "verified"
+                    old, new = _grounding_only(vg), not vg.verified
                     st["caught_grounding"] += old
                     st["caught_full"] += new
                     if new and not old and len(samples[kind]) < examples:
                         samples[kind].append({"change": desc, "statement": g.statement,
-                                              "why": (vg["semantic_problems"] or vg["problems"] or ["?"])[0]})
+                                              "why": (vg.semantic_problems or vg.problem_messages or ["?"])[0]})
                     if not new and len(samples[kind + "_missed"]) < examples:
                         samples[kind + "_missed"].append({"change": desc, "statement": g.statement})
                 t = _tagged(f, s)
-                clean["flagged_tagged"] += verify_finding(t, s)["status"] != "verified"
+                clean["flagged_tagged"] += not verify_finding(t, s).verified
                 for kind, g, desc in _mutate(t, s, rng_tagged):
-                    caught = verify_finding(g, s)["status"] != "verified"
+                    caught = not verify_finding(g, s).verified
                     tagged[kind]["n"] += 1
                     tagged[kind]["caught"] += caught
                     if not caught and len(samples[kind + "_missed_tagged"]) < examples:
