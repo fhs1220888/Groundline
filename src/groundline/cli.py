@@ -108,11 +108,14 @@ def cmd_eval(a) -> int:
 def cmd_leaderboard(a) -> int:
     from .leaderboard import build_table, run_leaderboard
 
-    if a.table_only:
-        print(build_table(a.out))
-        return 0
     cfg_path = Path(a.config)
     cfg = json.loads(cfg_path.read_text())
+    if a.table_only:
+        md = Path(a.out) / "LEADERBOARD.md"
+        md.write_text(build_table(a.out, [e["name"] for e in cfg["models"]]) + "\n")
+        print(md.read_text())
+        print(f"table: {md}")
+        return 0
     if a.n is not None:
         cfg["n"] = a.n
     if a.seed is not None:
