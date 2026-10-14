@@ -1,0 +1,758 @@
+{
+  "n_runs": 14,
+  "seed": 1000,
+  "tol_s": 0.25,
+  "summary": {
+    "runs_total": 14,
+    "source_tags": {
+      "numbers_cited": "0/376",
+      "first_draft_numbers_cited": "0/376",
+      "wrong_tags_first_draft": 0,
+      "wrong_tags_final": 0
+    },
+    "reports_submitted": 14,
+    "recall_all_runs": 1.0,
+    "recall_loose_all_runs": 1.0,
+    "unsupported_claims": 0,
+    "ungrounded_numbers": 0,
+    "semantic_mismatches": 0,
+    "first_draft_ungrounded_rate": 0.0,
+    "fix_rounds_used": 0,
+    "recall": 1.0,
+    "precision": 0.9523809523809523,
+    "category_accuracy": 1.0,
+    "false_positives": 1,
+    "nominal_runs": 2,
+    "false_positives_on_nominal_runs": 0,
+    "claims_verified": "51/51",
+    "numbers_grounded": "376/376",
+    "mean_elapsed_s": 21.660287910644133,
+    "first_submission": {
+      "claims_verified": "51/51",
+      "numbers_grounded": "376/376",
+      "ungrounded_numbers_caught": 0,
+      "semantic_mismatches": 0
+    },
+    "usage": {
+      "input_tokens": 260293,
+      "output_tokens": 19036,
+      "requests": 62
+    },
+    "failed_runs": 0,
+    "per_type": {
+      "oscillation": {
+        "n": 6,
+        "recall": 1.0,
+        "category_accuracy": 1.0,
+        "median_t_start_error_s": 0.01744801282169206
+      },
+      "overtemp": {
+        "n": 6,
+        "recall": 1.0,
+        "category_accuracy": 1.0,
+        "median_t_start_error_s": 0.00019999999999997797
+      },
+      "sensor_dropout": {
+        "n": 1,
+        "recall": 1.0,
+        "category_accuracy": 1.0,
+        "median_t_start_error_s": 0.00023652838366894358
+      },
+      "sensor_spike": {
+        "n": 2,
+        "recall": 1.0,
+        "category_accuracy": 1.0,
+        "median_t_start_error_s": 0.00010782228849759434
+      },
+      "valve_delay": {
+        "n": 3,
+        "recall": 1.0,
+        "category_accuracy": 1.0,
+        "median_t_start_error_s": 0.0
+      },
+      "pc_deficit": {
+        "n": 2,
+        "recall": 1.0,
+        "category_accuracy": 1.0,
+        "median_t_start_error_s": 0.13215979871607741
+      }
+    }
+  },
+  "runs": [
+    {
+      "seed": 1000,
+      "anomalies": [
+        "sensor_spike"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "sensor_spike",
+            "channel": "P_ox_inj",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 1.1518030587520656e-05
+          }
+        ],
+        "n_claims": 1,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 24,
+        "numbers_grounded": 24,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 24,
+        "numbers_grounded": 24,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 16347,
+        "output_tokens": 1198,
+        "requests": 4
+      },
+      "elapsed_s": 20.140809250005987,
+      "n_evidence": 18
+    },
+    {
+      "seed": 1001,
+      "anomalies": [
+        "valve_delay",
+        "oscillation",
+        "sensor_dropout"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "valve_delay",
+            "channel": "P_fu_inj",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.0
+          },
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.01744801282169206
+          },
+          {
+            "type": "sensor_dropout",
+            "channel": "mdot_fu",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.00023652838366894358
+          }
+        ],
+        "n_claims": 3,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 5,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 5,
+        "numbers_total": 31,
+        "numbers_grounded": 31,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 5,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 5,
+        "numbers_total": 31,
+        "numbers_grounded": 31,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 16110,
+        "output_tokens": 1366,
+        "requests": 4
+      },
+      "elapsed_s": 20.141547582985368,
+      "n_evidence": 17
+    },
+    {
+      "seed": 1002,
+      "anomalies": [
+        "valve_delay",
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "valve_delay",
+            "channel": "P_fu_inj",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.0
+          },
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.00020000000000042206
+          }
+        ],
+        "n_claims": 2,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 5,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 5,
+        "numbers_total": 31,
+        "numbers_grounded": 31,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 5,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 5,
+        "numbers_total": 31,
+        "numbers_grounded": 31,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 16546,
+        "output_tokens": 1549,
+        "requests": 4
+      },
+      "elapsed_s": 21.98347279103473,
+      "n_evidence": 20
+    },
+    {
+      "seed": 1003,
+      "anomalies": [
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.0004000000000008441
+          }
+        ],
+        "n_claims": 1,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 23,
+        "numbers_grounded": 23,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 23,
+        "numbers_grounded": 23,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 16098,
+        "output_tokens": 1264,
+        "requests": 4
+      },
+      "elapsed_s": 22.072847333038226,
+      "n_evidence": 18
+    },
+    {
+      "seed": 1004,
+      "anomalies": [
+        "pc_deficit",
+        "oscillation"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "pc_deficit",
+            "channel": "Pc",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.13215979871607741
+          },
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.011213711580658092
+          }
+        ],
+        "n_claims": 2,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 33,
+        "numbers_grounded": 33,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 33,
+        "numbers_grounded": 33,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 23416,
+        "output_tokens": 1654,
+        "requests": 5
+      },
+      "elapsed_s": 26.181463500019163,
+      "n_evidence": 21
+    },
+    {
+      "seed": 1005,
+      "anomalies": [
+        "oscillation"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.016123110120100037
+          }
+        ],
+        "n_claims": 1,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 23,
+        "numbers_grounded": 23,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 23,
+        "numbers_grounded": 23,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 20804,
+        "output_tokens": 1277,
+        "requests": 5
+      },
+      "elapsed_s": 23.39600441599032,
+      "n_evidence": 17
+    },
+    {
+      "seed": 1006,
+      "anomalies": [
+        "pc_deficit",
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "pc_deficit",
+            "channel": "Pc",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.11794062166973873
+          },
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.00019999999999953388
+          }
+        ],
+        "n_claims": 2,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 35,
+        "numbers_grounded": 35,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 35,
+        "numbers_grounded": 35,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 22916,
+        "output_tokens": 1551,
+        "requests": 5
+      },
+      "elapsed_s": 24.22739391698269,
+      "n_evidence": 20
+    },
+    {
+      "seed": 1007,
+      "anomalies": [],
+      "match": {
+        "truth": [],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 15,
+        "numbers_grounded": 15,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 15,
+        "numbers_grounded": 15,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 20362,
+        "output_tokens": 1154,
+        "requests": 5
+      },
+      "elapsed_s": 19.10674924997147,
+      "n_evidence": 17
+    },
+    {
+      "seed": 1008,
+      "anomalies": [
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.00019999999999997797
+          }
+        ],
+        "n_claims": 1,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 22,
+        "numbers_grounded": 22,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 22,
+        "numbers_grounded": 22,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 21105,
+        "output_tokens": 1384,
+        "requests": 5
+      },
+      "elapsed_s": 21.761235458019655,
+      "n_evidence": 19
+    },
+    {
+      "seed": 1009,
+      "anomalies": [
+        "oscillation",
+        "sensor_spike"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.02601065792091628
+          },
+          {
+            "type": "sensor_spike",
+            "channel": "P_ox_inj",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.00010782228849759434
+          }
+        ],
+        "n_claims": 2,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 30,
+        "numbers_grounded": 30,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 30,
+        "numbers_grounded": 30,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 16557,
+        "output_tokens": 1458,
+        "requests": 4
+      },
+      "elapsed_s": 21.888352084031794,
+      "n_evidence": 17
+    },
+    {
+      "seed": 1010,
+      "anomalies": [
+        "valve_delay",
+        "oscillation"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "valve_delay",
+            "channel": "P_fu_inj",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.0
+          },
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.019471610282783658
+          }
+        ],
+        "n_claims": 3,
+        "false_positives": [
+          {
+            "category": "performance_deviation",
+            "channel": "T_cool_out",
+            "t_start": 1.381,
+            "title": "冷却出口温度主级初段低于仿真"
+          }
+        ]
+      },
+      "verification": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 34,
+        "numbers_grounded": 34,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 34,
+        "numbers_grounded": 34,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 21287,
+        "output_tokens": 1477,
+        "requests": 5
+      },
+      "elapsed_s": 23.842233582981862,
+      "n_evidence": 19
+    },
+    {
+      "seed": 1011,
+      "anomalies": [
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.0
+          }
+        ],
+        "n_claims": 1,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 22,
+        "numbers_grounded": 22,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 22,
+        "numbers_grounded": 22,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 16162,
+        "output_tokens": 1222,
+        "requests": 4
+      },
+      "elapsed_s": 20.292868124961387,
+      "n_evidence": 18
+    },
+    {
+      "seed": 1012,
+      "anomalies": [
+        "oscillation",
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.006337971705033141
+          },
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": true,
+            "category_ok": true,
+            "t_start_error_s": 0.0
+          }
+        ],
+        "n_claims": 2,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 33,
+        "numbers_grounded": 33,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 4,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 4,
+        "numbers_total": 33,
+        "numbers_grounded": 33,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 16809,
+        "output_tokens": 1403,
+        "requests": 4
+      },
+      "elapsed_s": 21.987228959042113,
+      "n_evidence": 20
+    },
+    {
+      "seed": 1013,
+      "anomalies": [],
+      "match": {
+        "truth": [],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 20,
+        "numbers_grounded": 20,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 3,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 20,
+        "numbers_grounded": 20,
+        "grounding_rate": 1.0
+      },
+      "usage": {
+        "input_tokens": 15774,
+        "output_tokens": 1079,
+        "requests": 4
+      },
+      "elapsed_s": 16.221824499953073,
+      "n_evidence": 18
+    }
+  ],
+  "entry": {
+    "name": "gpt-5.6-sol",
+    "agent": "openai",
+    "model": "gpt-5.6-sol",
+    "api": "responses",
+    "api_key_env": "OPENAI_API_KEY",
+    "from": "eval_sol_v2.json"
+  }
+}

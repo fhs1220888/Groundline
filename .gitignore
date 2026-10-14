@@ -12,7 +12,7 @@ runs/
 examples/**/report*.html
 examples/**/report*.json
 eval_*.json
-leaderboard/
+/leaderboard/
 
 # public data without a license: downloaded by prepare.py, never committed
 examples/triton_lox/raw/

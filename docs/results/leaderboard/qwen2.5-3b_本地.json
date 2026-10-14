@@ -1,0 +1,1057 @@
+{
+  "n_runs": 14,
+  "seed": 1000,
+  "tol_s": 0.25,
+  "summary": {
+    "runs_total": 14,
+    "source_tags": {
+      "numbers_cited": "0/1",
+      "first_draft_numbers_cited": "0/1",
+      "wrong_tags_first_draft": 0,
+      "wrong_tags_final": 0
+    },
+    "reports_submitted": 13,
+    "recall_all_runs": 0.0,
+    "recall_loose_all_runs": 0.0,
+    "unsupported_claims": 4,
+    "ungrounded_numbers": 1,
+    "semantic_mismatches": 0,
+    "first_draft_ungrounded_rate": 1.0,
+    "fix_rounds_used": 3,
+    "recall": 0.0,
+    "precision": null,
+    "category_accuracy": 0.0,
+    "false_positives": 0,
+    "nominal_runs": 2,
+    "false_positives_on_nominal_runs": 0,
+    "claims_verified": "12/16",
+    "numbers_grounded": "0/1",
+    "mean_elapsed_s": 27.928593118545205,
+    "first_submission": {
+      "claims_verified": "12/16",
+      "numbers_grounded": "0/1",
+      "ungrounded_numbers_caught": 1,
+      "semantic_mismatches": 0
+    },
+    "usage": {
+      "input_tokens": 322187,
+      "output_tokens": 7931,
+      "requests": 73
+    },
+    "failed_runs": 1,
+    "per_type": {
+      "oscillation": {
+        "n": 5,
+        "recall": 0.0,
+        "category_accuracy": 0.0,
+        "median_t_start_error_s": null
+      },
+      "overtemp": {
+        "n": 6,
+        "recall": 0.0,
+        "category_accuracy": 0.0,
+        "median_t_start_error_s": null
+      },
+      "sensor_dropout": {
+        "n": 1,
+        "recall": 0.0,
+        "category_accuracy": 0.0,
+        "median_t_start_error_s": null
+      },
+      "sensor_spike": {
+        "n": 2,
+        "recall": 0.0,
+        "category_accuracy": 0.0,
+        "median_t_start_error_s": null
+      },
+      "valve_delay": {
+        "n": 2,
+        "recall": 0.0,
+        "category_accuracy": 0.0,
+        "median_t_start_error_s": null
+      },
+      "pc_deficit": {
+        "n": 2,
+        "recall": 0.0,
+        "category_accuracy": 0.0,
+        "median_t_start_error_s": null
+      }
+    }
+  },
+  "runs": [
+    {
+      "seed": 1000,
+      "anomalies": [
+        "sensor_spike"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "sensor_spike",
+            "channel": "P_ox_inj",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 22997,
+        "output_tokens": 583,
+        "requests": 5
+      },
+      "elapsed_s": 37.20333983300952,
+      "n_evidence": 13,
+      "findings": [],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1001,
+      "anomalies": [
+        "valve_delay",
+        "oscillation",
+        "sensor_dropout"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "valve_delay",
+            "channel": "P_fu_inj",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          },
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          },
+          {
+            "type": "sensor_dropout",
+            "channel": "mdot_fu",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 3274,
+        "output_tokens": 357,
+        "requests": 1
+      },
+      "elapsed_s": 13.617210125026759,
+      "n_evidence": 7,
+      "findings": [],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1002,
+      "anomalies": [
+        "valve_delay",
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "valve_delay",
+            "channel": "P_fu_inj",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          },
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 23700,
+        "output_tokens": 752,
+        "requests": 4
+      },
+      "elapsed_s": 39.85487974999705,
+      "n_evidence": 19,
+      "findings": [],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1003,
+      "anomalies": [
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 26418,
+        "output_tokens": 316,
+        "requests": 6
+      },
+      "elapsed_s": 17.76405941596022,
+      "n_evidence": 9,
+      "findings": [],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1004,
+      "anomalies": [
+        "pc_deficit",
+        "oscillation"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "pc_deficit",
+            "channel": "Pc",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          },
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 26836,
+        "output_tokens": 656,
+        "requests": 7
+      },
+      "elapsed_s": 27.10533300001407,
+      "n_evidence": 8,
+      "findings": [],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1005,
+      "anomalies": [
+        "oscillation"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 13122,
+        "output_tokens": 457,
+        "requests": 3
+      },
+      "elapsed_s": 21.753463875036687,
+      "n_evidence": 8,
+      "findings": [],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1006,
+      "anomalies": [
+        "pc_deficit",
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "pc_deficit",
+            "channel": "Pc",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          },
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 20108,
+        "output_tokens": 509,
+        "requests": 5
+      },
+      "elapsed_s": 22.021798375004437,
+      "n_evidence": 8,
+      "findings": [],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1007,
+      "anomalies": [],
+      "match": {
+        "truth": [],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 5,
+        "partial": 1,
+        "unsupported": 0,
+        "n_findings": 6,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 5,
+        "partial": 1,
+        "unsupported": 0,
+        "n_findings": 6,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 1,
+      "usage": {
+        "input_tokens": 38854,
+        "output_tokens": 1391,
+        "requests": 8
+      },
+      "elapsed_s": 53.70852354197996,
+      "n_evidence": 14,
+      "findings": [
+        {
+          "title": "",
+          "statement": "Pc, mdot_fu, and T_cool_out channels are within the tolerance of their respective reference data.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E4",
+            "E5",
+            "E8",
+            "E9",
+            "E12",
+            "E13",
+            "E14"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        },
+        {
+          "title": "",
+          "statement": "Test sequence is typical, with a normal shutdown phase and no observed anomalies.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E2"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        },
+        {
+          "title": "",
+          "statement": "Peak-to-Peak and integral of thrust signals show minor variations within expected tolerance.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E7"
+          ],
+          "status": "partial",
+          "ungrounded_numbers": [],
+          "problems": [
+            "t_start=1.0546 not found in cited evidence",
+            "t_end=9.1998 not found in cited evidence"
+          ]
+        },
+        {
+          "title": "",
+          "statement": "Command for fuel valve 'cmd_fu' response latency and command edges latency are within specified limits.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E10"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        },
+        {
+          "title": "",
+          "statement": "Command for oxidiser valve 'cmd_ox' response latency and command edges latency are within specified limits.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E11"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        },
+        {
+          "title": "",
+          "statement": "",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E1"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        }
+      ],
+      "first_draft_flagged": [
+        {
+          "title": "",
+          "statement": "Peak-to-Peak and integral of thrust signals show minor variations within expected tolerance.",
+          "evidence": [
+            "E7"
+          ],
+          "ungrounded_numbers": [],
+          "problems": [
+            "t_start=1.0546 not found in cited evidence",
+            "t_end=9.1998 not found in cited evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 1008,
+      "anomalies": [
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 2,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 2,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 2,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 2,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 27927,
+        "output_tokens": 416,
+        "requests": 7
+      },
+      "elapsed_s": 18.78641424997477,
+      "n_evidence": 7,
+      "findings": [
+        {
+          "title": "Test Sequence",
+          "statement": "The test did not show signs of engine instability, and valve response times were within acceptable limits.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E1",
+            "E2",
+            "E4",
+            "E6",
+            "E7"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        },
+        {
+          "title": "Data Consistency with Reference",
+          "statement": "The test's measured channels matched the reference data closely without significant deviations.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E1",
+            "E2",
+            "E4",
+            "E6"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        }
+      ],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1009,
+      "anomalies": [
+        "oscillation",
+        "sensor_spike"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          },
+          {
+            "type": "sensor_spike",
+            "channel": "P_ox_inj",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 0,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 0,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 12113,
+        "output_tokens": 253,
+        "requests": 3
+      },
+      "elapsed_s": 15.285722457978409,
+      "n_evidence": 7,
+      "findings": [],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1010,
+      "anomalies": [
+        "valve_delay",
+        "oscillation"
+      ],
+      "error": "ReadTimeout: timed out"
+    },
+    {
+      "seed": 1011,
+      "anomalies": [
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 2,
+        "partial": 1,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 2,
+        "partial": 1,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 1,
+      "usage": {
+        "input_tokens": 49648,
+        "output_tokens": 1093,
+        "requests": 11
+      },
+      "elapsed_s": 42.91265045804903,
+      "n_evidence": 8,
+      "findings": [
+        {
+          "title": "observation",
+          "statement": "The test sequence was carried out without instrumentation faults, and all reference channel deviations are within the limits.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E2",
+            "E3",
+            "E5"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        },
+        {
+          "title": "Pc check",
+          "statement": "Compared to the simulation prediction, the chamber pressure stays within the tolerance limits in the mainstage, and no suppression of transients is evident for the mainstage duration.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E5"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        },
+        {
+          "title": "Valve Response Check",
+          "statement": "The valve response measurements are within expected tolerances within the measured window.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E8"
+          ],
+          "status": "partial",
+          "ungrounded_numbers": [],
+          "problems": [
+            "t_start=1.2676 not found in cited evidence"
+          ]
+        }
+      ],
+      "first_draft_flagged": [
+        {
+          "title": "Valve Response Check",
+          "statement": "The valve response measurements do not exceed the limits, indicating that the valve responses are within expected tolerances.",
+          "evidence": [
+            "E7"
+          ],
+          "ungrounded_numbers": [],
+          "problems": [
+            "t_start=1.2676 not found in cited evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "seed": 1012,
+      "anomalies": [
+        "oscillation",
+        "overtemp"
+      ],
+      "match": {
+        "truth": [
+          {
+            "type": "oscillation",
+            "channel": "Pc",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          },
+          {
+            "type": "overtemp",
+            "channel": "T_cool_out",
+            "detected": false,
+            "detected_loose": false,
+            "category_ok": false,
+            "t_start_error_s": null
+          }
+        ],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 2,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 2,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "first_submission": {
+        "verified": 2,
+        "partial": 0,
+        "unsupported": 0,
+        "n_findings": 2,
+        "numbers_total": 0,
+        "numbers_grounded": 0,
+        "grounding_rate": 1.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 0,
+      "usage": {
+        "input_tokens": 24165,
+        "output_tokens": 356,
+        "requests": 6
+      },
+      "elapsed_s": 18.231675584043842,
+      "n_evidence": 7,
+      "findings": [
+        {
+          "title": "",
+          "statement": "The engine operated with no redline violations and consistent chamber pressure against the simulation. No significant oscillations were observed on any phase.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E1",
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E7"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        },
+        {
+          "title": "",
+          "statement": "Phases were segmented correctly without interference from engine activity.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E2"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        }
+      ],
+      "first_draft_flagged": []
+    },
+    {
+      "seed": 1013,
+      "anomalies": [],
+      "match": {
+        "truth": [],
+        "n_claims": 0,
+        "false_positives": []
+      },
+      "verification": {
+        "verified": 1,
+        "partial": 2,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 1,
+        "numbers_grounded": 0,
+        "grounding_rate": 0.0
+      },
+      "first_submission": {
+        "verified": 1,
+        "partial": 2,
+        "unsupported": 0,
+        "n_findings": 3,
+        "numbers_total": 1,
+        "numbers_grounded": 0,
+        "grounding_rate": 0.0
+      },
+      "submitted": true,
+      "fix_rounds_used": 1,
+      "usage": {
+        "input_tokens": 33025,
+        "output_tokens": 792,
+        "requests": 7
+      },
+      "elapsed_s": 34.826639875012916,
+      "n_evidence": 11,
+      "findings": [
+        {
+          "title": "",
+          "statement": "No significant redline violations or instrumentation faults detected.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E1",
+            "E3",
+            "E4"
+          ],
+          "status": "partial",
+          "ungrounded_numbers": [],
+          "problems": [
+            "t_start=1.0542 not found in cited evidence",
+            "t_end=9.1996 not found in cited evidence"
+          ]
+        },
+        {
+          "title": "",
+          "statement": "Tested SYN-1013: Redline checks, sensor health, valve response, and reference predictions were all within expected ranges",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E2"
+          ],
+          "status": "partial",
+          "ungrounded_numbers": [
+            "1013"
+          ],
+          "problems": []
+        },
+        {
+          "title": "",
+          "statement": "Pressure and mass flow rates within reference predictions during the main stage.",
+          "category": "observation",
+          "channel": null,
+          "evidence": [
+            "E7",
+            "E8",
+            "E9"
+          ],
+          "status": "verified",
+          "ungrounded_numbers": [],
+          "problems": []
+        }
+      ],
+      "first_draft_flagged": [
+        {
+          "title": "",
+          "statement": "No significant redline violations or instrumentation faults detected.",
+          "evidence": [
+            "E1",
+            "E3",
+            "E4"
+          ],
+          "ungrounded_numbers": [],
+          "problems": [
+            "t_start=0.8 not found in cited evidence",
+            "t_end=9.1996 not found in cited evidence"
+          ]
+        },
+        {
+          "title": "",
+          "statement": "Tested SYN-1013: Redline checks, sensor health, valve response, and reference predictions were all within expected ranges",
+          "evidence": [
+            "E2"
+          ],
+          "ungrounded_numbers": [
+            "1013"
+          ],
+          "problems": []
+        }
+      ]
+    }
+  ],
+  "entry": {
+    "name": "qwen2.5-3b (本地)",
+    "agent": "openai",
+    "model": "qwen2.5:3b-16k",
+    "base_url": "http://localhost:11434/v1"
+  }
+}
