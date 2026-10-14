@@ -11,16 +11,23 @@ transients and sensor faults), and only the anomaly is synthetic, injected at a 
 * ``dropout``      a NaN gap on the thrust channel during the firing, swept over length;
 * ``stuck``        the thrust channel frozen during the firing, swept over length.
 
-Real logs already contain genuine problems. The rule agent is therefore first run on the clean background
-with the same configuration (limits, prediction); a finding in an injected run counts only if the clean run
-has no finding of the same category on the same channel at that time. An injection that lands on such an
-existing finding is reported as ``masked`` rather than as detected or missed. Every other new anomaly finding
-is a false positive.
+Real logs already contain genuine problems. The agent (the rule agent unless another is configured) is
+therefore first run on the clean background with the same configuration (limits, prediction); a finding in an
+injected run counts only if the clean run has no finding of the same category on the same channel at that time.
+An injection that lands on such an existing finding is reported as ``masked`` rather than as detected or missed.
+Every other new anomaly finding is a false positive.
+
+Each background is analysed clean once per kind of injection (each kind has its own limits and prediction), up
+front, and every case is compared with the findings of all of them together. An LLM agent does not give the same
+answer twice, so this pools several samples of what it says about the real log. A new finding that the pool
+already holds with the same category and check at that time, even on another channel, is the log's own problem
+reported differently, not a false positive.
 """
 
 from __future__ import annotations
 
 import os
+import time
 from concurrent.futures import ProcessPoolExecutor
 from functools import lru_cache
 from pathlib import Path
@@ -148,30 +155,60 @@ def _inject(kind: str, level: float, df: pd.DataFrame, meta: dict, seg: dict, th
     return out, {"channel": thrust, "t_start": t0, "t_end": t0 + level}
 
 
-def _findings(df, meta, limits, ref):
-    """Anomaly findings, each tagged with the tool behind its first cited evidence."""
-    from .agent import RuleAgent
+# tools that describe the run rather than check it: an LLM often cites them first, next to the check itself
+_CONTEXT_TOOLS = {"describe_data", "segment_phases", "channel_stats", "plot_window"}
+
+
+def _findings(df, meta, limits, ref, agent_cfg=None, lang: str = "en") -> dict:
+    """The agent's anomaly findings as plain rows, each tagged with the check tool behind its cited evidence,
+    plus its covered channels and token usage. An API failure is retried once if the server was unreachable."""
+    from .agent import RuleAgent, make_agent
+    from .evaluate import is_infra_error
     from .session import Session
 
-    s = Session(df, meta, ref, limits)
-    res = RuleAgent("en").run(s)
-    out = [f for f in res.findings if f.category != "observation"]
-    for f in out:
-        ev = s.evidence(f.evidence[0]) if f.evidence else None
-        f.tool = ev.tool if ev is not None else None
-    return out, set(res.agent.get("covered_channels", []))
+    for attempt in range(2):
+        s = Session(df, meta, ref, limits)
+        try:
+            res = make_agent(agent_cfg, lang).run(s) if agent_cfg else RuleAgent(lang).run(s)
+            break
+        except Exception as e:
+            if attempt or not is_infra_error(e):
+                raise
+            time.sleep(10)
+    out = []
+    for f in res.findings:
+        if f.category == "observation":
+            continue
+        tools = [ev.tool for ev in (s.evidence(e) for e in f.evidence) if ev is not None]
+        out.append({"category": f.category, "channel": f.channel,
+                    "tool": next((t for t in tools if t not in _CONTEXT_TOOLS), tools[0] if tools else None),
+                    "t_start": f.t_start, "t_end": f.t_end, "title": f.title})
+    usage = res.agent.get("usage")
+    return {"findings": out, "covered_channels": sorted(res.agent.get("covered_channels", [])),
+            **({"usage": usage} if usage else {})}
 
 
-def _overlap(f, t0: float, t1: float, tol: float = 0.25) -> bool:
-    if f.t_start is None:
+def _overlap(f: dict, t0: float, t1: float, tol: float = 0.25) -> bool:
+    if f["t_start"] is None:
         return True
-    return f.t_start <= t1 + tol and t0 - tol <= (f.t_end if f.t_end is not None else f.t_start)
+    return f["t_start"] <= t1 + tol and t0 - tol <= (f["t_end"] if f["t_end"] is not None else f["t_start"])
 
 
-def _same(a, b) -> bool:
-    """The same finding in the clean and the injected run: same check, category and channel, overlapping."""
-    return (a.category == b.category and a.channel == b.channel and a.tool == b.tool
-            and _overlap(a, b.t_start or 0.0, b.t_end or b.t_start or 1e9))
+def _within(a: dict, b: dict, tol: float = 0.25) -> bool:
+    """``a``'s time window lies inside ``b``'s: ``a`` says nothing about a time ``b`` does not cover."""
+    if a["t_start"] is None or b["t_start"] is None:
+        return True
+    return b["t_start"] - tol <= a["t_start"] and (a["t_end"] if a["t_end"] is not None else a["t_start"]) <= \
+        (b["t_end"] if b["t_end"] is not None else b["t_start"]) + tol
+
+
+def _same(a: dict, b: dict, any_channel: bool = False, within: bool = False) -> bool:
+    """The same finding in the clean and the injected run: same check, category and channel, overlapping (or,
+    with ``within``, inside the clean finding's window: an LLM may merge an injection with a real event nearby
+    into one wider finding, which then says something new)."""
+    if a["category"] != b["category"] or a["tool"] != b["tool"] or not (any_channel or a["channel"] == b["channel"]):
+        return False
+    return _within(a, b) if within else _overlap(a, b["t_start"] or 0.0, b["t_end"] or b["t_start"] or 1e9)
 
 
 # the tool whose finding an injection should produce
@@ -179,10 +216,32 @@ TOOL = {"oscillation": "detect_oscillation", "redline": "check_redlines", "devia
         "spike": "check_sensor_health", "dropout": "check_sensor_health", "stuck": "check_sensor_health"}
 
 
-_CLEAN: dict = {}  # (background, kind) -> clean findings, per worker process
+_AGENT: dict = {"cfg": None, "lang": "en"}  # the agent under test, set in each worker by _init_worker
 
 
-def _case(args):
+def _init_worker(agent_cfg, lang: str) -> None:
+    _AGENT.update(cfg=agent_cfg, lang=lang)
+
+
+def _failed(e: Exception) -> dict:
+    return {"error": f"{type(e).__name__}: {e}"[:500]}
+
+
+def _clean_case(args) -> dict:
+    """The agent on one untouched background, configured for one kind of injection."""
+    name, path, kind = args
+    try:
+        df, meta, seg, _ = _background(Path(path))
+        fs = float(meta.get("sample_rate_hz") or 1 / np.median(np.diff(df["time"])))
+        limits, ref = _config(kind, df, seg, fs)
+        out = _findings(df, meta, limits, ref, _AGENT["cfg"], _AGENT["lang"])
+    except Exception as e:  # one failed agent run (API error, timeout) should not lose the whole benchmark
+        out = _failed(e)
+    return {"background": name, "kind": kind, **out}
+
+
+def _case(args) -> dict | None:
+    """The agent on one injected background (unscored; see _score). None if the injection does not fit."""
     name, path, kind, level, rep, seed = args
     df, meta, seg, thrust = _background(Path(path))
     fs = float(meta.get("sample_rate_hz") or 1 / np.median(np.diff(df["time"])))
@@ -192,50 +251,104 @@ def _case(args):
         return None
     dfi, truth = inj
     limits, ref = _config(kind, df, seg, fs)
-    if (path, kind) not in _CLEAN:
-        _CLEAN[(path, kind)] = _findings(df, meta, limits, ref)
-    clean, covered = _CLEAN[(path, kind)]
-    found, _ = _findings(dfi, meta, limits, ref)
-    new = [f for f in found if not any(_same(f, b) for b in clean)]
-    hit = [f for f in new if f.category == CATEGORY[kind] and f.channel in (truth["channel"], None)
-           and _overlap(f, truth["t_start"], truth["t_end"])]
+    try:
+        out = _findings(dfi, meta, limits, ref, _AGENT["cfg"], _AGENT["lang"])
+    except Exception as e:
+        out = _failed(e)
+    return {"background": name, "kind": kind, "level": level, "rep": rep, "truth": truth, **out}
+
+
+def _score(row: dict, pool: list[dict]) -> dict:
+    """Score one injected case against the pooled clean runs of its background."""
+    if "error" in row:
+        return row
+    kind, truth = row["kind"], row["truth"]
+    clean = [f for c in pool for f in c["findings"]]
+    covered = {ch for c in pool for ch in c["covered_channels"]}
+    found = [{k: v for k, v in f.items() if k != "new"} for f in row["findings"]]
+    new = [not any(_same(f, b, within=True) for b in clean) for f in found]
+    hit = [f for f, n in zip(found, new) if n and f["category"] == CATEGORY[kind]
+           and f["channel"] in (truth["channel"], None) and _overlap(f, truth["t_start"], truth["t_end"])]
     # masked: the clean run already reports this very thing there, or (for a deviation) already flags the channel
     # as untrustworthy (offset, frozen, dead), in which case its deviations are deliberately not reported
-    masked = not hit and (any(b.category == CATEGORY[kind] and b.channel == truth["channel"] and b.tool == TOOL[kind]
-                              and _overlap(b, truth["t_start"], truth["t_end"]) for b in clean)
+    masked = not hit and (any(b["category"] == CATEGORY[kind] and b["channel"] == truth["channel"]
+                              and b["tool"] == TOOL[kind] and _overlap(b, truth["t_start"], truth["t_end"])
+                              for b in clean)
                           or (kind == "deviation" and truth["channel"] in covered))
-    fps = [f for f in new if f not in hit]
-    return {"background": name, "kind": kind, "level": level, "rep": rep, "truth": truth,
-            "detected": bool(hit), "masked": masked, "hit_title": hit[0].title if hit else None,
-            "false_positives": [{"category": f.category, "channel": f.channel, "title": f.title} for f in fps]}
+    fps = [f for f, n in zip(found, new) if n and not any(f is h for h in hit)
+           and not any(_same(f, b, any_channel=True) for b in clean)]
+    return {**row, "detected": bool(hit), "masked": masked, "hit_title": hit[0]["title"] if hit else None,
+            "false_positives": [{"category": f["category"], "channel": f["channel"], "title": f["title"]} for f in fps],
+            "findings": [{**f, **({"new": True} if n else {})} for f, n in zip(found, new)]}
+
+
+def rescore_hybrid(res: dict) -> dict:
+    """Score every case again from the stored findings (after a change to the scoring)."""
+    pools: dict = {}
+    for c in res["clean"]:
+        if "error" not in c:
+            pools.setdefault(c["background"], []).append(c)
+    rows = [_score(r, pools.get(r["background"], [])) for r in res["rows"]]
+    return {**res, "summary": summarize_hybrid(rows), "rows": rows}
 
 
 def run_hybrid(backgrounds: dict[str, Path] | None = None, reps: int = 3, seed: int = 0,
-               kinds: list[str] | None = None, workers: int | None = None, progress=None) -> dict:
+               kinds: list[str] | None = None, workers: int | None = None, progress=None,
+               agent_cfg=None, lang: str = "en", resume: dict | None = None) -> dict:
+    """``agent_cfg``: an :class:`~groundline.config.AgentConfig` for the agent under test (default: the rule
+    agent). ``resume``: the result of an earlier call with the same agent and seed; its finished agent runs (clean
+    and injected) are kept, only failed or missing ones run again, and everything is scored afresh."""
     backgrounds = backgrounds or available_backgrounds()
     kinds = kinds or list(LEVELS)
+    agent = {"type": "rule"} if agent_cfg is None else \
+        {"type": agent_cfg.kind, "model": agent_cfg.model, "reasoning_effort": agent_cfg.reasoning_effort}
+    kept_clean, kept_rows = {}, {}
+    if resume:
+        if resume.get("agent") != agent or resume.get("seed") != seed:
+            raise ValueError(f"cannot resume: that file is for agent {resume.get('agent')} seed {resume.get('seed')}, "
+                             f"this run is {agent} seed {seed}")
+        kept_clean = {(c["background"], c["kind"]): c for c in resume.get("clean", []) if "error" not in c}
+        kept_rows = {(r["background"], r["kind"], r["level"], r["rep"]): r for r in resume["rows"]
+                     if "error" not in r and "findings" in r}
+    clean_jobs = [(name, str(path), k) for name, path in backgrounds.items() for k in kinds
+                  if (name, k) not in kept_clean]
     jobs = [(name, str(path), k, lvl, r, seed) for name, path in backgrounds.items() for k in kinds
-            for lvl in LEVELS[k] for r in range(reps)]
-    rows = []
+            for lvl in LEVELS[k] for r in range(reps) if (name, k, lvl, r) not in kept_rows]
+    total = len(clean_jobs) + len(jobs)
+    clean, rows = list(kept_clean.values()), list(kept_rows.values())
     workers = workers or max(1, min(8, (os.cpu_count() or 2) - 1))
-    with ProcessPoolExecutor(max_workers=workers) as ex:
-        for i, row in enumerate(ex.map(_case, jobs), 1):
+    with ProcessPoolExecutor(max_workers=workers, initializer=_init_worker, initargs=(agent_cfg, lang)) as ex:
+        for i, c in enumerate(ex.map(_clean_case, clean_jobs), 1):
+            clean.append(c)
+            if progress:
+                progress(i, total)
+        for i, row in enumerate(ex.map(_case, jobs), len(clean_jobs) + 1):
             if row is not None:
                 rows.append(row)
             if progress:
-                progress(i, len(jobs))
-    return {"backgrounds": {k: str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
-                            for k, p in backgrounds.items()},
-            "reps": reps, "seed": seed, "levels": LEVELS, "units": UNITS,
-            "persistence_s": PERSISTENCE_S, "tolerance_pct": TOLERANCE_PCT,
-            "summary": summarize_hybrid(rows), "rows": rows}
+                progress(i, total)
+    order = {key: i for i, key in enumerate((name, k, lvl, r) for name in backgrounds for k in kinds
+                                             for lvl in LEVELS[k] for r in range(reps))}
+    rows.sort(key=lambda r: order.get((r["background"], r["kind"], r["level"], r["rep"]), len(order)))
+    usage = [x["usage"] for x in clean + rows if x.get("usage")]
+    return rescore_hybrid({
+        "backgrounds": {k: str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
+                        for k, p in backgrounds.items()},
+        "agent": agent, "lang": lang, "reps": reps, "seed": seed, "levels": LEVELS, "units": UNITS,
+        "persistence_s": PERSISTENCE_S, "tolerance_pct": TOLERANCE_PCT,
+        **({"usage": {key: sum(u.get(key, 0) for u in usage) for key in ("input_tokens", "output_tokens",
+                                                                         "requests")}} if usage else {}),
+        "clean": clean, "rows": rows})
 
 
 def summarize_hybrid(rows: list[dict]) -> dict:
     out: dict = {}
     for r in rows:
         d = out.setdefault(r["kind"], {}).setdefault(str(r["level"]), {"n": 0, "detected": 0, "masked": 0,
-                                                                         "false_positives": 0})
+                                                                         "false_positives": 0, "errors": 0})
+        if "error" in r:
+            d["errors"] += 1
+            continue
         d["n"] += 1
         d["detected"] += r["detected"]
         d["masked"] += r["masked"]
@@ -244,11 +357,21 @@ def summarize_hybrid(rows: list[dict]) -> dict:
 
 
 def format_hybrid(res: dict) -> str:
-    lines = ["| injected | size | detected | masked | new false positives |", "|---|---|---|---|---|"]
+    errors = any(d.get("errors") for by in res["summary"].values() for d in by.values())
+    lines = ["| injected | size | detected | masked | new false positives |" + (" failed runs |" if errors else ""),
+             "|---|---|---|---|---|" + ("---|" if errors else "")]
     for kind, by in res["summary"].items():
         for lvl, d in by.items():
             judged = d["n"] - d["masked"]
             rate = f"{d['detected']}/{judged} ({100 * d['detected'] / judged:.0f}%)" if judged else "–"
             lines.append(f"| {kind} | {float(lvl):g} {res['units'][kind]} | {rate} | {d['masked']} | "
-                         f"{d['false_positives']} |")
+                         f"{d['false_positives']} |" + (f" {d.get('errors', 0)} |" if errors else ""))
+    failed_clean = [f"{c['background']} / {c['kind']}" for c in res.get("clean", []) if "error" in c]
+    if failed_clean:
+        lines.append(f"\nclean runs that failed (cases on these backgrounds are scored without them): "
+                     f"{', '.join(failed_clean)}")
+    u = res.get("usage")
+    if u:
+        lines.append(f"\ntokens: {u['input_tokens']:,} input / {u['output_tokens']:,} output, "
+                     f"{u['requests']:,} requests")
     return "\n".join(lines)

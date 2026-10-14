@@ -577,7 +577,7 @@ def test_realistic_suite_keeps_classic_runs_and_is_caught_by_the_rule_agent():
 def test_hybrid_benchmark_injects_and_scores(tmp_path):
     """Hybrid benchmark mechanics on a stand-in background (real logs are not in the repository): every kind of
     injection is caught at a clear size, nothing new is reported, and the summary counts it."""
-    from groundline.hybrid import _case, summarize_hybrid
+    from groundline.hybrid import LEVELS, _case, _clean_case, _score, summarize_hybrid
 
     run = generate_run(5, [], fs=1000.0)
     df = run.data.drop(columns=["cmd_ox", "cmd_fu"])
@@ -587,11 +587,13 @@ def test_hybrid_benchmark_injects_and_scores(tmp_path):
     meta.pop("sample_rate_hz")
     df.to_csv(tmp_path / "run.csv", index=False)
     (tmp_path / "meta.json").write_text(json.dumps(meta))
+    pool = [_clean_case(("stand-in", str(tmp_path / "run.csv"), k)) for k in LEVELS]
     rows = []
     for kind, level in (("oscillation", 4.0), ("redline", 0.05), ("deviation", 5.0), ("spike", 48.0),
                         ("dropout", 0.2), ("stuck", 0.2)):
-        r = _case(("stand-in", str(tmp_path / "run.csv"), kind, level, 0, 0))
+        r = _score(_case(("stand-in", str(tmp_path / "run.csv"), kind, level, 0, 0)), pool)
         assert r["detected"] and not r["false_positives"], (kind, r)
+        assert any(f.get("new") and f["category"] != "observation" for f in r["findings"])
         rows.append(r)
     assert all(v[str(lv)]["detected"] == 1 for v, lv in zip(summarize_hybrid(rows).values(),
                                                              (4.0, 0.05, 5.0, 48.0, 0.2, 0.2)))

@@ -90,18 +90,33 @@ def cmd_reproduce(a) -> int:
 
 
 def cmd_eval(a) -> int:
-    from .evaluate import format_summary, run_benchmark, save
+    from .evaluate import format_summary, run_benchmark, save, summarize
 
     def prog(i, n):
         print(f"\r  run {i}/{n}", end="", file=sys.stderr, flush=True)
 
+    resume = None
+    if a.resume:
+        prev = json.loads(Path(a.resume).read_text())
+        if (prev.get("n_runs"), prev.get("seed"), prev.get("suite", "classic")) != (a.n, a.seed, a.suite):
+            print(f"cannot resume: {a.resume} is n={prev.get('n_runs')} seed={prev.get('seed')} "
+                  f"suite={prev.get('suite', 'classic')}; pass the same --n, --seed and --suite")
+            return 1
+        resume = [r for r in prev["runs"] if "error" not in r]
+    out = a.out or a.resume
+    suite = {"suite": a.suite} if a.suite != "classic" else {}
+
+    def checkpoint(rows):  # written after every run, so an interruption loses at most the run in progress
+        save({"n_runs": a.n, "seed": a.seed, **suite, "incomplete": True, "summary": summarize(rows), "runs": rows},
+             out)
+
     cfg = AgentConfig.from_env(a.agent, a.model, a.base_url)
     res = run_benchmark(lambda: make_agent(cfg, a.lang), n=a.n, seed=a.seed, progress=prog,
-                        suite=a.suite)
+                        suite=a.suite, resume_rows=resume, on_row=checkpoint if out else None)
     print(file=sys.stderr)
     print(format_summary(res["summary"]))
-    if a.out:
-        print(f"details: {save(res, a.out)}")
+    if out:
+        print(f"details: {save(res, out)}")
     return 0
 
 
@@ -176,12 +191,15 @@ def cmd_hybrid_bench(a) -> int:
     def prog(i, n):
         print(f"\r  case {i}/{n}", end="", file=sys.stderr, flush=True)
 
-    res = run_hybrid(bgs, reps=a.reps, seed=a.seed, progress=prog)
+    cfg = AgentConfig.from_env(a.agent, a.model, a.base_url)
+    resume = json.loads(Path(a.resume).read_text()) if a.resume else None
+    res = run_hybrid(bgs, reps=a.reps, seed=a.seed, progress=prog, lang=a.lang,
+                     agent_cfg=None if cfg.kind == "rule" else cfg, resume=resume)
     print(file=sys.stderr)
-    print("backgrounds: " + ", ".join(bgs))
+    print("backgrounds: " + ", ".join(bgs) + f" · agent: {cfg.kind}" + (f" ({cfg.model})" if cfg.model else ""))
     print(format_hybrid(res))
-    if a.out:
-        print(f"details: {save(res, a.out)}")
+    if a.out or a.resume:
+        print(f"details: {save(res, a.out or a.resume)}")
     return 0
 
 
@@ -260,6 +278,8 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--n", type=int, default=30)
     e.add_argument("--seed", type=int, default=1000)
     e.add_argument("--out", help="write full results JSON here")
+    e.add_argument("--resume", help="results JSON of an earlier run with the same --n, --seed and --suite: keep its "
+                                    "finished runs, run only failed or missing ones (written back there unless --out)")
     e.add_argument("--suite", default="classic", choices=["classic", "realistic"],
                    help="classic: the original six anomaly types; realistic: adds faults and nuisances seen in real "
                         "test logs (DAQ dropouts, saturation, offsets, duplicated / dead channels, mains hum, ...)")
@@ -287,6 +307,9 @@ def main(argv: list[str] | None = None) -> int:
     hb.add_argument("--reps", type=int, default=5, help="injections per size and background (default 5)")
     hb.add_argument("--seed", type=int, default=0)
     hb.add_argument("--out", help="write details JSON here")
+    hb.add_argument("--resume", help="details JSON of an earlier run with the same agent and seed: keep its finished "
+                                     "agent runs, run only failed or missing ones (written back there unless --out)")
+    _add_agent_args(hb)
     hb.set_defaults(fn=cmd_hybrid_bench)
 
     rv = sub.add_parser("reverify", help="re-run the current verifier on saved LLM benchmark results")
