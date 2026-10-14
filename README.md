@@ -84,6 +84,8 @@ When benchmarking an LLM agent, besides detection rates Groundline also counts *
 groundline eval --agent openai --model gpt-4o-mini --n 10 --lang en --out eval_openai.json
 ```
 
+The results file is written after every run. If runs fail (a timeout, an exhausted API quota), `--resume eval_openai.json` with the same `--n`, `--seed` and `--suite` keeps the finished runs and runs only the rest.
+
 With the official OpenAI endpoint the Responses API is used automatically (reasoning models such as `gpt-5.6-sol` can only reason and call tools together there); set the reasoning effort with `GROUNDLINE_LLM_REASONING_EFFORT`. Other OpenAI-compatible services use Chat Completions; force either with `GROUNDLINE_OPENAI_API=responses|chat`. No temperature is sent by default; set one with `GROUNDLINE_LLM_TEMPERATURE`. With `--agent anthropic` the same variable sets the effort level (`low` … `max`); the prompt prefix is cached between agent steps.
 
 Test data is usually sensitive, so the interface is built for on-premise deployment: the model only sees summaries of tool outputs, never the raw data.
@@ -206,7 +208,7 @@ Building the suite exposed three gaps that are now fixed: mains hum was reported
 
 | Injected | Detected by size | |
 |---|---|---|
-| Oscillation on Pc (zero-to-peak, % of steady Pc; criterion 0.5%) | Triton: 0.25% 0/5, 0.5% 1/4, 1% 5/5, 2% 4/4, 4% 5/5 · UVic: 0.25–1% 0/15, 2% 2/5, 4% 4/5 | |
+| Oscillation on Pc (zero-to-peak, % of steady Pc; criterion 0.5%) | Triton: 0.25% 0/5, 0.5% 1/4, 1% 5/5, 2% 5/5, 4% 5/5 · UVic: 0.25–1% 0/15, 2% 2/5, 4% 4/5 | |
 | Pc above a redline (time above; persistence 10 ms) | 5 ms 0/10, 10 ms 0/10, 20 ms 10/10, 50 ms 10/10, 200 ms 10/10 | |
 | Pc below a prediction (% of steady Pc; tolerance 2%) | Triton: 1% 0/5, 2% 0/5, 3–8% 15/15 · UVic: masked (its Pc carries a known zero offset) | |
 | One-sample spike on thrust (local noise sigmas; criterion 12) | 6σ 0/10, 12σ 3/10, 24σ 9/10, 48σ 8/10 | |
@@ -214,6 +216,8 @@ Building the suite exposed three gaps that are now fixed: mains hum was reported
 | Thrust channel frozen (minimum 50 ms) | 20 ms 4/10, 50 ms to 1 s: 30/30 | |
 
 **No injection produced a new false positive in 270 cases.** The redline, deviation, gap and freeze checks behave as specified on real noise. Oscillation detection depends on the engine: on the Triton liquid engine it works from about the 0.5% criterion upwards; on the rough-burning UVic hybrid, broadband combustion noise hides lines below a few percent. A second search pass with 0.5 s windows (added for this) raised UVic from 2/10 to 6/10 at 2–4%. The misses at 24σ and 48σ are spikes placed in Triton's start-up pressure event or next to a DAQ dropout, where spike detection is deliberately desensitised; the four 20 ms "detections" are the spike check firing at the step back, not the flatline check.
+
+`groundline hybrid-bench --agent openai` (or `anthropic`) runs the same cases with an LLM agent. An LLM does not answer the same way twice, so each case is compared with all clean runs of its background together (one per kind of injection), and a new finding that the clean runs already hold with the same category and check at that time, even on another channel, is not counted as a false positive. A finding counts as new only if its time window reaches beyond the clean findings: an LLM may merge an injected oscillation with a real event nearby into one wider finding. Every case stores the agent's findings, so the scoring can be redone without re-running the agent, and `--resume` re-runs only the cases that failed.
 
 ### Model leaderboard
 
